@@ -119,7 +119,7 @@ function loadPlantuml() {
       script.onerror = () => reject(new Error("could not load Graphviz"));
       document.head.append(script);
     });
-    return import(`${PLANTUML_BASE}plantuml.js`);
+    return import(/* @vite-ignore */ `${PLANTUML_BASE}plantuml.js`);
   })();
   plantuml.catch(() => (plantuml = undefined)); // try again next time
   return plantuml;
@@ -599,7 +599,11 @@ for (const prefix of CONVERTERS) {
   });
   $(`${prefix}-use-as-input`).addEventListener("click", () => {
     $(`${prefix}-data`).value = output();
-    if (prefix === "rdf") $("rdf-data-format").value = $("rdf-result-format").value;
+    if (prefix === "rdf") {
+      $("rdf-data-format").value = $("rdf-result-format").value;
+      // The editor highlights the data in its new format
+      $("rdf-data-format").dispatchEvent(new Event("change"));
+    }
     $(`${prefix}-data`).focus();
   });
 }
@@ -648,7 +652,7 @@ for (const prefix of Object.keys(validators)) {
 // Loading
 
 try {
-  rudofModule = await import(RUDOF_MODULE);
+  rudofModule = await import(/* @vite-ignore */ RUDOF_MODULE);
   await rudofModule.default();
   // The version reported by the loaded module, not the one requested
   setStatus("ready", `rudof ${new rudofModule.Rudof().getVersion()} ready`);

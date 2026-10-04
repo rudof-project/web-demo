@@ -1,0 +1,9 @@
+# The names and ages of all people, ordered by name
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT ?name ?age WHERE {
+  ?person a foaf:Person ;
+          foaf:name ?name .
+  OPTIONAL { ?person foaf:age ?age }
+}
+ORDER BY ?name

@@ -1,0 +1,15 @@
+# Strings, language tags, numbers, booleans and datatypes
+prefix : <http://example.org/>
+prefix xsd: <http://www.w3.org/2001/XMLSchema#>
+
+:alice :name "Alice" ;
+       :greeting "Hello"@en, "Hola"@es ;
+       :quote 'Single "quoted"' ;
+       :bio """A long text
+over several lines""" ;
+       :age 23 ;
+       :height 1.68 ;
+       :mass 6.1e1 ;
+       :active true ;
+       :birthDate "1995-03-12"^^xsd:date ;
+       :escaped "Tab\tand newline\n" .

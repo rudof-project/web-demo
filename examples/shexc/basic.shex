@@ -1,0 +1,9 @@
+# A person has one name, an optional birth date, and knows other people
+prefix : <http://example.org/>
+prefix xsd: <http://www.w3.org/2001/XMLSchema#>
+
+:Person {
+  :name      xsd:string ;
+  :birthDate xsd:date ? ;
+  :knows     @:Person *
+}

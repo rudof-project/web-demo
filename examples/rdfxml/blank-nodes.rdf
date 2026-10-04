@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Blank nodes: nested descriptions, rdf:nodeID and rdf:parseType="Resource" -->
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:foaf="http://xmlns.com/foaf/0.1/"
+         xmlns:ex="http://example.org/vocab#">
+  <rdf:Description rdf:about="http://example.org/alice">
+    <foaf:knows>
+      <foaf:Person>
+        <foaf:name>Carol</foaf:name>
+      </foaf:Person>
+    </foaf:knows>
+    <ex:address rdf:parseType="Resource">
+      <ex:street>Main Street 1</ex:street>
+      <ex:city>Oviedo</ex:city>
+    </ex:address>
+    <foaf:knows rdf:nodeID="dave"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="dave">
+    <foaf:name>Dave</foaf:name>
+  </rdf:Description>
+</rdf:RDF>

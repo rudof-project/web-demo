@@ -1,0 +1,12 @@
+# Both prefix syntaxes, base IRIs, relative and absolute IRIs
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@base <http://example.org/> .
+PREFIX dc: <http://purl.org/dc/terms/>
+BASE <http://example.org/people/>
+prefix : <http://example.org/vocab#>
+
+<alice> foaf:name "Alice" ;
+        dc:creator <http://example.org/people/bob> ;
+        :homepage <https://alice.example.org/> .
+
+<#me> :sameAs <alice> .

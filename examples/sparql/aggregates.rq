@@ -1,0 +1,13 @@
+# How many people each one knows, and the average of their known ages
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT ?name (COUNT(?friend) AS ?friends) (AVG(?age) AS ?averageAge) WHERE {
+  ?person foaf:name ?name .
+  OPTIONAL {
+    ?person foaf:knows ?friend .
+    OPTIONAL { ?friend foaf:age ?age }
+  }
+}
+GROUP BY ?name
+HAVING (COUNT(?friend) > 0)
+ORDER BY DESC(?friends)

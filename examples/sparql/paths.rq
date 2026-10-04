@@ -1,0 +1,9 @@
+# Property paths: friends of friends, and anyone reachable through foaf:knows
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX : <http://example.org/>
+
+SELECT DISTINCT ?friendOfFriend ?reachable WHERE {
+  :alice foaf:knows/foaf:knows ?friendOfFriend .
+  :alice foaf:knows+ ?reachable .
+  ?reachable ^foaf:knows|foaf:knows ?other .
+}

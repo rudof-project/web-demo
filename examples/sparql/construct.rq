@@ -1,0 +1,6 @@
+# The inverse of foaf:knows
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX : <http://example.org/>
+
+CONSTRUCT { ?b :isKnownBy ?a }
+WHERE { ?a foaf:knows ?b }

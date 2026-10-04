@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Collections (rdf:parseType="Collection") and containers (rdf:Seq, rdf:Bag) -->
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:ex="http://example.org/vocab#">
+  <rdf:Description rdf:about="http://example.org/course">
+    <ex:students rdf:parseType="Collection">
+      <rdf:Description rdf:about="http://example.org/alice"/>
+      <rdf:Description rdf:about="http://example.org/bob"/>
+      <rdf:Description rdf:about="http://example.org/carol"/>
+    </ex:students>
+    <ex:schedule>
+      <rdf:Seq>
+        <rdf:li>Monday</rdf:li>
+        <rdf:li>Wednesday</rdf:li>
+      </rdf:Seq>
+    </ex:schedule>
+    <ex:topics>
+      <rdf:Bag>
+        <rdf:li>RDF</rdf:li>
+        <rdf:li>ShEx</rdf:li>
+        <rdf:li>SHACL</rdf:li>
+      </rdf:Bag>
+    </ex:topics>
+  </rdf:Description>
+</rdf:RDF>
