@@ -4,7 +4,7 @@
 // sync: what is typed is written back to the textarea, so the textarea still
 // holds the text of the input.
 
-import { EditorState } from "@codemirror/state";
+import { EditorState, Compartment } from "@codemirror/state";
 import {
   EditorView,
   ViewPlugin,
@@ -20,6 +20,7 @@ import { HighlightStyle, syntaxHighlighting, bracketMatching, indentOnInput, ind
 import { search, searchKeymap, highlightSelectionMatches } from "@codemirror/search";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { tags as t } from "@lezer/highlight";
+import { loadLanguage } from "./languages/index.js";
 
 // The colors and font are those of the page (demo.css), so the editors follow
 // its light and dark schemes.
@@ -106,6 +107,10 @@ export function editorSetup() {
 // The editors, by the id of their textarea.
 const editors = new Map();
 
+// The language of each editor: the compartment that holds it, and the format
+// last chosen.
+const languages = new WeakMap();
+
 export function editorFor(id) {
   return editors.get(id);
 }
@@ -147,6 +152,7 @@ function textareaSync(textarea) {
           delete textarea.focus;
           textarea.hidden = false;
           if (editors.get(textarea.id) === view) editors.delete(textarea.id);
+          languages.delete(view);
         },
       };
     }),
@@ -158,13 +164,15 @@ function labelOf(element) {
   return element.labels?.[0]?.textContent.trim() ?? element.getAttribute("aria-label");
 }
 
-export function createEditor(textarea, { extensions = [] } = {}) {
+export function createEditor(textarea, { format, extensions = [] } = {}) {
   const label = labelOf(textarea);
+  const language = new Compartment();
   const view = new EditorView({
     state: EditorState.create({
       doc: textarea.value,
       extensions: [
         editorSetup(),
+        language.of([]),
         textareaSync(textarea),
         label ? EditorView.contentAttributes.of({ "aria-label": label }) : [],
         extensions,
@@ -176,13 +184,33 @@ export function createEditor(textarea, { extensions = [] } = {}) {
   view.dom.classList.add(...textarea.classList);
   textarea.after(view.dom);
   textarea.hidden = true;
+  languages.set(view, { compartment: language, format: null });
+  if (format) setFormat(view, format);
   return view;
 }
 
-// Editors in place of the textareas marked with data-editor, by id.
+// Highlights the text of an editor as written in a format (turtle, rdfxml…),
+// once its language is loaded. If another format is chosen in the meantime,
+// the last one chosen wins.
+export async function setFormat(view, format) {
+  const language = languages.get(view);
+  if (!language) return;
+  language.format = format;
+  view.dom.dataset.format = format;
+  const support = await loadLanguage(format);
+  if (languages.get(view) !== language || language.format !== format) return;
+  view.dispatch({ effects: language.compartment.reconfigure(support) });
+}
+
+// Editors in place of the textareas marked with data-editor, by id. The
+// format of their text is fixed (data-language), or chosen in a select of the
+// page (data-format-select, its id).
 export function setupEditors(root = document) {
   for (const textarea of root.querySelectorAll("textarea[data-editor]")) {
-    if (!editors.has(textarea.id)) createEditor(textarea);
+    if (editors.has(textarea.id)) continue;
+    const select = textarea.dataset.formatSelect && textarea.ownerDocument.getElementById(textarea.dataset.formatSelect);
+    const view = createEditor(textarea, { format: select ? select.value : textarea.dataset.language });
+    select?.addEventListener("change", () => setFormat(view, select.value));
   }
   return new Map([...root.querySelectorAll("textarea[data-editor]")].map((t) => [t.id, editors.get(t.id)]));
 }

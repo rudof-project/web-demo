@@ -34,6 +34,19 @@ describe("vite build", () => {
     expect(js().some((file) => read(file).includes("cm-editor"))).toBe(true);
   });
 
+  it("puts the languages in their own files, loaded when needed", () => {
+    // The files loaded with the page: its script and the ones it preloads
+    const eager = [...html.matchAll(/(?:src|href)="\.\/assets\/([^"]+\.js)"/g)].map((m) => m[1]);
+    const lazy = js().filter((file) => !eager.includes(file));
+    expect(eager.length).toBeGreaterThan(0);
+    // XML (Lezer) and the legacy SPARQL mode are not loaded with the page…
+    expect(eager.some((file) => read(file).includes("MismatchedCloseTag"))).toBe(false);
+    expect(eager.some((file) => /isblank/i.test(read(file)))).toBe(false);
+    // …but when they are imported
+    expect(lazy.some((file) => read(file).includes("MismatchedCloseTag"))).toBe(true);
+    expect(lazy.some((file) => /isblank/i.test(read(file)))).toBe(true);
+  });
+
   it("uses relative paths, so the page works in any folder", () => {
     expect(html).not.toMatch(/(src|href)="\/(?!\/)/);
   });

@@ -16,7 +16,6 @@ const PACKAGES = {
   "@codemirror/autocomplete": ["closeBrackets", "closeBracketsKeymap"],
   "@codemirror/lang-xml": ["xml"],
   "@codemirror/lang-json": ["json"],
-  "@codemirror/legacy-modes/mode/turtle": ["turtle"],
   "@codemirror/legacy-modes/mode/sparql": ["sparql"],
   "@lezer/highlight": ["tags"],
 };

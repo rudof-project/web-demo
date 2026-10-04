@@ -599,7 +599,11 @@ for (const prefix of CONVERTERS) {
   });
   $(`${prefix}-use-as-input`).addEventListener("click", () => {
     $(`${prefix}-data`).value = output();
-    if (prefix === "rdf") $("rdf-data-format").value = $("rdf-result-format").value;
+    if (prefix === "rdf") {
+      $("rdf-data-format").value = $("rdf-result-format").value;
+      // The editor highlights the data in its new format
+      $("rdf-data-format").dispatchEvent(new Event("change"));
+    }
     $(`${prefix}-data`).focus();
   });
 }
