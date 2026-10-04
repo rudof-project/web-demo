@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Several namespaces, typed nodes and xml:base -->
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns:foaf="http://xmlns.com/foaf/0.1/"
+         xmlns:dc="http://purl.org/dc/terms/"
+         xmlns:ex="http://example.org/vocab#"
+         xml:base="http://example.org/">
+  <foaf:Person rdf:about="alice">
+    <foaf:name>Alice</foaf:name>
+    <ex:worksFor rdf:resource="acme"/>
+  </foaf:Person>
+  <ex:Company rdf:about="acme">
+    <rdfs:label>ACME Corporation</rdfs:label>
+    <dc:created>1949</dc:created>
+  </ex:Company>
+  <rdf:Description rdf:ID="note">
+    <rdfs:comment>rdf:ID is resolved against xml:base</rdfs:comment>
+  </rdf:Description>
+</rdf:RDF>

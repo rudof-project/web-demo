@@ -1,0 +1,15 @@
+# Node constraints: value sets, facets, node kinds and cardinalities
+prefix : <http://example.org/>
+prefix xsd: <http://www.w3.org/2001/XMLSchema#>
+
+:User IRI {
+  :name     xsd:string MAXLENGTH 50 ;
+  :email    LITERAL /^[^@]+@[^@]+$/ ;
+  :age      xsd:integer MININCLUSIVE 0 MAXINCLUSIVE 150 ? ;
+  :gender   [ :male :female :other ] ;
+  :status   [ "active" "inactive" ] ;
+  :language [ @en @es ] {0,3} ;
+  :homepage IRI {1,2} ;
+  :friend   BNODE OR IRI * ;
+  :score    xsd:decimal TOTALDIGITS 4 FRACTIONDIGITS 2 ?
+}

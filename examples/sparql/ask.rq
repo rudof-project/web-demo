@@ -1,0 +1,4 @@
+# Is anyone under 18?
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+ASK { ?person foaf:age ?age FILTER (?age < 18) }

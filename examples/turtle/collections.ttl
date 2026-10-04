@@ -1,0 +1,7 @@
+# RDF collections (lists), empty and nested
+prefix : <http://example.org/>
+
+:course :students ( :alice :bob :carol ) ;
+        :scores ( 7 8.5 9.25e0 ) ;
+        :none () ;
+        :matrix ( ( 1 2 ) ( 3 4 ) ) .

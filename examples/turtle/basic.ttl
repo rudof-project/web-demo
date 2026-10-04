@@ -1,0 +1,16 @@
+# A few people who know each other
+prefix : <http://example.org/>
+prefix foaf: <http://xmlns.com/foaf/0.1/>
+
+:alice a foaf:Person ;
+       foaf:name "Alice" ;
+       foaf:age 23 ;
+       foaf:knows :bob, :carol .
+
+:bob   a foaf:Person ;
+       foaf:name "Bob" ;
+       foaf:age 34 ;
+       foaf:knows :carol .
+
+:carol a foaf:Person ;
+       foaf:name "Carol" .

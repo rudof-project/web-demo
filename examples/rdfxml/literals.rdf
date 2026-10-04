@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Plain, language-tagged, typed and XML literals -->
+<!DOCTYPE rdf:RDF [
+  <!ENTITY xsd "http://www.w3.org/2001/XMLSchema#">
+]>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:ex="http://example.org/vocab#">
+  <rdf:Description rdf:about="http://example.org/alice" ex:nickname="Ali">
+    <ex:name>Alice</ex:name>
+    <ex:greeting xml:lang="en">Hello</ex:greeting>
+    <ex:greeting xml:lang="es">Hola</ex:greeting>
+    <ex:age rdf:datatype="&xsd;integer">23</ex:age>
+    <ex:height rdf:datatype="&xsd;decimal">1.68</ex:height>
+    <ex:birthDate rdf:datatype="&xsd;date">1995-03-12</ex:birthDate>
+    <ex:active rdf:datatype="&xsd;boolean">true</ex:active>
+    <ex:bio rdf:parseType="Literal"><b>Alice</b> &amp; friends</ex:bio>
+  </rdf:Description>
+</rdf:RDF>

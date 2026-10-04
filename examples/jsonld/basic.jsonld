@@ -1,0 +1,22 @@
+{
+  "@context": {
+    "@vocab": "http://xmlns.com/foaf/0.1/",
+    "ex": "http://example.org/",
+    "knows": { "@type": "@id" },
+    "age": { "@id": "age", "@type": "http://www.w3.org/2001/XMLSchema#integer" }
+  },
+  "@graph": [
+    {
+      "@id": "ex:alice",
+      "@type": "Person",
+      "name": "Alice",
+      "age": 23,
+      "knows": ["ex:bob", "ex:carol"]
+    },
+    {
+      "@id": "ex:bob",
+      "@type": "Person",
+      "name": { "@value": "Bob", "@language": "en" }
+    }
+  ]
+}

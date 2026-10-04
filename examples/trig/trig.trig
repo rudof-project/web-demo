@@ -1,0 +1,16 @@
+# Named graphs: the default graph says who published each graph
+prefix : <http://example.org/>
+prefix foaf: <http://xmlns.com/foaf/0.1/>
+prefix dc: <http://purl.org/dc/terms/>
+
+:people dc:publisher :alice .
+:courses dc:publisher :bob .
+
+:people {
+  :alice a foaf:Person ; foaf:name "Alice" ; foaf:knows :bob .
+  :bob   a foaf:Person ; foaf:name "Bob" .
+}
+
+GRAPH :courses {
+  :algebra :name "Algebra" ; :credits 6 .
+}

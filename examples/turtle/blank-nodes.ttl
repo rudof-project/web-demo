@@ -1,0 +1,14 @@
+# Labelled and anonymous blank nodes, nested property lists
+prefix : <http://example.org/>
+prefix foaf: <http://xmlns.com/foaf/0.1/>
+
+:alice foaf:knows _:someone, [ foaf:name "Carol" ] .
+
+_:someone foaf:name "Dave" .
+
+[] a foaf:Person ;
+   foaf:name "Anonymous" ;
+   :address [
+     :street "Main Street 1" ;
+     :city "Oviedo"
+   ] .

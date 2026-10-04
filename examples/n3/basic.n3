@@ -1,0 +1,11 @@
+# N3 shorthands that can be represented as RDF triples
+# (formulae and rules, like { ?x :p ?y } => { ?y :p ?x }, can't)
+@prefix : <http://example.org/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+
+:alice foaf:knows :bob .
+:carol is foaf:knows of :bob .
+:alice has foaf:name "Alice" .
+:alice = :alicia .
+:alice!foaf:knows foaf:name "Bob" .
+:human => :mortal .
