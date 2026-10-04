@@ -14,6 +14,20 @@
   --warn-bg: #fff4e0;
   --warn-text: #8a5300;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", "DejaVu Sans Mono", monospace;
+  /* Editors (codemirror-setup.js) */
+  --cm-keyword: #8250df;
+  --cm-string: #0a7f3f;
+  --cm-number: #b35900;
+  --cm-comment: #6e7781;
+  --cm-variable: #0550ae;
+  --cm-iri: #1f6feb;
+  --cm-prefix: #953800;
+  --cm-property: #116329;
+  --cm-tag: #0550ae;
+  --cm-active-line: rgba(31, 111, 235, 0.06);
+  --cm-selection: rgba(31, 111, 235, 0.22);
+  --cm-selection-match: rgba(31, 111, 235, 0.12);
+  --cm-search-match: rgba(255, 196, 0, 0.4);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -31,6 +45,19 @@
     --fail-text: #ff9a8f;
     --warn-bg: #3a2c12;
     --warn-text: #f0c070;
+    --cm-keyword: #d2a8ff;
+    --cm-string: #7ee2a8;
+    --cm-number: #ffb86b;
+    --cm-comment: #8b949e;
+    --cm-variable: #79c0ff;
+    --cm-iri: #6cb6ff;
+    --cm-prefix: #ffa657;
+    --cm-property: #a5d6a7;
+    --cm-tag: #79c0ff;
+    --cm-active-line: rgba(76, 141, 255, 0.08);
+    --cm-selection: rgba(76, 141, 255, 0.3);
+    --cm-selection-match: rgba(76, 141, 255, 0.16);
+    --cm-search-match: rgba(255, 196, 0, 0.3);
   }
 }
 
