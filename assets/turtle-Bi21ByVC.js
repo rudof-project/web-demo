@@ -1,0 +1,1 @@
+import{n as e}from"./tokens-BDNkjQ_P.js";var t=e({name:`turtle`,keywords:[`PREFIX`,`BASE`,`GRAPH`],exactKeywords:[`a`,`is`,`of`,`has`],special(e){if(e.match(/^\?[\w\u00C0-\uFFFF]+/))return`variableName`;if(e.match(/^(=>|<=)/))return`operator`}});export{t as turtle};
