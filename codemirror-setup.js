@@ -103,20 +103,53 @@ export function editorSetup() {
   ];
 }
 
-// The textarea of an editor: written when the text changes, and shown again
-// when the editor is removed.
+// The editors, by the id of their textarea.
+const editors = new Map();
+
+export function editorFor(id) {
+  return editors.get(id);
+}
+
+// Sets the value of a textarea as the browser keeps it.
+function setTextareaValue(textarea, text) {
+  Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set.call(textarea, text);
+}
+
+// The textarea of an editor stands for it, so that the rest of the demo can
+// keep using the textarea: its value is the text of the editor (reading it,
+// and setting it, which can be undone), and focusing it focuses the editor.
+// The textarea is written when the text changes, and is back to normal when
+// the editor is removed.
 function textareaSync(textarea) {
   return [
     EditorView.updateListener.of((update) => {
       if (!update.docChanged) return;
-      textarea.value = update.state.doc.toString();
+      setTextareaValue(textarea, update.state.doc.toString());
       textarea.dispatchEvent(new Event("input", { bubbles: true }));
     }),
-    ViewPlugin.define(() => ({
-      destroy() {
-        textarea.hidden = false;
-      },
-    })),
+    ViewPlugin.define((view) => {
+      Object.defineProperties(textarea, {
+        value: {
+          configurable: true,
+          get: () => view.state.doc.toString(),
+          set: (text) => {
+            text = String(text ?? "");
+            if (text === view.state.doc.toString()) return;
+            view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
+          },
+        },
+        focus: { configurable: true, value: () => view.focus() },
+      });
+      if (textarea.id) editors.set(textarea.id, view);
+      return {
+        destroy() {
+          delete textarea.value;
+          delete textarea.focus;
+          textarea.hidden = false;
+          if (editors.get(textarea.id) === view) editors.delete(textarea.id);
+        },
+      };
+    }),
   ];
 }
 
@@ -145,3 +178,15 @@ export function createEditor(textarea, { extensions = [] } = {}) {
   textarea.hidden = true;
   return view;
 }
+
+// Editors in place of the textareas marked with data-editor, by id.
+export function setupEditors(root = document) {
+  for (const textarea of root.querySelectorAll("textarea[data-editor]")) {
+    if (!editors.has(textarea.id)) createEditor(textarea);
+  }
+  return new Map([...root.querySelectorAll("textarea[data-editor]")].map((t) => [t.id, editors.get(t.id)]));
+}
+
+// In the page, the textareas become editors as soon as it is loaded (a module
+// runs once the page has been parsed).
+if (typeof document !== "undefined" && document.querySelector("textarea[data-editor]")) setupEditors();
