@@ -9,6 +9,7 @@
     content="Convert, validate (ShEx, SHACL, PGSchema) and query (SPARQL) RDF data and property graphs in your browser, with rudof compiled to WebAssembly.">
   <link rel="icon" href="images/logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="demo.css">
+  <script type="module" src="codemirror-setup.js"></script>
   <script type="module" src="demo.js"></script>
 </head>
 
@@ -66,7 +67,7 @@
                 <option value="nquads">N-Quads</option>
               </select>
             </div>
-            <textarea id="rdf-data" spellcheck="false">prefix : &lt;http://example.org/&gt;
+            <textarea id="rdf-data" data-editor data-format-select="rdf-data-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
 prefix foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
 prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
 
@@ -122,7 +123,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
               <label for="pg-data">Property graph</label>
               <span class="format-tag" title="The only property graph format supported for now">YARS-PG</span>
             </div>
-            <textarea id="pg-data" spellcheck="false">(n1 {Person} [
+            <textarea id="pg-data" data-editor data-language="yarspg" spellcheck="false">(n1 {Person} [
     name: "Alice",
     birthdate: DATE "2010-07-22"
 ])
@@ -188,7 +189,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
                 <option value="nquads">N-Quads</option>
               </select>
             </div>
-            <textarea id="shex-data" spellcheck="false">prefix : &lt;http://example.org/&gt;
+            <textarea id="shex-data" data-editor data-format-select="shex-data-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
 prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
 
 :alice :name "Alice" ;
@@ -209,7 +210,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
                 <option value="turtle">ShExR (Turtle)</option>
               </select>
             </div>
-            <textarea id="shex-schema" spellcheck="false">prefix : &lt;http://example.org/&gt;
+            <textarea id="shex-schema" data-editor data-format-select="shex-schema-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
 prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
 
 :Person {
@@ -224,7 +225,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
             <label for="shex-shapemap">Shape map</label>
             <span class="hint">e.g. <code>:alice@:Person</code> or <code>{FOCUS :name _}@:Person</code></span>
           </div>
-          <textarea id="shex-shapemap" class="short"
+          <textarea id="shex-shapemap" data-editor data-language="shapemap" class="short"
             spellcheck="false">:alice@:Person, :bob@:Person, :carol@:Person</textarea>
         </div>
         <div class="toolbar">
@@ -286,7 +287,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
                 <option value="nquads">N-Quads</option>
               </select>
             </div>
-            <textarea id="shacl-data" spellcheck="false">prefix : &lt;http://example.org/&gt;
+            <textarea id="shacl-data" data-editor data-format-select="shacl-data-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
 prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
 
 :alice a :Person ;
@@ -310,7 +311,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
                 <option value="nquads">N-Quads</option>
               </select>
             </div>
-            <textarea id="shacl-shapes" spellcheck="false">prefix : &lt;http://example.org/&gt;
+            <textarea id="shacl-shapes" data-editor data-format-select="shacl-shapes-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
 prefix sh: &lt;http://www.w3.org/ns/shacl#&gt;
 prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
 
@@ -391,7 +392,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
               <label for="pgschema-data">Property graph</label>
               <span class="format-tag" title="The only property graph format supported for now">YARS-PG</span>
             </div>
-            <textarea id="pgschema-data" spellcheck="false">(n1 {Person} [
+            <textarea id="pgschema-data" data-editor data-language="yarspg" spellcheck="false">(n1 {Person} [
     name: "Alice",
     birthdate: DATE "2010-07-22"
 ])
@@ -413,7 +414,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
               <label for="pgschema-schema">PGSchema</label>
               <span class="format-tag">PGSchemaC</span>
             </div>
-            <textarea id="pgschema-schema" spellcheck="false">CREATE NODE TYPE ( PersonType : Person {
+            <textarea id="pgschema-schema" data-editor data-language="pgschema" spellcheck="false">CREATE NODE TYPE ( PersonType : Person {
     name: STRING ||
     ( givenName: STRING, familyName: STRING ),
     OPTIONAL birthdate: DATE
@@ -444,7 +445,7 @@ CREATE EDGE TYPE (:@StudentType)
             <span class="hint">node or edge id <code>:</code> type, e.g.
               <code>n1: PersonType, e1: KnowsType</code></span>
           </div>
-          <textarea id="pgschema-typemap" class="medium" spellcheck="false">n1: PersonType,
+          <textarea id="pgschema-typemap" data-editor data-language="typemap" class="medium" spellcheck="false">n1: PersonType,
 n2: StudentType,
 n3: CourseType,
 e1: KnowsType,
@@ -492,7 +493,7 @@ e2: EnrolledInType</textarea>
                 <option value="nquads">N-Quads</option>
               </select>
             </div>
-            <textarea id="sparql-data" spellcheck="false">prefix : &lt;http://example.org/&gt;
+            <textarea id="sparql-data" data-editor data-format-select="sparql-data-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
 prefix foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
 
 :alice a foaf:Person ;
@@ -520,7 +521,7 @@ prefix foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
                 <option value="describe">DESCRIBE: Carol</option>
               </select>
             </div>
-            <textarea id="sparql-query" spellcheck="false">PREFIX foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
+            <textarea id="sparql-query" data-editor data-language="sparql" spellcheck="false">PREFIX foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
 
 SELECT ?name ?age WHERE {
   ?person a foaf:Person ;
