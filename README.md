@@ -70,3 +70,9 @@ CHROMIUM_PATH=/path/to/chromium npm run test:e2e
 
 The rudof version in `package.json` (used by the tests) must be the one
 `demo.js` loads (`RUDOF_VERSION`); a test checks it.
+
+## Publishing
+
+The [GitHub Actions workflow](.github/workflows/gh-pages.yml) runs the tests
+and builds the page on every push and pull request, and publishes `dist/` to
+the `gh-pages` branch on every push to `main`.
