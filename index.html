@@ -8,9 +8,9 @@
   <meta name="description"
     content="Convert, validate (ShEx, SHACL, PGSchema) and query (SPARQL) RDF data and property graphs in your browser, with rudof compiled to WebAssembly.">
   <link rel="icon" href="./assets/logo-Bi_PJdUG.svg" type="image/svg+xml">
-  <script type="module" crossorigin src="./assets/index-BuS4zZHI.js"></script>
+  <script type="module" crossorigin src="./assets/index-CvnRti0O.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/dist-BOANVATe.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-eW9T32mZ.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-DY9ZywVP.css">
 </head>
 
 <body>
@@ -35,6 +35,17 @@
       nothing you type is sent anywhere.
       <span id="status" class="status loading" role="status">Loading rudof…</span>
     </p>
+
+    <!-- The examples of a manifest, when the page is opened with ?manifestURL=… -->
+    <section id="manifest" class="manifest" aria-labelledby="manifest-title" hidden>
+      <div class="manifest-head">
+        <label id="manifest-title" for="manifest-examples">Examples from <a id="manifest-link"></a></label>
+        <select id="manifest-examples" disabled>
+          <option value="">Loading the manifest…</option>
+        </select>
+      </div>
+      <p id="manifest-note" class="manifest-note" role="status" hidden></p>
+    </section>
 
     <div class="tabs" role="tablist" aria-label="Section">
       <button role="tab" id="tab-data" aria-controls="panel-data" aria-selected="true">Data</button>
