@@ -85,6 +85,39 @@ GitHub Pages and raw.githubusercontent.com do. Kinds of examples are in
 `KINDS` of `manifest.js`: SHACL and PGSchema examples will be added there,
 named by the `type:` of the entry.
 
+## Permalinks
+
+After each operation (converting, validating, running a query, changing a
+result format, choosing a tab or an example), the query of the URL gets the
+inputs and options of the tab shown, and the fragment names the tab:
+
+```
+?schema=PREFIX%20…&data=PREFIX%20…&shape-map=%3CObs1%3E%40START%0A&schema-format=shexc&…#validate/shex
+```
+
+The **Permalink** button writes the inputs as they are now in the URL, and
+copies it. Opening the URL puts the inputs and options back in their tab.
+[`permalink.js`](permalink.js) has the parameters of each tab:
+
+| Tab      | Parameters |
+|----------|------------|
+| RDF      | `data`, `data-format`, `result-format` |
+| Property graph | `data`, `result-format` |
+| ShEx     | `schema`, `data`, `shape-map`, `schema-format`, `data-format`, `result-format`, `schema-result-format` |
+| SHACL    | `shapes`, `data`, `shapes-format`, `data-format`, `mode`, `result-format`, `schema-result-format` |
+| PGSchema | `schema`, `data`, `type-map`, `result-format` |
+| SPARQL   | `data`, `data-format`, `query`, `result-format` |
+
+`manifestURL` and `example` are kept. A URL without a fragment opens the tab
+of its parameters (ShEx for `shape-map` or `schema`), so links in the style of
+shex.js (`?schema=…&data=…&shape-map=…`) open the ShEx tab. When a URL has an
+`example` and inputs too, the inputs of the URL are used: they are the example
+as it was edited.
+
+The inputs are sent to the server of the page with the URL, and servers limit
+the length of URLs (often to about 8 KB), so very long inputs may not fit in
+a permalink.
+
 ## Tests
 
 ```sh

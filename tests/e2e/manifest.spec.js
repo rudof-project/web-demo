@@ -87,6 +87,23 @@ test("?example= loads an example when the page opens", async ({ page }) => {
   await expect(page.locator("#shex-result .verdict")).toHaveText(/^Conforms.*\(as the manifest expects\)$/);
 });
 
+test("choosing an example writes its inputs in the URL", async ({ page }) => {
+  await open(page, `?manifestURL=${encodeURIComponent(MANIFEST_URL)}`);
+  await select(page).selectOption({ label: "✗ Bob" });
+  await expect(page.locator("#manifest-note")).toContainText("Expected:");
+  const params = new URL(page.url()).searchParams;
+  expect(params.get("data")).toBe(FILES["https://manifests.example/examples/bob.ttl"]);
+  expect(params.get("manifestURL")).toBe(MANIFEST_URL);
+  expect(params.get("example")).toBe("2");
+});
+
+test("in a permalink with an example, its inputs are the ones of the link", async ({ page }) => {
+  const data = "prefix : <http://example.org/>\n:alice :name \"Alice, edited\" .";
+  await open(page, `?data=${encodeURIComponent(data)}&manifestURL=${encodeURIComponent(MANIFEST_URL)}&example=1#validate/shex`);
+  await expect(select(page)).toHaveValue("0");
+  await expect(page.locator("#shex-data")).toHaveJSProperty("value", data);
+});
+
 test("says when the manifest can't be read", async ({ page }) => {
   await open(page, "?manifestURL=https://manifests.example/missing.yaml");
   await expect(page.locator("#manifest-note")).toHaveText(/Could not load the manifest: .*404/);

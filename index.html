@@ -47,11 +47,14 @@
       <p id="manifest-note" class="manifest-note" role="status" hidden></p>
     </section>
 
-    <div class="tabs" role="tablist" aria-label="Section">
-      <button role="tab" id="tab-data" aria-controls="panel-data" aria-selected="true">Data</button>
-      <button role="tab" id="tab-validate" aria-controls="panel-validate" aria-selected="false"
-        tabindex="-1">Validate</button>
-      <button role="tab" id="tab-query" aria-controls="panel-query" aria-selected="false" tabindex="-1">Query</button>
+    <div class="tabs-row">
+      <div class="tabs" role="tablist" aria-label="Section">
+        <button role="tab" id="tab-data" aria-controls="panel-data" aria-selected="true">Data</button>
+        <button role="tab" id="tab-validate" aria-controls="panel-validate" aria-selected="false"
+          tabindex="-1">Validate</button>
+        <button role="tab" id="tab-query" aria-controls="panel-query" aria-selected="false" tabindex="-1">Query</button>
+      </div>
+      <button class="secondary" id="permalink" title="Copy a link to this page, with the inputs of this tab">Permalink</button>
     </div>
 
     <!-- Data: RDF or property graphs -->

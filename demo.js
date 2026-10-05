@@ -2,6 +2,8 @@
 // querying (SPARQL) RDF data and property graphs with the @rudof/rudof npm
 // package (rudof compiled to WebAssembly), loaded from jsDelivr.
 
+import { PANELS, hasState, panelOfParams, stateParams, queryString, inputsOfParams } from "./permalink.js";
+
 // An exact version: jsDelivr caches what a range (like 0.3) points to, so a
 // range can keep serving an older release for days. The release workflow
 // (release.yml) updates it, and the site is deployed again once the release is
@@ -46,15 +48,22 @@ function selectTab(tab, focus = false) {
   history.replaceState(null, "", `#${tabName(section)}/${tabName(selectedSubtab(section))}`);
 }
 
+// A tab chosen by the user. When the URL has the inputs of the tab before, it
+// gets the ones of this tab instead.
+function chooseTab(tab, focus = false) {
+  selectTab(tab, focus);
+  if (hasState(new URLSearchParams(location.search))) updatePermalink();
+}
+
 for (const tab of document.querySelectorAll('[role="tab"]')) {
-  tab.addEventListener("click", () => selectTab(tab));
+  tab.addEventListener("click", () => chooseTab(tab));
   tab.addEventListener("keydown", (e) => {
     const tabs = tabsOf(tab.parentElement);
     const i = tabs.indexOf(tab);
     const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
     if (next === undefined) return;
     e.preventDefault();
-    selectTab(tabs[(next + tabs.length) % tabs.length], true);
+    chooseTab(tabs[(next + tabs.length) % tabs.length], true);
   });
 }
 
@@ -71,8 +80,76 @@ function selectTabFromHash() {
   if (sub && $(`panel-${section}`).contains(sub)) selectTab(sub);
   selectTab(sectionTab);
 }
+// ---------------------------------------------------------------------------
+// Permalinks
+//
+// After each operation, the query of the URL gets the inputs and options of
+// the tab shown (see permalink.js), and the Permalink button copies the URL.
+// When the page opens, they are put back in their tab.
+
+const params = new URLSearchParams(location.search);
+
+// A result format of SPARQL that is only there after a query is run
+let pendingSparqlFormat;
+
+function currentPanel() {
+  const section = sectionTabs.find((t) => t.getAttribute("aria-selected") === "true");
+  return { section: tabName(section), panel: tabName(selectedSubtab(section)) };
+}
+
+function permalinkURL() {
+  const { section, panel } = currentPanel();
+  const url = new URL(location.href);
+  url.search = queryString(stateParams(panel, (id) => $(id).value, url.searchParams));
+  url.hash = `${section}/${panel}`;
+  return url.href;
+}
+
+function updatePermalink() {
+  history.replaceState(null, "", permalinkURL());
+}
+
+function restoreInputs() {
+  if (!hasState(params)) return;
+  const fragment = location.hash.slice(1);
+  let panel = (OLD_FRAGMENTS[fragment] ?? fragment).split("/")[1];
+  if (!PANELS[panel]) {
+    // A URL without a tab: the tab of its parameters
+    panel = panelOfParams(params);
+    history.replaceState(null, "", `#${PANELS[panel].section}/${panel}`);
+  }
+  for (const [id, value] of inputsOfParams(panel, params)) {
+    const input = $(id);
+    if (input instanceof HTMLSelectElement) {
+      if (![...input.options].some((o) => o.value === value)) {
+        if (id === "sparql-result-format") pendingSparqlFormat = value;
+        continue;
+      }
+      input.value = value;
+      // The editor highlights the text in its format
+      input.dispatchEvent(new Event("change"));
+    } else {
+      input.value = value;
+    }
+  }
+}
+
+restoreInputs();
 selectTabFromHash();
 window.addEventListener("hashchange", selectTabFromHash);
+
+$("permalink").addEventListener("click", async (e) => {
+  const button = e.currentTarget;
+  updatePermalink();
+  try {
+    await navigator.clipboard.writeText(location.href);
+    button.textContent = "Copied";
+  } catch {
+    // The link is in the address bar anyway
+    button.textContent = "Copy failed";
+  }
+  setTimeout(() => (button.textContent = "Permalink"), 1500);
+});
 
 // ---------------------------------------------------------------------------
 // Results
@@ -421,6 +498,11 @@ function setSparqlFormats(kind) {
   const formats = SPARQL_FORMATS[kind];
   if ([...select.options].map((o) => o.value).join() === formats.map(([v]) => v).join()) return;
   select.replaceChildren(...formats.map(([value, text]) => new Option(text, value)));
+  // The format of a permalink, once the query gives results it has
+  if (formats.some(([value]) => value === pendingSparqlFormat)) {
+    select.value = pendingSparqlFormat;
+    pendingSparqlFormat = undefined;
+  }
 }
 
 function runSparql() {
@@ -625,6 +707,7 @@ function run(prefix) {
     showError(prefix, e);
   }
   updateConvertButtons();
+  updatePermalink();
 }
 
 function reformat(prefix) {
@@ -636,6 +719,7 @@ function reformat(prefix) {
     showError(prefix, e);
   }
   updateConvertButtons();
+  updatePermalink();
 }
 
 for (const prefix of Object.keys(validators)) {
@@ -653,10 +737,9 @@ for (const prefix of Object.keys(validators)) {
 // Manifests
 //
 // ?manifestURL=<url> lists the examples of a manifest (see manifest.js) above
-// the tabs, and ?example=<n> loads the n-th one (from 1). manifest.js, with
+// the tabs, and ?example=<n> loads the n-th one (from 1), unless the URL has
+// the inputs too (a permalink of the example, maybe edited). manifest.js, with
 // its YAML parser, is only loaded then.
-
-const params = new URLSearchParams(location.search);
 
 // The example loaded last, and the text it put in each input, to compare the
 // result with the one the manifest expects while the inputs are unchanged.
@@ -712,7 +795,7 @@ async function loadManifest(manifestURL) {
   const n = Number(params.get("example"));
   if (Number.isInteger(n) && examples[n - 1] && !examples[n - 1].unsupported) {
     select.value = String(n - 1);
-    chooseExample(manifest, examples[n - 1]);
+    if (!hasState(params)) chooseExample(manifest, examples[n - 1]);
   }
 }
 
@@ -748,6 +831,7 @@ async function chooseExample(manifest, example) {
   url.hash = tab;
   history.replaceState(null, "", url);
   selectTabFromHash();
+  updatePermalink();
 
   const parts = [];
   if (example.status) {
