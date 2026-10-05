@@ -311,6 +311,22 @@ table.solutions td code { font-size: 12px; white-space: pre-wrap; overflow-wrap:
 table.solutions .term-note { color: var(--muted); font: 11px var(--mono); }
 #sparql-example { max-width: 18rem; }
 
+/* The examples of a manifest (?manifestURL=…), above the tabs */
+.manifest {
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.manifest-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
+.manifest-head label { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.manifest-head a { font-weight: 400; }
+#manifest-examples { flex: 1 1 18rem; min-width: 0; max-width: 100%; }
+.manifest-note { margin: 0.5rem 0 0; color: var(--muted); font-size: 0.9em; white-space: pre-line; }
+.manifest-note.error { color: var(--fail-text); }
+.manifest-note .expected { font-weight: 600; color: var(--text); }
+
 /* Schema conversion, below the validation of each schema language */
 .toolbar.schema-tools { margin-top: 1rem; }
 .result + .toolbar.schema-tools { margin-top: 1.25rem; }

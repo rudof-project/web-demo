@@ -47,6 +47,13 @@ describe("vite build", () => {
     expect(lazy.some((file) => /isblank/i.test(read(file)))).toBe(true);
   });
 
+  it("loads the YAML parser of manifests only when the page has a manifest", () => {
+    const eager = [...html.matchAll(/(?:src|href)="\.\/assets\/([^"]+\.js)"/g)].map((m) => m[1]);
+    const yaml = (file) => read(file).includes("YAMLParseError");
+    expect(eager.some(yaml)).toBe(false);
+    expect(js().some(yaml)).toBe(true);
+  });
+
   it("uses relative paths, so the page works in any folder", () => {
     expect(html).not.toMatch(/(src|href)="\/(?!\/)/);
   });

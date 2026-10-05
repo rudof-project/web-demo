@@ -36,6 +36,17 @@
       <span id="status" class="status loading" role="status">Loading rudof…</span>
     </p>
 
+    <!-- The examples of a manifest, when the page is opened with ?manifestURL=… -->
+    <section id="manifest" class="manifest" aria-labelledby="manifest-title" hidden>
+      <div class="manifest-head">
+        <label id="manifest-title" for="manifest-examples">Examples from <a id="manifest-link"></a></label>
+        <select id="manifest-examples" disabled>
+          <option value="">Loading the manifest…</option>
+        </select>
+      </div>
+      <p id="manifest-note" class="manifest-note" role="status" hidden></p>
+    </section>
+
     <div class="tabs" role="tablist" aria-label="Section">
       <button role="tab" id="tab-data" aria-controls="panel-data" aria-selected="true">Data</button>
       <button role="tab" id="tab-validate" aria-controls="panel-validate" aria-selected="false"

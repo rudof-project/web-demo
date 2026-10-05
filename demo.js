@@ -617,6 +617,7 @@ function run(prefix) {
   const { validate, serialize } = validators[prefix];
   try {
     last[prefix] = validate();
+    last[prefix].verdict += expectation(prefix, last[prefix].kind);
     const output = serialize();
     showResult(prefix, { ...last[prefix], output });
   } catch (e) {
@@ -647,6 +648,127 @@ for (const prefix of Object.keys(validators)) {
     }
   });
 }
+
+// ---------------------------------------------------------------------------
+// Manifests
+//
+// ?manifestURL=<url> lists the examples of a manifest (see manifest.js) above
+// the tabs, and ?example=<n> loads the n-th one (from 1). manifest.js, with
+// its YAML parser, is only loaded then.
+
+const params = new URLSearchParams(location.search);
+
+// The example loaded last, and the text it put in each input, to compare the
+// result with the one the manifest expects while the inputs are unchanged.
+let loadedExample;
+let choosing;
+
+function manifestNote(parts, kind = "") {
+  const note = $("manifest-note");
+  note.className = `manifest-note ${kind}`.trim();
+  note.replaceChildren(...parts);
+  note.hidden = parts.length === 0;
+}
+
+const STATUS_MARKS = { conformant: "✓ ", nonconformant: "✗ " };
+
+function exampleOption(example) {
+  const text = `${STATUS_MARKS[example.status] ?? ""}${example.label}${example.unsupported ? " (not supported)" : ""}`;
+  const option = new Option(text, String(example.index));
+  option.disabled = Boolean(example.unsupported);
+  option.title = example.unsupported ? `This example ${example.unsupported}.` : (example.comment ?? "");
+  return option;
+}
+
+async function loadManifest(manifestURL) {
+  $("manifest").hidden = false;
+  const link = $("manifest-link");
+  link.textContent = manifestURL;
+  const select = $("manifest-examples");
+  let manifest;
+  let examples;
+  try {
+    const url = new URL(manifestURL, location.href).href;
+    link.href = url;
+    manifest = await import("./manifest.js");
+    examples = manifest.parseManifest(await manifest.defaultFetchText(url), url);
+  } catch (e) {
+    select.options[0].text = "No examples";
+    manifestNote([`Could not load the manifest: ${e.message ?? e}`], "error");
+    return;
+  }
+  const items = manifest.groupExamples(examples).flatMap(({ name, examples }) => {
+    const options = examples.map(exampleOption);
+    if (!name) return options;
+    const group = Object.assign(document.createElement("optgroup"), { label: name });
+    group.append(...options);
+    return [group];
+  });
+  select.replaceChildren(new Option(`Choose one of ${count(examples.length, "example")}…`, ""), ...items);
+  select.disabled = false;
+  select.addEventListener("change", () => {
+    if (select.value) chooseExample(manifest, examples[Number(select.value)]);
+  });
+  const n = Number(params.get("example"));
+  if (Number.isInteger(n) && examples[n - 1] && !examples[n - 1].unsupported) {
+    select.value = String(n - 1);
+    chooseExample(manifest, examples[n - 1]);
+  }
+}
+
+// Puts the inputs of an example in the editors, and shows its tab.
+async function chooseExample(manifest, example) {
+  const token = (choosing = {});
+  manifestNote([`Loading “${example.label}”…`]);
+  let inputs;
+  try {
+    inputs = await manifest.loadExample(example);
+  } catch (e) {
+    if (choosing === token) manifestNote([`Could not load “${example.label}”: ${e.message ?? e}`], "error");
+    return;
+  }
+  if (choosing !== token) return; // another example was chosen meanwhile
+  const { tab, validator } = manifest.KINDS[example.type];
+  for (const { textarea, text, formatSelect, format } of inputs) {
+    const select = formatSelect && $(formatSelect);
+    if (select && [...select.options].some((o) => o.value === format)) {
+      select.value = format;
+      // The editor highlights the text in its format
+      select.dispatchEvent(new Event("change"));
+    }
+    $(textarea).value = text;
+  }
+  // The result of the inputs before is not the result of these
+  $(`${validator}-result`).hidden = true;
+  delete last[validator];
+  loadedExample = { example, validator, texts: inputs.map(({ textarea }) => [textarea, $(textarea).value]) };
+
+  const url = new URL(location.href);
+  url.searchParams.set("example", String(example.index + 1));
+  url.hash = tab;
+  history.replaceState(null, "", url);
+  selectTabFromHash();
+
+  const parts = [];
+  if (example.status) {
+    parts.push(Object.assign(document.createElement("span"), { className: "expected", textContent: `Expected: ${example.status}.` }), " ");
+  }
+  if (example.comment) parts.push(example.comment);
+  for (const note of example.notes) parts.push("\n", note);
+  manifestNote(parts);
+}
+
+// Whether a validation gives the result the manifest expects, while the inputs
+// are those of the example: appended to the verdict.
+function expectation(prefix, kind) {
+  const status = loadedExample?.example.status;
+  if (!status || loadedExample.validator !== prefix) return "";
+  if (loadedExample.texts.some(([id, text]) => $(id).value !== text)) return "";
+  const result = kind === "ok" ? "conformant" : "nonconformant";
+  return result === status ? " (as the manifest expects)" : ` (the manifest expects ${status})`;
+}
+
+if (params.has("manifestURL")) loadManifest(params.get("manifestURL"));
 
 // ---------------------------------------------------------------------------
 // Loading

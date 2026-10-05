@@ -47,6 +47,44 @@ set up by [`codemirror-setup.js`](codemirror-setup.js):
 TriG, N-Triples, N-Quads, N3, JSON-LD, SPARQL, ShExC and ShExJ), to try the
 editors with. The tests check that rudof accepts all of them.
 
+## Manifests
+
+The page can list the examples of a manifest, a YAML file such as the one of
+shex.js, and load the example chosen into the editors:
+
+```
+https://rudof-project.github.io/web-demo/?manifestURL=https://shex.js.org/doc/tests-manifest.yaml
+```
+
+[`manifest.js`](manifest.js) reads the manifest (it is loaded, with its YAML
+parser, only when the page has a `manifestURL`). Each entry is an example, in
+the vocabulary of shex.js:
+
+```yaml
+- schemaLabel: clinical observation   # the examples are grouped by schema
+  schemaURL: ClinObs.shex             # or the schema itself: schema: |
+  dataLabel: the least an Observation can be
+  data: |                             # or dataURL:
+    <Obs1> :subject <Patient2> .
+  queryMap: <Obs1>@START              # the shape map, or queryMapURL:
+  status: conformant                  # or nonconformant
+  comment: Shown when the example is chosen
+```
+
+URLs are relative to the manifest, and the formats of the files are taken from
+their extensions (`.shex`, `.json`, `.ttl`, `.nt`, `.jsonld`…). When an example
+is validated as loaded, the verdict says whether the result is the one of its
+`status`. Entries that read their data from a SPARQL endpoint or Wikidata as
+they are validated (`neighborhood:`) are listed but can't be loaded.
+`&example=<n>` loads the n-th example (from 1) when the page opens; the URL
+gets it when an example is chosen, so it can be shared.
+
+The manifest and its files are read by the browser, so their server must allow
+other sites to read them ([CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS));
+GitHub Pages and raw.githubusercontent.com do. Kinds of examples are in
+`KINDS` of `manifest.js`: SHACL and PGSchema examples will be added there,
+named by the `type:` of the entry.
+
 ## Tests
 
 ```sh
