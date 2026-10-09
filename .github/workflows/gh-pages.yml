@@ -1,5 +1,6 @@
 # Tests and builds the page on every push and pull request, and publishes it
-# (dist/) to the gh-pages branch on every push to main.
+# (dist/) to the gh-pages branch on every push to main (and when it is run on
+# main by hand or by update-rudof.yml).
 name: gh-pages
 
 on:
@@ -57,7 +58,8 @@ jobs:
 
   deploy:
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # workflow_dispatch: update-rudof.yml starts it after pushing an update
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
       contents: write

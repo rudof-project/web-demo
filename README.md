@@ -139,11 +139,26 @@ or use a Chromium you already have:
 CHROMIUM_PATH=/path/to/chromium npm run test:e2e
 ```
 
-The rudof version in `package.json` (used by the tests) must be the one
-`demo.js` loads (`RUDOF_VERSION`); a test checks it.
+`demo.js` loads the rudof version of `package.json` (the one the tests use),
+so updating rudof is only a change of `package.json` and `package-lock.json`
+(`npm install --save-dev --save-exact @rudof/rudof@<version>`).
 
 ## Publishing
 
 The [GitHub Actions workflow](.github/workflows/gh-pages.yml) runs the tests
 and builds the page on every push and pull request, and publishes `dist/` to
 the `gh-pages` branch on every push to `main`.
+
+[`update-rudof.yml`](.github/workflows/update-rudof.yml) updates `@rudof/rudof`
+to its latest release on npm once a day (or when run by hand from the Actions
+tab): it tests the update, pushes it to `main` and publishes the page. To
+update the page as soon as rudof is released, rudof's release workflow can
+send it a `repository_dispatch`, once the package is on npm:
+
+```yaml
+- uses: peter-evans/repository-dispatch@v3
+  with:
+    token: ${{ secrets.WEB_DEMO_TOKEN }}  # may write to rudof-project/web-demo
+    repository: rudof-project/web-demo
+    event-type: rudof-released
+```

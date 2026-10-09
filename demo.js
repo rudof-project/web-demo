@@ -3,12 +3,13 @@
 // package (rudof compiled to WebAssembly), loaded from jsDelivr.
 
 import { PANELS, hasState, panelOfParams, stateParams, queryString, inputsOfParams } from "./permalink.js";
+import { devDependencies } from "./package.json";
 
-// An exact version: jsDelivr caches what a range (like 0.3) points to, so a
-// range can keep serving an older release for days. The release workflow
-// (release.yml) updates it, and the site is deployed again once the release is
-// on npm (gh-pages.yml).
-const RUDOF_VERSION = "0.3.24";
+// The exact version of package.json (the one the tests use), so that updating
+// rudof is only a change of package.json. Exact, not a range: jsDelivr caches
+// what a range (like 0.3) points to, so a range can keep serving an older
+// release for days. update-rudof.yml updates it when rudof is released on npm.
+const RUDOF_VERSION = devDependencies["@rudof/rudof"];
 const RUDOF_MODULE = `https://cdn.jsdelivr.net/npm/@rudof/rudof@${RUDOF_VERSION}/web/rudof_wasm.js`;
 
 // PlantUML, compiled to JavaScript with TeaVM, draws the diagrams. It is

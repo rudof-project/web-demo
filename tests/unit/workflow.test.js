@@ -67,9 +67,12 @@ describe("gh-pages workflow", () => {
       expect([job().needs].flat()).toContain("test");
     });
 
-    it("only publishes pushes to main, never pull requests", () => {
+    it("only publishes main (pushes, or runs by hand or by update-rudof.yml), never pull requests", () => {
       expect(job().if).toContain("github.event_name == 'push'");
+      expect(job().if).toContain("github.event_name == 'workflow_dispatch'");
       expect(job().if).toContain("github.ref == 'refs/heads/main'");
+      expect(job().if).not.toContain("pull_request");
+      expect(workflow().on).toHaveProperty("workflow_dispatch");
     });
 
     it("publishes the built page to the gh-pages branch", () => {
@@ -84,5 +87,45 @@ describe("gh-pages workflow", () => {
       expect(workflow().permissions?.contents ?? "read").toBe("read");
       expect(job().concurrency?.group ?? workflow().concurrency?.group).toBeTruthy();
     });
+  });
+});
+
+describe("update-rudof workflow", () => {
+  const path = new URL("../../.github/workflows/update-rudof.yml", import.meta.url);
+  const workflow = () => parse(readFileSync(path, "utf8"));
+  const job = () => workflow().jobs.update;
+  const step = (name) => job().steps.find((s) => s.name === name);
+
+  it("runs every day, by hand, and when rudof is released", () => {
+    const on = workflow().on;
+    expect(on.schedule[0].cron).toBeTruthy();
+    expect(on).toHaveProperty("workflow_dispatch");
+    expect(on.repository_dispatch.types).toContain("rudof-released");
+  });
+
+  it("updates package.json and package-lock.json to the exact latest version", () => {
+    expect(runs(job())).toContain("npm view @rudof/rudof version");
+    expect(step("Update package.json and package-lock.json").run).toMatch(/npm install --save-dev --save-exact/);
+  });
+
+  it("tests the update before pushing it", () => {
+    const steps = job().steps.map((s) => s.name);
+    expect(steps.indexOf("Test")).toBeLessThan(steps.indexOf("Push to main and publish"));
+    for (const command of ["npm ci", "npm test", "npm run build", "npm run test:e2e"]) {
+      expect(step("Test").run).toContain(command);
+    }
+  });
+
+  it("does nothing when rudof is up to date", () => {
+    for (const name of ["Update package.json and package-lock.json", "Test", "Push to main and publish"]) {
+      expect(step(name).if).toBe("steps.version.outputs.current != steps.version.outputs.latest");
+    }
+  });
+
+  it("starts gh-pages.yml, as its push with GITHUB_TOKEN doesn't", () => {
+    expect(step("Push to main and publish").run).toContain("git push origin HEAD:main");
+    expect(step("Push to main and publish").run).toContain("gh workflow run gh-pages.yml --ref main");
+    expect(job().permissions).toEqual({ contents: "write", actions: "write" });
+    expect(workflow().permissions.contents).toBe("read");
   });
 });

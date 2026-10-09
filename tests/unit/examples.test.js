@@ -105,9 +105,21 @@ describe("ShEx examples are valid", () => {
 });
 
 describe("node project", () => {
+  // No version is written in these checks, so updating rudof doesn't break them.
   it("tests rudof with the version the demo loads", () => {
+    expect(read("demo.js")).toMatch(/import \{ devDependencies \} from "\.\/package\.json"/);
+    expect(read("demo.js")).toMatch(/const RUDOF_VERSION = devDependencies\["@rudof\/rudof"\]/);
+  });
+
+  it("pins rudof to an exact version, as jsDelivr caches ranges", () => {
     const pkg = JSON.parse(read("package.json"));
-    const demo = read("demo.js").match(/const RUDOF_VERSION = "([^"]+)"/)[1];
-    expect(pkg.devDependencies["@rudof/rudof"]).toBe(demo);
+    expect(pkg.devDependencies["@rudof/rudof"]).toMatch(/^\d+\.\d+\.\d+(-[\w.]+)?$/);
+  });
+
+  it("has the rudof version of package.json in package-lock.json (npm ci fails otherwise)", () => {
+    const pkg = JSON.parse(read("package.json"));
+    const lock = JSON.parse(read("package-lock.json"));
+    expect(lock.packages[""].devDependencies["@rudof/rudof"]).toBe(pkg.devDependencies["@rudof/rudof"]);
+    expect(lock.packages["node_modules/@rudof/rudof"].version).toBe(pkg.devDependencies["@rudof/rudof"]);
   });
 });
