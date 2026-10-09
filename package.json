@@ -18,7 +18,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
-    "@rudof/rudof": "0.3.24",
+    "@rudof/rudof": "0.3.25",
     "jsdom": "^29.1.1",
     "vite": "^8.3.2",
     "vitest": "^5.0.3"
