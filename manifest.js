@@ -4,9 +4,7 @@
 // chosen into the editors.
 //
 // An entry gives each input of an example as text (`schema: |`) or as a URL
-// (`schemaURL:`), relative to the manifest. The kind of example says which
-// inputs it has, and where they go. For now there is one kind, ShEx, with the
-// vocabulary of shex.js:
+// (`schemaURL:`), relative to the manifest, in the vocabulary of shex.js:
 //
 //   - schemaLabel: clinical observation     # examples are grouped by schema
 //     schemaURL: ClinObs.shex               # or schema: | ...
@@ -17,61 +15,166 @@
 //     status: conformant                    # or nonconformant
 //     comment: Shown when the example is chosen.
 //
-// SHACL and PGSchema examples will be other kinds, named with `type:`.
+// and with optional keys that say what to do with it (the defaults are those
+// of shex.js manifests, which don't have them):
+//
+//     action: validate            # data (load the data), validate or query
+//     dataFormat: turtle          # an RDF format, or yars-pg (property graphs)
+//     schemaFormat: shex          # shex (ShExC), shexj, json, an RDF format
+//                                 # (ShExR or SHACL), or pgschema
+//     validationEngine: shex      # shex, shacl or pgschema
+//     query: | ...                # or queryURL: ..., for action: query
+//     queryFormat: sparql
+//     queryEngine: sparql
+//     endpoint: https://...       # where the query is run
+//     typeMap: n1: PersonType     # or typeMapURL: ..., for PGSchema
+//
+// Without a format, the format is the one of the extension of the file, or
+// the default. Without a validationEngine, PGSchema validates property graphs
+// and PGSchema schemas, and ShEx everything else.
 
 import { parse } from "yaml";
 
-// The formats of the editors, by the extension of the file they are read from.
+// Names of formats in manifests, and the format of the demo each one is.
+const RDF_FORMATS = {
+  turtle: "turtle", ttl: "turtle", ntriples: "ntriples", nt: "ntriples", "n-triples": "ntriples",
+  rdfxml: "rdfxml", "rdf/xml": "rdfxml", jsonld: "jsonld", "json-ld": "jsonld",
+  trig: "trig", n3: "n3", nquads: "nquads", nq: "nquads", "n-quads": "nquads",
+};
+const PG_FORMATS = { "yars-pg": "pg", yarspg: "pg", pg: "pg" };
+const SHEX_FORMATS = { ...RDF_FORMATS, shex: "shexc", shexc: "shexc", shexj: "shexj", json: "shexj", jsonld: "shexj", "json-ld": "shexj" };
+const SHACL_FORMATS = { ...RDF_FORMATS, json: "jsonld" };
+const PGSCHEMA_FORMATS = { pgschema: "pgschema", pgschemac: "pgschema", pgs: "pgschema" };
+const QUERY_FORMATS = { sparql: "sparql", rq: "sparql" };
+
+// The formats of the files, by their extension.
 const RDF_EXTENSIONS = {
   ttl: "turtle", turtle: "turtle", nt: "ntriples", rdf: "rdfxml", xml: "rdfxml", owl: "rdfxml",
   jsonld: "jsonld", trig: "trig", n3: "n3", nq: "nquads",
 };
-const SHEX_EXTENSIONS = { shex: "shexc", shexc: "shexc", json: "shexj", shexj: "shexj", ttl: "turtle" };
+const PG_EXTENSIONS = { pg: "pg", ypg: "pg", yarspg: "pg" };
+const SHEX_EXTENSIONS = { shex: "shexc", shexc: "shexc", json: "shexj", shexj: "shexj", ttl: "turtle", nt: "ntriples", rdf: "rdfxml", trig: "trig", nq: "nquads" };
+const SHACL_EXTENSIONS = { ...RDF_EXTENSIONS, json: "jsonld" };
+const PGSCHEMA_EXTENSIONS = { pgs: "pgschema", pgschema: "pgschema" };
 
-// Each kind of example: the tab it is shown in (and the prefix of the ids of
-// its validation), and its inputs: the name of the input in the manifest, the
-// textarea it fills, and the select of its format with the formats of its file
-// extensions (or the format of its text when it is inline) if the format can
-// be chosen.
-export const KINDS = {
+// The format of inline text, guessed from its first character.
+const rdfOf = (text) => (/^\s*[[{]/.test(text) ? "jsonld" : "turtle");
+const shexOf = (text) => (/^\s*\{/.test(text) ? "shexj" : "shexc");
+
+const rdfData = (textarea, formatSelect) => ({ name: "data", key: "dataFormat", textarea, formatSelect, formats: RDF_FORMATS, extensions: RDF_EXTENSIONS, inline: rdfOf });
+const pgData = (textarea) => ({ name: "data", key: "dataFormat", textarea, formats: PG_FORMATS, extensions: PG_EXTENSIONS });
+
+// Where the examples go: for each tab, its id in the URL fragment (and the
+// prefix of the ids of its inputs and its result), the action it is for, and
+// its inputs: the name of the input in the manifest (and other names it may
+// have), the textarea it fills, the key of its format in the manifest and the
+// formats that key can have, the formats of the file extensions, the select of
+// the format if it can be chosen, and the format of inline text.
+export const TARGETS = {
+  rdf: { tab: "data/rdf", action: "data", what: "RDF data", inputs: [rdfData("rdf-data", "rdf-data-format")] },
+  pg: { tab: "data/pg", action: "data", what: "property graphs", inputs: [pgData("pg-data")] },
   shex: {
     tab: "validate/shex",
-    validator: "shex",
+    action: "validate",
+    what: "ShEx",
     inputs: [
-      { name: "schema", textarea: "shex-schema", formatSelect: "shex-schema-format", extensions: SHEX_EXTENSIONS, inline: (text) => (/^\s*\{/.test(text) ? "shexj" : "shexc") },
-      { name: "data", textarea: "shex-data", formatSelect: "shex-data-format", extensions: RDF_EXTENSIONS, inline: (text) => (/^\s*[[{]/.test(text) ? "jsonld" : "turtle") },
+      { name: "schema", key: "schemaFormat", textarea: "shex-schema", formatSelect: "shex-schema-format", formats: SHEX_FORMATS, extensions: SHEX_EXTENSIONS, inline: shexOf },
+      rdfData("shex-data", "shex-data-format"),
       { name: "queryMap", textarea: "shex-shapemap" },
+    ],
+  },
+  shacl: {
+    tab: "validate/shacl",
+    action: "validate",
+    what: "SHACL",
+    inputs: [
+      { name: "schema", aliases: ["shapes"], key: "schemaFormat", textarea: "shacl-shapes", formatSelect: "shacl-shapes-format", formats: SHACL_FORMATS, extensions: SHACL_EXTENSIONS, inline: rdfOf },
+      rdfData("shacl-data", "shacl-data-format"),
+    ],
+  },
+  pgschema: {
+    tab: "validate/pgschema",
+    action: "validate",
+    what: "PGSchema",
+    inputs: [
+      { name: "schema", key: "schemaFormat", textarea: "pgschema-schema", formats: PGSCHEMA_FORMATS, extensions: PGSCHEMA_EXTENSIONS },
+      pgData("pgschema-data"),
+      { name: "typeMap", aliases: ["queryMap"], textarea: "pgschema-typemap" },
+    ],
+  },
+  sparql: {
+    tab: "query/sparql",
+    action: "query",
+    what: "SPARQL",
+    inputs: [
+      rdfData("sparql-data", "sparql-data-format"),
+      { name: "query", key: "queryFormat", textarea: "sparql-query", formats: QUERY_FORMATS },
     ],
   },
 };
 
-// Entries of shex.js that need something the demo doesn't have.
-function unsupported(entry, kind) {
-  if (!kind) return `examples of type "${entry.type}" are not supported yet`;
-  if (entry.neighborhood) {
-    const source = entry.endpoint ?? entry.base ?? entry.dataBase;
-    return `reads its data from ${source ? `${source} ` : ""}as validation goes, which this demo can't do`;
-  }
-  const missing = kind.inputs.filter(({ name }) => entry[name] == null && entry[`${name}URL`] == null).map(({ name }) => name);
-  if (missing.length) return `has no ${missing.join(" or ")}`;
-  return undefined;
-}
+export const ACTIONS = ["data", "validate", "query"];
+const VALIDATION_ENGINES = ["shex", "shacl", "pgschema"];
+const QUERY_ENGINES = ["sparql"];
 
 function text(value) {
   return value == null ? undefined : String(value);
 }
 
+const lower = (value) => text(value)?.trim().toLowerCase();
+
+const extension = (url) => new URL(url).pathname.split(".").pop().toLowerCase();
+
+// The tab of an entry, or why there is none: { target } or { unsupported }.
+function targetOf(entry, isPg) {
+  const action = lower(entry.action) ?? "validate";
+  if (!ACTIONS.includes(action)) return { unsupported: `has an unknown action "${entry.action}" (it can be ${ACTIONS.join(", ")})` };
+  if (action === "data") return { target: isPg ? "pg" : "rdf" };
+  if (action === "query") {
+    const engine = lower(entry.queryEngine) ?? "sparql";
+    if (!QUERY_ENGINES.includes(engine)) return { unsupported: `is for the query engine "${entry.queryEngine}", which this demo doesn't have` };
+    if (isPg) return { unsupported: "queries a property graph, which this demo can't do yet" };
+    return { target: engine };
+  }
+  // shex.js named kinds of examples with `type:`
+  const engine = lower(entry.validationEngine ?? entry.type) ?? (isPg || lower(entry.schemaFormat) === "pgschema" ? "pgschema" : "shex");
+  if (!VALIDATION_ENGINES.includes(engine)) return { unsupported: `is for the validation engine "${entry.validationEngine ?? entry.type}", which this demo doesn't have` };
+  return { target: engine };
+}
+
+// The input `name` of an entry: { text } or { url }.
+function inputOf(entry, names, manifestURL) {
+  for (const name of names) {
+    if (entry[name] != null) return { text: text(entry[name]) };
+    if (entry[`${name}URL`] != null) return { url: new URL(text(entry[`${name}URL`]), manifestURL).href };
+  }
+  return undefined;
+}
+
+// Whether the data of an entry is a property graph, by its format or the
+// extension of its file.
+function isPgData(entry, manifestURL) {
+  const format = lower(entry.dataFormat);
+  if (format != null) return format in PG_FORMATS;
+  const input = inputOf(entry, ["data"], manifestURL);
+  return Boolean(input?.url && extension(input.url) in PG_EXTENSIONS);
+}
+
 // The examples of a manifest (its YAML text), with their URLs made absolute
 // against the URL of the manifest. Each example has:
 //   index      its position in the manifest
-//   type       its kind (a key of KINDS)
+//   action     data, validate or query
+//   target     the tab it goes to (a key of TARGETS)
 //   group      what it is grouped by (the schema label)
 //   label      its name in the list (the data label)
 //   status     the result it should have, if the manifest says it
 //   comment    the comment of the manifest
+//   endpoint   the endpoint of its query, if it has one
 //   notes      what may differ from what the manifest expects
 //   unsupported  why it can't be loaded, if it can't
 //   inputs     { name: { text } or { url } } for each input it has
+//   formats    { name: format } for the inputs whose format is known before
+//              they are read (from the manifest or the file extension)
 export function parseManifest(source, manifestURL) {
   const entries = parse(source);
   if (!Array.isArray(entries)) throw new Error("a manifest is a YAML list of examples");
@@ -79,12 +182,22 @@ export function parseManifest(source, manifestURL) {
     if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
       throw new Error(`entry ${index + 1} of the manifest is not a map of keys and values`);
     }
-    const type = entry.type ?? "shex";
-    const kind = KINDS[type];
+    const { target, unsupported: noTarget } = targetOf(entry, isPgData(entry, manifestURL));
+    const { action, inputs: specs } = TARGETS[target] ?? { action: lower(entry.action) ?? "validate", inputs: [] };
     const inputs = {};
-    for (const { name } of kind?.inputs ?? []) {
-      if (entry[name] != null) inputs[name] = { text: text(entry[name]) };
-      else if (entry[`${name}URL`] != null) inputs[name] = { url: new URL(text(entry[`${name}URL`]), manifestURL).href };
+    const formats = {};
+    const problems = [];
+    for (const { name, aliases = [], key, formats: known, extensions } of specs) {
+      const input = inputOf(entry, [name, ...aliases], manifestURL);
+      if (!input) continue;
+      inputs[name] = input;
+      if (!key) continue;
+      if (entry[key] != null) {
+        formats[name] = known[lower(entry[key])];
+        if (!formats[name]) problems.push(`its ${key} "${entry[key]}" can't be used with ${TARGETS[target].what}`);
+      } else if (input.url) {
+        formats[name] = extensions?.[extension(input.url)];
+      }
     }
     const notes = [];
     if (entry.plugins?.length) {
@@ -93,16 +206,34 @@ export function parseManifest(source, manifestURL) {
     }
     return {
       index,
-      type,
+      action,
+      target,
       group: text(entry.schemaLabel ?? entry.label) ?? "",
       label: text(entry.dataLabel ?? entry.name) ?? `Example ${index + 1}`,
       status: text(entry.status),
       comment: text(entry.comment),
+      endpoint: text(entry.endpoint),
       notes,
-      unsupported: unsupported(entry, kind),
+      unsupported: noTarget ?? unsupported(entry, target, inputs, problems),
       inputs,
+      formats,
     };
   });
+}
+
+// Entries that need something the demo doesn't have.
+function unsupported(entry, target, inputs, problems) {
+  if (entry.neighborhood) {
+    const source = entry.endpoint ?? entry.base ?? entry.dataBase;
+    return `reads its data from ${source ? `${source} ` : ""}as validation goes, which this demo can't do`;
+  }
+  if (target === "sparql" && entry.endpoint != null) {
+    return `runs its query on ${entry.endpoint}, and this demo can only query the data of the example`;
+  }
+  if (problems.length) return problems.join(", and ");
+  const missing = TARGETS[target].inputs.filter(({ name }) => !inputs[name]).map(({ name }) => name);
+  if (missing.length) return `has no ${missing.join(" or ")}`;
+  return undefined;
 }
 
 // The examples in groups of consecutive examples with the same group name.
@@ -116,18 +247,15 @@ export function groupExamples(examples) {
   return groups;
 }
 
-const extension = (url) => new URL(url).pathname.split(".").pop().toLowerCase();
-
 // The inputs of an example, read from their URLs if needed:
-// [{ textarea, text, formatSelect, format }], in the order of KINDS.
+// [{ textarea, text, formatSelect, format }], in the order of TARGETS.
 export async function loadExample(example, fetchText = defaultFetchText) {
   if (example.unsupported) throw new Error(`This example ${example.unsupported}.`);
-  const kind = KINDS[example.type];
   return Promise.all(
-    kind.inputs.map(async ({ name, textarea, formatSelect, extensions, inline }) => {
+    TARGETS[example.target].inputs.map(async ({ name, textarea, formatSelect, inline }) => {
       const input = example.inputs[name];
       const value = input.text ?? (await fetchText(input.url));
-      const format = formatSelect ? (input.url ? extensions[extension(input.url)] : inline(value)) : undefined;
+      const format = formatSelect ? (example.formats[name] ?? inline(value)) : undefined;
       return { name, textarea, text: value, formatSelect, format };
     }),
   );

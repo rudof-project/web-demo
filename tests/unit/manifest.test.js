@@ -1,9 +1,10 @@
 // Manifests: the examples of a YAML manifest (?manifestURL=…), in the
-// vocabulary of shex.js (https://shex.js.org/doc/tests-manifest.yaml).
+// vocabulary of shex.js (https://shex.js.org/doc/tests-manifest.yaml), with
+// the keys that say what to do with them (action, dataFormat…).
 
 import { describe, it, expect, vi } from "vitest";
 import { Rudof } from "@rudof/rudof";
-import { parseManifest, groupExamples, loadExample, KINDS } from "../../manifest.js";
+import { parseManifest, groupExamples, loadExample, TARGETS } from "../../manifest.js";
 
 const MANIFEST_URL = "https://example.org/doc/tests-manifest.yaml";
 
@@ -88,7 +89,8 @@ describe("parseManifest", () => {
 
   it("takes the group, the status and the comment of each entry", () => {
     expect(examples[0]).toMatchObject({
-      type: "shex",
+      action: "validate",
+      target: "shex",
       group: "clinical observation",
       status: "conformant",
       comment: "Everything is optional but :subject.",
@@ -134,6 +136,96 @@ describe("parseManifest", () => {
   });
 });
 
+// The keys that say what to do with an example: as in the manifest of the
+// ISWC 2026 tutorial (https://github.com/validatingrdf/Tutorial)
+const ACTIONS = `
+- dataLabel: Tim Berners Lee in RDF
+  dataURL: ex01.ttl
+  dataFormat: turtle
+  action: data
+- dataLabel: Tim Berners Lee in RDF (SPARQL query)
+  dataURL: ex01.ttl
+  dataFormat: turtle
+  queryURL: ex01.sparql
+  queryEngine: sparql
+  action: query
+- dataLabel: Tim Berners Lee as a property graph
+  dataURL: ex02.pg
+  dataFormat: yars-pg
+  action: data
+- schemaLabel: Researcher
+  schemaURL: ex11_researcher.shex
+  dataLabel: Tim Berners Lee
+  dataURL: ex11_timbl.ttl
+  queryMapURL: ex11.sm
+  status: conformant
+  action: validate
+`;
+
+describe("parseManifest, with actions", () => {
+  const parsed = parseManifest(ACTIONS, MANIFEST_URL);
+  const one = (yaml) => parseManifest(yaml, MANIFEST_URL)[0];
+
+  it("sends each example to the tab of its action and formats", () => {
+    expect(parsed.map((e) => [e.action, e.target])).toEqual([
+      ["data", "rdf"],
+      ["query", "sparql"],
+      ["data", "pg"],
+      ["validate", "shex"],
+    ]);
+    expect(parsed.filter((e) => e.unsupported)).toEqual([]);
+  });
+
+  it("validates with ShEx by default", () => {
+    expect(examples.map((e) => e.target)).toEqual(["shex", "shex", "shex", "shex", "shex"]);
+  });
+
+  it("takes the formats of the manifest, before the ones of the extensions", () => {
+    expect(one("- dataURL: x.ttl\n  dataFormat: N-Triples\n  action: data\n").formats.data).toBe("ntriples");
+    expect(one("- dataURL: x.ttl\n  action: data\n").formats.data).toBe("turtle");
+    expect(one("- data: ''\n  action: data\n").formats.data).toBeUndefined();
+  });
+
+  it("reads the schema formats as the validation engine does", () => {
+    const shex = one("- schema: ''\n  schemaFormat: json\n  data: ''\n  queryMap: ''\n");
+    expect([shex.target, shex.formats.schema]).toEqual(["shex", "shexj"]);
+    expect(one("- schema: ''\n  schemaFormat: shex\n  data: ''\n  queryMap: ''\n").formats.schema).toBe("shexc");
+    expect(one("- schema: ''\n  schemaFormat: rdfxml\n  data: ''\n  queryMap: ''\n").formats.schema).toBe("rdfxml");
+    const shacl = one("- schema: ''\n  schemaFormat: json\n  validationEngine: shacl\n  data: ''\n");
+    expect([shacl.target, shacl.formats.schema, shacl.unsupported]).toEqual(["shacl", "jsonld", undefined]);
+  });
+
+  it("validates property graphs and PGSchema schemas with PGSchema", () => {
+    const pg = one("- schema: ''\n  data: ''\n  dataFormat: yars-pg\n  typeMap: 'n1: T'\n");
+    expect([pg.target, pg.unsupported]).toEqual(["pgschema", undefined]);
+    expect(one("- schema: ''\n  schemaFormat: pgschema\n  dataURL: g.pg\n  queryMap: 'n1: T'\n")).toMatchObject({
+      target: "pgschema",
+      inputs: { typeMap: { text: "n1: T" } },
+      unsupported: undefined,
+    });
+  });
+
+  it("does not support formats that the tab can't read", () => {
+    expect(one("- schema: ''\n  schemaFormat: shex\n  validationEngine: shacl\n  data: ''\n").unsupported).toMatch(/schemaFormat "shex" can't be used with SHACL/);
+    expect(one("- data: ''\n  dataFormat: trix\n  action: data\n").unsupported).toMatch(/dataFormat "trix"/);
+    expect(one("- data: ''\n  dataFormat: yars-pg\n  validationEngine: shex\n  schema: ''\n  queryMap: ''\n").unsupported).toMatch(/dataFormat "yars-pg" can't be used with ShEx/);
+    expect(one("- data: ''\n  query: ''\n  queryFormat: cypher\n  action: query\n").unsupported).toMatch(/queryFormat "cypher"/);
+  });
+
+  it("does not support unknown actions and engines", () => {
+    expect(one("- data: ''\n  action: convert\n").unsupported).toMatch(/unknown action "convert"/);
+    expect(one("- data: ''\n  query: ''\n  action: query\n  queryEngine: gql\n").unsupported).toMatch(/"gql"/);
+    expect(one("- data: ''\n  dataFormat: yars-pg\n  query: ''\n  action: query\n").unsupported).toMatch(/property graph/);
+  });
+
+  it("does not support queries without a query, or on an endpoint", () => {
+    expect(one("- data: ''\n  action: query\n").unsupported).toBe("has no query");
+    const remote = one("- query: 'ASK {}'\n  endpoint: https://query.wikidata.org/sparql\n  action: query\n");
+    expect(remote.endpoint).toBe("https://query.wikidata.org/sparql");
+    expect(remote.unsupported).toMatch(/query\.wikidata\.org/);
+  });
+});
+
 describe("groupExamples", () => {
   it("groups consecutive examples of the same schema", () => {
     expect(groupExamples(examples).map((g) => [g.name, g.examples.length])).toEqual([
@@ -158,7 +250,7 @@ describe("loadExample", () => {
 
   it("fills every textarea of its kind", async () => {
     const inputs = await loadExample(examples[1], fetchText);
-    expect(inputs.map((i) => i.textarea)).toEqual(KINDS.shex.inputs.map((i) => i.textarea));
+    expect(inputs.map((i) => i.textarea)).toEqual(TARGETS.shex.inputs.map((i) => i.textarea));
   });
 
   it("chooses the formats from the file extensions", async () => {
@@ -166,6 +258,22 @@ describe("loadExample", () => {
     const inputs = byName(await loadExample(examples[4], async (url) => files[url]));
     expect(inputs.schema.format).toBe("shexj");
     expect(inputs.data.format).toBe("jsonld");
+  });
+
+  it("loads examples of each action", async () => {
+    const files = {
+      "https://example.org/doc/ex01.ttl": "<a> <b> <c> .",
+      "https://example.org/doc/ex01.sparql": "SELECT * WHERE { ?s ?p ?o }",
+      "https://example.org/doc/ex02.pg": "(n1 {Person})",
+    };
+    const [data, query, pg] = parseManifest(ACTIONS, MANIFEST_URL);
+    const read = async (url) => files[url];
+    expect(await loadExample(data, read)).toMatchObject([{ textarea: "rdf-data", formatSelect: "rdf-data-format", format: "turtle" }]);
+    expect(byName(await loadExample(query, read))).toMatchObject({
+      data: { textarea: "sparql-data", format: "turtle" },
+      query: { textarea: "sparql-query", text: files["https://example.org/doc/ex01.sparql"] },
+    });
+    expect(await loadExample(pg, read)).toMatchObject([{ textarea: "pg-data", text: "(n1 {Person})" }]);
   });
 
   it("refuses the examples it does not support", async () => {

@@ -71,19 +71,52 @@ the vocabulary of shex.js:
   comment: Shown when the example is chosen
 ```
 
-URLs are relative to the manifest, and the formats of the files are taken from
-their extensions (`.shex`, `.json`, `.ttl`, `.nt`, `.jsonld`…). When an example
-is validated as loaded, the verdict says whether the result is the one of its
-`status`. Entries that read their data from a SPARQL endpoint or Wikidata as
-they are validated (`neighborhood:`) are listed but can't be loaded.
+Optional keys say what to do with an example. Without them, an entry is a
+ShEx validation, as in the manifests of shex.js:
+
+| Key | Values | Default |
+|-----|--------|---------|
+| `action` | `data` (load the data in the Data tab), `validate` (validate it in the Validate tab), `query` (run a query on it in the Query tab) | `validate` |
+| `dataFormat` | an RDF format (`turtle`, `ntriples`, `rdfxml`, `jsonld`, `trig`, `n3`, `nquads`), or `yars-pg` for property graphs | `turtle` |
+| `schemaFormat` | `shex` (ShExC), `shexj` or `json` (ShExJ), an RDF format (ShExR, or SHACL shapes; `json` is JSON-LD for SHACL), or `pgschema` | `shex` |
+| `validationEngine` | `shex`, `shacl` or `pgschema` | `pgschema` for property graphs or `pgschema` schemas, otherwise `shex` |
+| `query`, `queryURL` | the query, for `action: query` | |
+| `queryFormat` | `sparql` | `sparql` |
+| `queryEngine` | `sparql` | `sparql` |
+| `endpoint` | the SPARQL endpoint the query is run on | |
+| `typeMap`, `typeMapURL` | the type map of PGSchema (or `queryMap`) | |
+
+```yaml
+- dataLabel: Tim Berners Lee in RDF (SPARQL query)
+  dataURL: ex01.ttl
+  dataFormat: turtle
+  queryURL: ex01.sparql
+  action: query
+- dataLabel: Tim Berners Lee as a property graph
+  dataURL: ex02.pg
+  dataFormat: yars-pg
+  action: data
+```
+
+URLs are relative to the manifest. Without a format, the format of a file is
+taken from its extension (`.shex`, `.json`, `.ttl`, `.nt`, `.jsonld`, `.pg`…),
+and the one of inline text is the default (or JSON-LD and ShExJ for text that
+starts with `{`). Choosing an example opens the tab of its action, and
+validates it or runs its query; examples to `data` are only loaded. When an
+example is validated as loaded, the verdict says whether the result is the
+one of its `status`. Examples that the demo can't run are listed but can't be
+loaded, and say why: those that read their data from a SPARQL endpoint or
+Wikidata as they are validated (`neighborhood:`), queries on an `endpoint`
+(rudof can't reach endpoints from the browser yet), queries on property
+graphs, and formats that the tab can't read (such as TriX).
 `&example=<n>` loads the n-th example (from 1) when the page opens; the URL
 gets it when an example is chosen, so it can be shared.
 
 The manifest and its files are read by the browser, so their server must allow
 other sites to read them ([CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS));
-GitHub Pages and raw.githubusercontent.com do. Kinds of examples are in
-`KINDS` of `manifest.js`: SHACL and PGSchema examples will be added there,
-named by the `type:` of the entry.
+GitHub Pages and raw.githubusercontent.com do. The tab of each action and
+validation engine, and the formats it reads, are in `TARGETS` of
+`manifest.js`.
 
 ## Permalinks
 

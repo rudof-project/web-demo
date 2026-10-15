@@ -1,5 +1,5 @@
 // The examples of a manifest: ?manifestURL=… lists them, and choosing one
-// loads it into the editors.
+// loads it into the editors of the tab of its action, and runs it.
 
 import { test, expect, open } from "./fixtures.js";
 
@@ -30,6 +30,33 @@ const FILES = {
   endpoint: https://query.wikidata.org/sparql
   queryMap: "<x>@<S>"
 `,
+  "https://manifests.example/doc/actions.yaml": `
+- dataLabel: a property graph
+  dataURL: ../examples/graph.pg
+  dataFormat: yars-pg
+  action: data
+- dataLabel: names
+  data: |
+    prefix : <http://example.org/>
+    :alice :name "Alice" .
+  dataFormat: turtle
+  query: "SELECT ?name WHERE { ?p <http://example.org/name> ?name }"
+  action: query
+- schemaLabel: SHACL
+  dataLabel: Alice without a name
+  data: |
+    prefix : <http://example.org/>
+    :alice a :Person .
+  schema: |
+    prefix : <http://example.org/>
+    prefix sh: <http://www.w3.org/ns/shacl#>
+    :PersonShape a sh:NodeShape ; sh:targetClass :Person ; sh:property [ sh:path :name ; sh:minCount 1 ] .
+  schemaFormat: turtle
+  validationEngine: shacl
+  status: nonconformant
+  action: validate
+`,
+  "https://manifests.example/examples/graph.pg": `(n1 {Person} [ name: "Alice" ])`,
   "https://manifests.example/examples/person.shex": `prefix : <http://example.org/>
 prefix xsd: <http://www.w3.org/2001/XMLSchema#>
 start = @:Person
@@ -76,6 +103,39 @@ test("loads the chosen example into the editors, and validates it", async ({ pag
 
   await page.locator("#shex-validate").click();
   await expect(page.locator("#shex-result .verdict")).toHaveText(/^Does not conform.*\(as the manifest expects\)$/);
+});
+
+test("validates the chosen example", async ({ page }) => {
+  await open(page, `?manifestURL=${encodeURIComponent(MANIFEST_URL)}`);
+  await select(page).selectOption({ label: "✓ Alice" });
+  await expect(page.locator("#shex-result .verdict")).toHaveText(/^Conforms.*\(as the manifest expects\)$/);
+});
+
+test.describe("the action of an example", () => {
+  const ACTIONS_URL = "https://manifests.example/doc/actions.yaml";
+
+  test("data loads the data in the Data tab", async ({ page }) => {
+    await open(page, `?manifestURL=${encodeURIComponent(ACTIONS_URL)}`);
+    await select(page).selectOption({ label: "a property graph" });
+    await expect(page.locator("#panel-pg")).toBeVisible();
+    await expect(page.locator("#pg-data")).toHaveJSProperty("value", FILES["https://manifests.example/examples/graph.pg"]);
+    await expect(page.locator("#pg-result .verdict")).toHaveText("Press Convert");
+  });
+
+  test("query runs the query in the Query tab", async ({ page }) => {
+    await open(page, `?manifestURL=${encodeURIComponent(ACTIONS_URL)}&example=2`);
+    await expect(page.locator("#panel-sparql")).toBeVisible();
+    await expect(page.locator("#sparql-query")).toHaveJSProperty("value", "SELECT ?name WHERE { ?p <http://example.org/name> ?name }");
+    await expect(page.locator("#sparql-result .verdict")).toHaveText("1 result");
+  });
+
+  test("validate validates with the validation engine of the example", async ({ page }) => {
+    await open(page, `?manifestURL=${encodeURIComponent(ACTIONS_URL)}`);
+    await select(page).selectOption({ label: "✗ Alice without a name" });
+    await expect(page.locator("#panel-shacl")).toBeVisible();
+    await expect(page.locator("#shacl-shapes-format")).toHaveValue("turtle");
+    await expect(page.locator("#shacl-result .verdict")).toHaveText(/^Does not conform.*\(as the manifest expects\)$/);
+  });
 });
 
 test("?example= loads an example when the page opens", async ({ page }) => {

@@ -288,6 +288,10 @@ function setStatus(kind, text) {
 let rudofModule;
 const sessions = {};
 
+// Resolved when rudof is loaded, to run the example of a manifest
+let rudofIsLoaded;
+const rudofLoaded = new Promise((resolve) => (rudofIsLoaded = resolve));
+
 function session(name) {
   sessions[name] ??= new rudofModule.Rudof();
   return sessions[name];
@@ -739,8 +743,10 @@ for (const prefix of Object.keys(validators)) {
 //
 // ?manifestURL=<url> lists the examples of a manifest (see manifest.js) above
 // the tabs, and ?example=<n> loads the n-th one (from 1), unless the URL has
-// the inputs too (a permalink of the example, maybe edited). manifest.js, with
-// its YAML parser, is only loaded then.
+// the inputs too (a permalink of the example, maybe edited). An example is
+// loaded in the tab of its action (data, validate or query), which then
+// validates it or runs its query. manifest.js, with its YAML parser, is only
+// loaded then.
 
 // The example loaded last, and the text it put in each input, to compare the
 // result with the one the manifest expects while the inputs are unchanged.
@@ -812,7 +818,8 @@ async function chooseExample(manifest, example) {
     return;
   }
   if (choosing !== token) return; // another example was chosen meanwhile
-  const { tab, validator } = manifest.KINDS[example.type];
+  const validator = example.target;
+  const { tab } = manifest.TARGETS[validator];
   for (const { textarea, text, formatSelect, format } of inputs) {
     const select = formatSelect && $(formatSelect);
     if (select && [...select.options].some((o) => o.value === format)) {
@@ -841,6 +848,11 @@ async function chooseExample(manifest, example) {
   if (example.comment) parts.push(example.comment);
   for (const note of example.notes) parts.push("\n", note);
   manifestNote(parts);
+
+  // Validations and queries are run, once rudof is loaded; data is only shown.
+  if (example.action === "data") return;
+  await rudofLoaded;
+  if (choosing === token) run(validator);
 }
 
 // Whether a validation gives the result the manifest expects, while the inputs
@@ -865,6 +877,7 @@ try {
   setStatus("ready", `rudof ${new rudofModule.Rudof().getVersion()} ready`);
   $("status").title = `@rudof/rudof from ${RUDOF_MODULE}`;
   for (const b of document.querySelectorAll('button[id$="-validate"]')) b.disabled = false;
+  rudofIsLoaded();
 } catch (e) {
   console.error(e);
   setStatus("error", `Could not load rudof: ${e.message ?? e}`);
