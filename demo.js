@@ -4,6 +4,7 @@
 
 import { PANELS, hasState, panelOfParams, stateParams, queryString, inputsOfParams } from "./permalink.js";
 import { setupLayout } from "./layout.js";
+import { queryEndpoint, queryPrefixes, solutionsCsv } from "./endpoint.js";
 import { devDependencies } from "./package.json";
 
 // The exact version of package.json (the one the tests use), so that updating
@@ -138,6 +139,7 @@ function restoreInputs() {
 
 setupLayout();
 restoreInputs();
+showEndpointUse();
 selectTabFromHash();
 window.addEventListener("hashchange", selectTabFromHash);
 
@@ -512,7 +514,35 @@ function setSparqlFormats(kind) {
   }
 }
 
+// The endpoint of the query, if it is not run on the data of the page.
+function sparqlEndpoint() {
+  return $("sparql-endpoint").value.trim();
+}
+
+// The data is not used when the query runs on an endpoint.
+function showEndpointUse() {
+  const onEndpoint = Boolean(sparqlEndpoint());
+  $("sparql-data").closest(".field").classList.toggle("unused", onEndpoint);
+  $("sparql-data-unused").hidden = !onEndpoint;
+}
+
+$("sparql-endpoint").addEventListener("input", showEndpointUse);
+$("sparql-endpoint").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !(e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    run("sparql");
+  }
+});
+
+function sparqlVerdict(results) {
+  if (results.kind === "select") return count(results.rows.length, "result");
+  if (results.kind === "ask") return `ASK: ${results.boolean}`;
+  return count(results.graph.split("\n").filter((l) => l.trim()).length, "triple");
+}
+
 function runSparql() {
+  const endpoint = sparqlEndpoint();
+  if (endpoint) return runSparqlOnEndpoint(endpoint);
   const rudof = session("sparql");
   const start = performance.now();
   rudof.resetAll();
@@ -522,11 +552,26 @@ function runSparql() {
   const millis = performance.now() - start;
   const prefixes = dataPrefixes(rudof);
   setSparqlFormats(results.kind);
-  let verdict;
-  if (results.kind === "select") verdict = count(results.rows.length, "result");
-  else if (results.kind === "ask") verdict = `ASK: ${results.boolean}`;
-  else verdict = count(results.graph.split("\n").filter((l) => l.trim()).length, "triple");
-  return { verdict, kind: "ok", millis, results, prefixes };
+  return { verdict: sparqlVerdict(results), kind: "ok", millis, results, prefixes };
+}
+
+// A query run on an endpoint (see endpoint.js). Its graphs are read with
+// rudof, and written in N-Triples, as rudof gives the graphs of local queries.
+// The prefixes of the results are those of the query.
+async function runSparqlOnEndpoint(endpoint) {
+  const query = $("sparql-query").value;
+  const start = performance.now();
+  const results = await queryEndpoint(endpoint, query);
+  const millis = performance.now() - start;
+  if (results.kind === "graph") {
+    const rudof = session("sparql-endpoint");
+    rudof.resetAll();
+    rudof.readData(results.text, results.format);
+    results.graph = rudof.serializeData("ntriples");
+  }
+  setSparqlFormats(results.kind);
+  const verdict = `${sparqlVerdict(results)} from ${new URL(endpoint).host}`;
+  return { verdict, kind: "ok", millis, results, prefixes: queryPrefixes(query) };
 }
 
 // The prefixes declared in the loaded data, as [alias, IRI] pairs, read from
@@ -592,7 +637,10 @@ function serializeSparql() {
   const { results, prefixes } = last.sparql;
   const format = $("sparql-result-format").value;
   if (results.kind === "select") {
-    return format === "table" ? sparqlTable(results, prefixes) : session("sparql").serializeQueryResults(format);
+    if (format === "table") return sparqlTable(results, prefixes);
+    // The results of an endpoint, as it gave them
+    if (results.json) return format === "csv" ? solutionsCsv(results.json) : JSON.stringify(results.json, null, 2);
+    return session("sparql").serializeQueryResults(format);
   }
   if (results.kind === "ask") return String(results.boolean);
   // The graph of CONSTRUCT and DESCRIBE, written with the prefixes of the data.
@@ -701,15 +749,27 @@ for (const prefix of CONVERTERS) {
 // format serializes it again without validating again.
 const last = {};
 
-function run(prefix) {
+// The last run of each tab, so that only its result is shown (a query on an
+// endpoint takes a while, and can be run again meanwhile).
+const running = {};
+
+async function run(prefix) {
   if (!rudofModule || crashed) return;
   const { validate, serialize } = validators[prefix];
+  const token = (running[prefix] = {});
   try {
-    last[prefix] = validate();
+    let result = validate();
+    if (result instanceof Promise) {
+      showResult(prefix, { verdict: "Waiting for the endpoint…", kind: "running", output: "" });
+      result = await result;
+      if (running[prefix] !== token) return;
+    }
+    last[prefix] = result;
     last[prefix].verdict += expectation(prefix, last[prefix].kind);
     const output = serialize();
     showResult(prefix, { ...last[prefix], output });
   } catch (e) {
+    if (running[prefix] !== token) return;
     delete last[prefix];
     showError(prefix, e);
   }
@@ -831,6 +891,7 @@ async function chooseExample(manifest, example) {
     }
     $(textarea).value = text;
   }
+  showEndpointUse();
   // The result of the inputs before is not the result of these
   $(`${validator}-result`).hidden = true;
   delete last[validator];

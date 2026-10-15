@@ -44,7 +44,13 @@ export const PANELS = {
   },
   sparql: {
     section: "query",
-    params: { data: "sparql-data", "data-format": "sparql-data-format", query: "sparql-query", "result-format": "sparql-result-format" },
+    params: {
+      data: "sparql-data",
+      "data-format": "sparql-data-format",
+      query: "sparql-query",
+      endpoint: "sparql-endpoint",
+      "result-format": "sparql-result-format",
+    },
   },
 };
 
@@ -61,7 +67,7 @@ export function hasState(params) {
 // The tab of parameters without a fragment: the first one with a parameter
 // only it has, or the RDF converter for data alone. Links of shex.js
 // (?schema=…&data=…&shape-map=…) open the ShEx tab.
-const DISTINCTIVE = [["shape-map", "shex"], ["shapes", "shacl"], ["type-map", "pgschema"], ["query", "sparql"], ["schema", "shex"], ["data", "rdf"]];
+const DISTINCTIVE = [["shape-map", "shex"], ["shapes", "shacl"], ["type-map", "pgschema"], ["query", "sparql"], ["endpoint", "sparql"], ["schema", "shex"], ["data", "rdf"]];
 
 export function panelOfParams(params) {
   return DISTINCTIVE.find(([name]) => params.has(name))?.[1];

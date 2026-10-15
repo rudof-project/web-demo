@@ -33,7 +33,8 @@ const styleOf = (parser, text, token) => tokens(parser, text).find(([t]) => t ==
 describe("formats and languages", () => {
   it("has a language for every format of the page", () => {
     const html = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../index.html"), "utf8");
-    const values = [...html.matchAll(/<option value="([^"]+)"/g)].map((m) => m[1]).filter(Boolean);
+    // Not the endpoints suggested for SPARQL, which are URLs
+    const values = [...html.matchAll(/<option value="([^"]+)"/g)].map((m) => m[1]).filter((v) => v && !/^https?:/.test(v));
     const fixed = [...html.matchAll(/data-language="([^"]+)"/g)].map((m) => m[1]);
     // The selects of the input formats, and the examples of the SPARQL query
     const outputs = ["plantuml", "compact", "details", "json", "csv", "minimal", "table", "native", "sparql", "select", "count", "ask", "construct", "describe", "text"];

@@ -500,10 +500,22 @@ e2: EnrolledInType</textarea>
 
       <!-- SPARQL -->
       <section id="panel-sparql" role="tabpanel" aria-labelledby="tab-sparql" class="panel">
+        <div class="toolbar endpoint-row">
+          <label for="sparql-endpoint">Endpoint</label>
+          <input id="sparql-endpoint" type="url" list="sparql-endpoints" spellcheck="false" autocomplete="off"
+            placeholder="None: the query runs on the RDF data below">
+          <datalist id="sparql-endpoints">
+            <option value="https://query.wikidata.org/sparql">Wikidata</option>
+            <option value="https://dbpedia.org/sparql">DBpedia</option>
+            <option value="https://sparql.uniprot.org/sparql">UniProt</option>
+          </datalist>
+          <span class="hint">The endpoint must allow other sites to query it (CORS).</span>
+        </div>
         <div class="inputs two">
           <div class="field">
             <div class="field-head">
               <label for="sparql-data">RDF data</label>
+              <span class="hint" id="sparql-data-unused" hidden>Not used: the query runs on the endpoint</span>
               <select id="sparql-data-format" aria-label="RDF data format">
                 <option value="turtle">Turtle</option>
                 <option value="ntriples">N-Triples</option>

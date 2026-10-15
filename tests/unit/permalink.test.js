@@ -19,7 +19,7 @@ describe("PANELS", () => {
     for (const id of Object.values(params)) {
       const element = document.getElementById(id);
       expect(element, id).not.toBeNull();
-      expect(["TEXTAREA", "SELECT"]).toContain(element.tagName);
+      expect(["TEXTAREA", "SELECT", "INPUT"]).toContain(element.tagName);
       expect(document.getElementById(`panel-${panel}`).contains(element), id).toBe(true);
     }
   });

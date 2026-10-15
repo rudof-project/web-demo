@@ -26,7 +26,8 @@
 //     query: | ...                # or queryURL: ..., for action: query
 //     queryFormat: sparql
 //     queryEngine: sparql
-//     endpoint: https://...       # where the query is run
+//     endpoint: https://...       # the SPARQL endpoint the query runs on,
+//                                 # instead of the data
 //     typeMap: n1: PersonType     # or typeMapURL: ..., for PGSchema
 //
 // Without a format, the format is the one of the extension of the file, or
@@ -106,9 +107,11 @@ export const TARGETS = {
     tab: "query/sparql",
     action: "query",
     what: "SPARQL",
+    // The query runs on the data, or on the endpoint when there is one
     inputs: [
-      rdfData("sparql-data", "sparql-data-format"),
+      { ...rdfData("sparql-data", "sparql-data-format"), optional: true },
       { name: "query", key: "queryFormat", textarea: "sparql-query", formats: QUERY_FORMATS },
+      { name: "endpoint", textarea: "sparql-endpoint", optional: true },
     ],
   },
 };
@@ -229,12 +232,10 @@ function unsupported(entry, target, inputs, problems) {
     const source = entry.endpoint ?? entry.base ?? entry.dataBase;
     return `reads its data from ${source ? `${source} ` : ""}as validation goes, which this demo can't do`;
   }
-  if (target === "sparql" && entry.endpoint != null) {
-    return `runs its query on ${entry.endpoint}, and this demo can only query the data of the example`;
-  }
   if (problems.length) return problems.join(", and ");
-  const missing = TARGETS[target].inputs.filter(({ name }) => !inputs[name]).map(({ name }) => name);
+  const missing = TARGETS[target].inputs.filter(({ name, optional }) => !optional && !inputs[name]).map(({ name }) => name);
   if (missing.length) return `has no ${missing.join(" or ")}`;
+  if (target === "sparql" && !inputs.data && !inputs.endpoint) return "has no data or endpoint to query";
   return undefined;
 }
 
@@ -250,12 +251,13 @@ export function groupExamples(examples) {
 }
 
 // The inputs of an example, read from their URLs if needed:
-// [{ textarea, text, formatSelect, format }], in the order of TARGETS.
+// [{ textarea, text, formatSelect, format }], in the order of TARGETS. The
+// optional inputs that the example doesn't have are empty.
 export async function loadExample(example, fetchText = defaultFetchText) {
   if (example.unsupported) throw new Error(`This example ${example.unsupported}.`);
   return Promise.all(
     TARGETS[example.target].inputs.map(async ({ name, textarea, formatSelect, inline }) => {
-      const input = example.inputs[name];
+      const input = example.inputs[name] ?? { text: "" };
       const value = input.text ?? (await fetchText(input.url));
       const format = formatSelect ? (example.formats[name] ?? inline(value)) : undefined;
       return { name, textarea, text: value, formatSelect, format };

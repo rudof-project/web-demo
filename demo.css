@@ -462,3 +462,19 @@ body.has-maximized { overflow: hidden; }
 .maximized .diagram[hidden] { display: none; }
 .maximized .diagram-image { flex: 1; max-height: none; }
 .layout-choice { font-size: 0.9em; }
+
+/* SPARQL on an endpoint (endpoint.js) */
+.endpoint-row label { font-weight: 600; }
+#sparql-endpoint {
+  flex: 1 1 18rem;
+  max-width: 34rem;
+  font: 13px var(--mono);
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+}
+#sparql-endpoint:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.field.unused > .cm-editor { opacity: 0.5; }
+.result[data-kind="running"] .result-head { color: var(--muted); font-weight: 400; }

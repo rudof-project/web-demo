@@ -224,11 +224,24 @@ describe("parseManifest, with actions", () => {
     expect(one("- data: ''\n  dataFormat: yars-pg\n  query: ''\n  action: query\n").unsupported).toMatch(/property graph/);
   });
 
-  it("does not support queries without a query, or on an endpoint", () => {
+  it("does not support queries without a query, or without data or endpoint", () => {
     expect(one("- data: ''\n  action: query\n").unsupported).toBe("has no query");
+    expect(one("- query: 'ASK {}'\n  action: query\n").unsupported).toBe("has no data or endpoint to query");
+  });
+
+  it("runs queries on an endpoint, without data", async () => {
     const remote = one("- query: 'ASK {}'\n  endpoint: https://query.wikidata.org/sparql\n  action: query\n");
-    expect(remote.endpoint).toBe("https://query.wikidata.org/sparql");
-    expect(remote.unsupported).toMatch(/query\.wikidata\.org/);
+    expect(remote).toMatchObject({ target: "sparql", endpoint: "https://query.wikidata.org/sparql", unsupported: undefined });
+    const inputs = Object.fromEntries((await loadExample(remote)).map((i) => [i.name, i]));
+    expect(inputs.endpoint).toMatchObject({ textarea: "sparql-endpoint", text: "https://query.wikidata.org/sparql" });
+    expect(inputs.query.text).toBe("ASK {}");
+    expect(inputs.data).toMatchObject({ textarea: "sparql-data", text: "" });
+  });
+
+  it("clears the endpoint of queries on data", async () => {
+    const local = one("- query: 'ASK {}'\n  data: '<a> <b> <c> .'\n  action: query\n");
+    const inputs = Object.fromEntries((await loadExample(local)).map((i) => [i.name, i]));
+    expect(inputs.endpoint.text).toBe("");
   });
 });
 

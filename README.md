@@ -45,6 +45,27 @@ set up by [`codemirror-setup.js`](codemirror-setup.js):
   for the result. demo.js still writes the result in its `<pre>`, which is
   hidden, and the viewer follows it (`pre[data-viewer]`).
 
+## SPARQL endpoints
+
+In the Query tab, the **Endpoint** field runs the query on a SPARQL endpoint
+(Wikidata, DBpedia and UniProt are suggested) instead of the RDF data of the
+page. Leave it empty to query the data.
+
+rudof compiled to WebAssembly can't reach endpoints: its HTTP client waits
+for each answer, which a browser page can't do. So
+[`endpoint.js`](endpoint.js) sends the query itself, with the SPARQL 1.1
+protocol (GET, or POST for long queries), and gives the results in the form
+of the results of rudof. SELECT results show in the table (with the prefixes
+of the query), as JSON (as the endpoint gave them) or as CSV. The graphs of
+CONSTRUCT and DESCRIBE are read with rudof, so they can be written in every
+RDF format.
+
+The endpoint must allow other sites to query it
+([CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)), as Wikidata
+does, and the page (https) can't query an `http:` endpoint. Validation on
+endpoints is not possible yet: the validators of rudof read the data as they
+go, and that needs a change in rudof.
+
 ## Layout
 
 [`layout.js`](layout.js) lets you arrange the boxes of every tab (Data,
@@ -105,7 +126,7 @@ ShEx validation, as in the manifests of shex.js:
 | `query`, `queryURL` | the query, for `action: query` | |
 | `queryFormat` | `sparql` | `sparql` |
 | `queryEngine` | `sparql` | `sparql` |
-| `endpoint` | the SPARQL endpoint the query is run on | |
+| `endpoint` | the SPARQL endpoint the query runs on, instead of the data (then the data is optional) | |
 | `typeMap`, `typeMapURL` | the type map of PGSchema (or `queryMap`) | |
 
 ```yaml
@@ -130,8 +151,7 @@ for examples to `query`, press **Run query**. When an
 example is validated as loaded, the verdict says whether the result is the
 one of its `status`. Examples that the demo can't run are listed but can't be
 loaded, and say why: those that read their data from a SPARQL endpoint or
-Wikidata as they are validated (`neighborhood:`), queries on an `endpoint`
-(rudof can't reach endpoints from the browser yet), queries on property
+Wikidata as they are validated (`neighborhood:`), queries on property
 graphs, and formats that the tab can't read (such as TriX).
 `&example=<n>` loads the n-th example (from 1) when the page opens; the URL
 gets it when an example is chosen, so it can be shared.
@@ -163,7 +183,7 @@ copies it. Opening the URL puts the inputs and options back in their tab.
 | ShEx     | `schema`, `data`, `shape-map`, `schema-format`, `data-format`, `result-format`, `schema-result-format` |
 | SHACL    | `shapes`, `data`, `shapes-format`, `data-format`, `mode`, `result-format`, `schema-result-format` |
 | PGSchema | `schema`, `data`, `type-map`, `result-format` |
-| SPARQL   | `data`, `data-format`, `query`, `result-format` |
+| SPARQL   | `data`, `data-format`, `query`, `endpoint`, `result-format` |
 
 `manifestURL` and `example` are kept. A URL without a fragment opens the tab
 of its parameters (ShEx for `shape-map` or `schema`), so links in the style of
