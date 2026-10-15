@@ -8,9 +8,9 @@
   <meta name="description"
     content="Convert, validate (ShEx, SHACL, PGSchema) and query (SPARQL) RDF data and property graphs in your browser, with rudof compiled to WebAssembly.">
   <link rel="icon" href="./assets/logo-Bi_PJdUG.svg" type="image/svg+xml">
-  <script type="module" crossorigin src="./assets/index-D59GyCQi.js"></script>
+  <script type="module" crossorigin src="./assets/index-BDNkNXBd.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/dist-BOANVATe.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-CEnwOJBE.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-CKXHpDDc.css">
 </head>
 
 <body>
@@ -109,7 +109,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
             </div>
             <div class="result converted" id="rdf-result">
               <div class="result-head"><span class="verdict">Press Convert</span><span class="timing"></span></div>
-              <pre class="output"></pre>
+              <pre class="output" id="rdf-output" data-viewer="Converted data" data-format-select="rdf-result-format"></pre>
               <div class="diagram" hidden>
                 <div class="diagram-tools">
                   <button class="link" data-action="source">Show PlantUML source</button>
@@ -164,7 +164,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
             </div>
             <div class="result converted" id="pg-result">
               <div class="result-head"><span class="verdict">Press Convert</span><span class="timing"></span></div>
-              <pre class="output"></pre>
+              <pre class="output" id="pg-output" data-viewer="Converted property graph" data-format-select="pg-result-format"></pre>
             </div>
           </div>
         </div>
@@ -278,7 +278,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
         </div>
         <div class="result" id="shex-schema-result" hidden>
           <div class="result-head"><span class="verdict"></span><span class="timing"></span></div>
-          <pre class="output"></pre>
+          <pre class="output" id="shex-schema-output" data-viewer="Converted schema" data-format-select="shex-schema-result-format"></pre>
           <div class="diagram" hidden>
             <div class="diagram-tools">
               <button class="link" data-action="source">Show PlantUML source</button>
@@ -391,7 +391,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
         </div>
         <div class="result" id="shacl-schema-result" hidden>
           <div class="result-head"><span class="verdict"></span><span class="timing"></span></div>
-          <pre class="output"></pre>
+          <pre class="output" id="shacl-schema-output" data-viewer="Converted schema" data-format-select="shacl-schema-result-format"></pre>
           <div class="diagram" hidden>
             <div class="diagram-tools">
               <button class="link" data-action="source">Show PlantUML source</button>
