@@ -13,7 +13,7 @@
 //       <Obs1> :subject <Patient2> .
 //     queryMap: <Obs1>@START                # or queryMapURL: ...
 //     status: conformant                    # or nonconformant
-//     comment: Shown when the example is chosen.
+//     comment: The name of the example in the list.
 //
 // and with optional keys that say what to do with it (the defaults are those
 // of shex.js manifests, which don't have them):
@@ -166,7 +166,8 @@ function isPgData(entry, manifestURL) {
 //   action     data, validate or query
 //   target     the tab it goes to (a key of TARGETS)
 //   group      what it is grouped by (the schema label)
-//   label      its name in the list (the data label)
+//   label      its name in the list: the comment, or else the data label
+//   dataLabel  the data label
 //   status     the result it should have, if the manifest says it
 //   comment    the comment of the manifest
 //   endpoint   the endpoint of its query, if it has one
@@ -209,7 +210,8 @@ export function parseManifest(source, manifestURL) {
       action,
       target,
       group: text(entry.schemaLabel ?? entry.label) ?? "",
-      label: text(entry.dataLabel ?? entry.name) ?? `Example ${index + 1}`,
+      label: text(entry.comment ?? entry.dataLabel ?? entry.name) ?? `Example ${index + 1}`,
+      dataLabel: text(entry.dataLabel ?? entry.name),
       status: text(entry.status),
       comment: text(entry.comment),
       endpoint: text(entry.endpoint),

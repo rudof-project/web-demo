@@ -117,6 +117,11 @@ describe("editor configuration", () => {
     document.body.append(area);
     const view = createEditor(area);
     expect(view.dom.classList.contains("short")).toBe(true);
+    // CodeMirror writes the classes of its element again when it changes
+    view.focus();
+    view.contentDOM.dispatchEvent(new FocusEvent("focus"));
+    view.dispatch({});
+    expect(view.dom.classList.contains("short")).toBe(true);
   });
 
   it("can take more extensions", () => {

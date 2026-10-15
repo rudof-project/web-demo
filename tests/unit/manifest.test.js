@@ -79,12 +79,18 @@ describe("parseManifest", () => {
   it("has an example for each entry, in order", () => {
     expect(examples.map((e) => e.index)).toEqual([0, 1, 2, 3, 4]);
     expect(examples.map((e) => e.label)).toEqual([
-      "the least an Observation can be",
+      "Everything is optional but :subject.",
       "no subject",
       "Q42 from the query service",
       "passing data",
       "simple",
     ]);
+  });
+
+  it("names an example by its comment, or else by its data label", () => {
+    expect(examples[0]).toMatchObject({ label: "Everything is optional but :subject.", dataLabel: "the least an Observation can be" });
+    expect(examples[1]).toMatchObject({ label: "no subject", dataLabel: "no subject" });
+    expect(parseManifest("- data: ''\n", MANIFEST_URL)[0].label).toBe("Example 1");
   });
 
   it("takes the group, the status and the comment of each entry", () => {

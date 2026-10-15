@@ -87,7 +87,7 @@ test("lists the examples of the manifest, grouped by schema", async ({ page }) =
   await expect(page.locator("#manifest-link")).toHaveAttribute("href", MANIFEST_URL);
   await expect(select(page)).toBeEnabled();
   await expect(select(page).locator("optgroup")).toHaveCount(2);
-  await expect(select(page).locator('optgroup[label="person"] option')).toHaveText(["✓ Alice", "✗ Bob"]);
+  await expect(select(page).locator('optgroup[label="person"] option')).toHaveText(["✓ Alice has a name.", "✗ Bob"]);
   await expect(select(page).locator('optgroup[label="Wikidata"] option')).toBeDisabled();
 });
 
@@ -107,7 +107,7 @@ test("loads the chosen example into the editors, and validates it", async ({ pag
 
 test("validates the chosen example", async ({ page }) => {
   await open(page, `?manifestURL=${encodeURIComponent(MANIFEST_URL)}`);
-  await select(page).selectOption({ label: "✓ Alice" });
+  await select(page).selectOption({ label: "✓ Alice has a name." });
   await expect(page.locator("#shex-result .verdict")).toHaveText(/^Conforms.*\(as the manifest expects\)$/);
 });
 
@@ -122,11 +122,20 @@ test.describe("the action of an example", () => {
     await expect(page.locator("#pg-result .verdict")).toHaveText("Press Convert");
   });
 
-  test("query runs the query in the Query tab", async ({ page }) => {
+  test("query loads the query in the Query tab, and waits for Run query", async ({ page }) => {
     await open(page, `?manifestURL=${encodeURIComponent(ACTIONS_URL)}&example=2`);
     await expect(page.locator("#panel-sparql")).toBeVisible();
     await expect(page.locator("#sparql-query")).toHaveJSProperty("value", "SELECT ?name WHERE { ?p <http://example.org/name> ?name }");
+    await expect.poll(() => page.locator("#sparql-data").inputValue()).toMatch(/:alice :name "Alice"/);
+    await expect(page.locator("#sparql-result")).toBeHidden();
+    await page.locator("#sparql-validate").click();
     await expect(page.locator("#sparql-result .verdict")).toHaveText("1 result");
+  });
+
+  test("the list shows the comment of an example, or else its data label", async ({ page }) => {
+    await open(page, `?manifestURL=${encodeURIComponent(MANIFEST_URL)}`);
+    const alice = select(page).locator("option", { hasText: "Alice has a name." });
+    await expect(alice).toHaveAttribute("title", "Alice");
   });
 
   test("validate validates with the validation engine of the example", async ({ page }) => {

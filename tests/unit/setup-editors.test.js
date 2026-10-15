@@ -152,6 +152,9 @@ describe("setupViewers", () => {
     expect(view.state.doc.toString()).toBe(":a :b :c .");
     expect(view.dom.dataset.viewerFor).toBe("output");
     expect(viewerFor(pre())).toBe(view);
+    view.focus();
+    view.dispatch({});
+    expect(view.dom.classList).toContain("cm-viewer");
   });
 
   it("can't be edited", () => {

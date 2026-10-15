@@ -207,13 +207,14 @@ export function createEditor(textarea, { format, extensions = [] } = {}) {
         language.of([]),
         textareaSync(textarea),
         label ? EditorView.contentAttributes.of({ "aria-label": label }) : [],
+        // The height of the textarea (classes short and medium). CodeMirror
+        // writes the classes of its element, so they are given to it.
+        textarea.classList.length ? EditorView.editorAttributes.of({ class: [...textarea.classList].join(" ") }) : [],
         extensions,
       ],
     }),
   });
   view.dom.dataset.editorFor = textarea.id;
-  // The height of the textarea (classes short and medium)
-  view.dom.classList.add(...textarea.classList);
   textarea.after(view.dom);
   textarea.hidden = true;
   languages.set(view, { compartment: language, format: null });
@@ -259,10 +260,14 @@ export function createViewer(pre) {
   const view = new EditorView({
     state: EditorState.create({
       doc: pre.textContent,
-      extensions: [viewerSetup(), language.of([]), EditorView.contentAttributes.of({ "aria-label": label })],
+      extensions: [
+        viewerSetup(),
+        language.of([]),
+        EditorView.contentAttributes.of({ "aria-label": label }),
+        EditorView.editorAttributes.of({ class: "cm-viewer" }),
+      ],
     }),
   });
-  view.dom.classList.add("cm-viewer");
   if (pre.id) view.dom.dataset.viewerFor = pre.id;
   pre.before(view.dom);
   pre.classList.add("has-viewer");

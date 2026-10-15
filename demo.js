@@ -3,6 +3,7 @@
 // package (rudof compiled to WebAssembly), loaded from jsDelivr.
 
 import { PANELS, hasState, panelOfParams, stateParams, queryString, inputsOfParams } from "./permalink.js";
+import { setupLayout } from "./layout.js";
 import { devDependencies } from "./package.json";
 
 // The exact version of package.json (the one the tests use), so that updating
@@ -135,6 +136,7 @@ function restoreInputs() {
   }
 }
 
+setupLayout();
 restoreInputs();
 selectTabFromHash();
 window.addEventListener("hashchange", selectTabFromHash);
@@ -744,9 +746,9 @@ for (const prefix of Object.keys(validators)) {
 // ?manifestURL=<url> lists the examples of a manifest (see manifest.js) above
 // the tabs, and ?example=<n> loads the n-th one (from 1), unless the URL has
 // the inputs too (a permalink of the example, maybe edited). An example is
-// loaded in the tab of its action (data, validate or query), which then
-// validates it or runs its query. manifest.js, with its YAML parser, is only
-// loaded then.
+// loaded in the tab of its action (data, validate or query). Validations are
+// run then; queries wait for the Run query button. manifest.js, with its YAML
+// parser, is only loaded then.
 
 // The example loaded last, and the text it put in each input, to compare the
 // result with the one the manifest expects while the inputs are unchanged.
@@ -766,7 +768,7 @@ function exampleOption(example) {
   const text = `${STATUS_MARKS[example.status] ?? ""}${example.label}${example.unsupported ? " (not supported)" : ""}`;
   const option = new Option(text, String(example.index));
   option.disabled = Boolean(example.unsupported);
-  option.title = example.unsupported ? `This example ${example.unsupported}.` : (example.comment ?? "");
+  option.title = example.unsupported ? `This example ${example.unsupported}.` : (example.dataLabel ?? "");
   return option;
 }
 
@@ -849,8 +851,9 @@ async function chooseExample(manifest, example) {
   for (const note of example.notes) parts.push("\n", note);
   manifestNote(parts);
 
-  // Validations and queries are run, once rudof is loaded; data is only shown.
-  if (example.action === "data") return;
+  // Validations are run, once rudof is loaded. Data is only shown, and
+  // queries wait for the Run query button.
+  if (example.action !== "validate") return;
   await rudofLoaded;
   if (choosing === token) run(validator);
 }

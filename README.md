@@ -45,6 +45,24 @@ set up by [`codemirror-setup.js`](codemirror-setup.js):
   for the result. demo.js still writes the result in its `<pre>`, which is
   hidden, and the viewer follows it (`pre[data-viewer]`).
 
+## Layout
+
+[`layout.js`](layout.js) lets you arrange the boxes of every tab (Data,
+Validate and Query):
+
+- **Layout** menu, next to Permalink: the two boxes of a row side by side or
+  one above the other, in their order or swapped (for example the result
+  left of the data, or the schema above the data). The browser remembers the
+  choice. On narrow screens the boxes are always one above the other.
+- **Splitter**: side by side, drag the line between the two boxes to change
+  their widths, or focus it (Tab) and use the arrow keys. A double click
+  makes the widths equal again. The browser remembers the widths of each tab.
+- **Heights**: drag the handle at the bottom right corner of an editor or a
+  result.
+- **Full screen**: the button at the top right of each editor and each
+  result shows it on the whole window of the browser. The button again, or
+  Esc, gives the normal size back. Ctrl+Enter still runs the tab.
+
 ## Examples
 
 [`examples/`](examples/) has examples of every input format (RDF/XML, Turtle,
@@ -72,7 +90,7 @@ the vocabulary of shex.js:
     <Obs1> :subject <Patient2> .
   queryMap: <Obs1>@START              # the shape map, or queryMapURL:
   status: conformant                  # or nonconformant
-  comment: Shown when the example is chosen
+  comment: Shown in the list of examples
 ```
 
 Optional keys say what to do with an example. Without them, an entry is a
@@ -105,8 +123,10 @@ ShEx validation, as in the manifests of shex.js:
 URLs are relative to the manifest. Without a format, the format of a file is
 taken from its extension (`.shex`, `.json`, `.ttl`, `.nt`, `.jsonld`, `.pg`…),
 and the one of inline text is the default (or JSON-LD and ShExJ for text that
-starts with `{`). Choosing an example opens the tab of its action, and
-validates it or runs its query; examples to `data` are only loaded. When an
+starts with `{`). The list shows the `comment` of each example (or its
+`dataLabel`, if it has no comment). Choosing an example opens the tab of its
+action and loads its inputs. Examples to `validate` are validated at once;
+for examples to `query`, press **Run query**. When an
 example is validated as loaded, the verdict says whether the result is the
 one of its `status`. Examples that the demo can't run are listed but can't be
 loaded, and say why: those that read their data from a SPARQL endpoint or
