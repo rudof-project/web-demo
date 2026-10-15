@@ -1,10 +1,15 @@
-// CodeMirror 6 editors in place of the input textareas of the demo.
+// CodeMirror 6 editors in place of the input textareas of the demo, and
+// read-only viewers for the results of conversions.
 //
 // Each editor is put right after its textarea, which is hidden and kept in
 // sync: what is typed is written back to the textarea, so the textarea still
 // holds the text of the input.
+//
+// Each viewer is put right before the <pre> of its result, which is hidden
+// with CSS. demo.js still writes the result in the <pre>, and the viewer shows
+// it, highlighted in the result format.
 
-import { EditorState, Compartment } from "@codemirror/state";
+import { EditorState, Compartment, Prec } from "@codemirror/state";
 import {
   EditorView,
   ViewPlugin,
@@ -72,6 +77,12 @@ const highlighting = HighlightStyle.define([
   { tag: t.invalid, color: "var(--fail-text)" },
 ]);
 
+// A viewer fits the box of its result: no border and no minimum height.
+const viewerTheme = EditorView.theme({
+  "&": { minHeight: "0", border: "none", borderRadius: "0", resize: "none" },
+  "&.cm-focused": { outlineOffset: "-2px" },
+});
+
 // Ctrl+Enter (Mod-Enter) validates in the demo: the editors leave it alone.
 const keys = [
   ...closeBracketsKeymap,
@@ -102,6 +113,26 @@ export function editorSetup() {
     syntaxHighlighting(highlighting),
     theme,
     keymap.of(keys),
+  ];
+}
+
+// What a viewer has: what an editor has to read and search the text, and
+// nothing to change it.
+export function viewerSetup() {
+  return [
+    lineNumbers(),
+    highlightSpecialChars(),
+    drawSelection(),
+    bracketMatching(),
+    highlightSelectionMatches(),
+    search({ top: true }),
+    EditorState.readOnly.of(true),
+    EditorView.contentAttributes.of({ "aria-readonly": "true" }),
+    EditorView.lineWrapping,
+    syntaxHighlighting(highlighting),
+    theme,
+    Prec.high(viewerTheme),
+    keymap.of([...defaultKeymap.filter((binding) => binding.key !== "Mod-Enter"), ...searchKeymap]),
   ];
 }
 
@@ -216,6 +247,54 @@ export function setupEditors(root = document) {
   return new Map([...root.querySelectorAll("textarea[data-editor]")].map((t) => [t.id, editors.get(t.id)]));
 }
 
+// A read-only viewer of the text of a <pre>, put before it. The viewer
+// follows the <pre>: its text, whether it is hidden, and the format of its
+// result, chosen in a select of the page (data-format-select, its id) or
+// fixed (data-language). Errors are not highlighted.
+export function createViewer(pre) {
+  const select = pre.dataset.formatSelect && pre.ownerDocument.getElementById(pre.dataset.formatSelect);
+  const result = pre.closest(".result");
+  const label = pre.dataset.viewer || (select && labelOf(select)) || "Result";
+  const language = new Compartment();
+  const view = new EditorView({
+    state: EditorState.create({
+      doc: pre.textContent,
+      extensions: [viewerSetup(), language.of([]), EditorView.contentAttributes.of({ "aria-label": label })],
+    }),
+  });
+  view.dom.classList.add("cm-viewer");
+  if (pre.id) view.dom.dataset.viewerFor = pre.id;
+  pre.before(view.dom);
+  pre.classList.add("has-viewer");
+  languages.set(view, { compartment: language, format: null });
+  const update = () => {
+    const text = pre.textContent;
+    if (text !== view.state.doc.toString()) view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
+    view.dom.hidden = pre.hidden;
+    const format = result?.dataset.kind === "error" ? "text" : (select?.value ?? pre.dataset.language ?? "text");
+    if (languages.get(view).format !== format) setFormat(view, format);
+  };
+  update();
+  new MutationObserver(update).observe(pre, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
+  viewers.set(pre, view);
+  return view;
+}
+
+// The viewers, by their <pre>.
+const viewers = new WeakMap();
+
+export function viewerFor(pre) {
+  return viewers.get(pre);
+}
+
+// Viewers for the <pre> marked with data-viewer.
+export function setupViewers(root = document) {
+  return [...root.querySelectorAll("pre[data-viewer]")].map((pre) => viewers.get(pre) ?? createViewer(pre));
+}
+
 // In the page, the textareas become editors as soon as it is loaded (a module
 // runs once the page has been parsed).
-if (typeof document !== "undefined" && document.querySelector("textarea[data-editor]")) setupEditors();
+if (typeof document !== "undefined") {
+  if (document.querySelector("textarea[data-editor]")) setupEditors();
+  if (document.querySelector("pre[data-viewer]")) setupViewers();
+}

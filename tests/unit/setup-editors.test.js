@@ -3,7 +3,7 @@
 // and the rest of the demo (demo.js) keeps using the textareas as before.
 
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { setupEditors, editorFor } from "../../codemirror-setup.js";
+import { setupEditors, editorFor, setupViewers, viewerFor } from "../../codemirror-setup.js";
 
 function page(html) {
   document.body.innerHTML = html;
@@ -130,5 +130,67 @@ describe("loading codemirror-setup.js in the page", () => {
     vi.resetModules();
     await import("../../codemirror-setup.js");
     expect(document.querySelector(".cm-editor")).toBeNull();
+  });
+});
+
+// The results of conversions are shown in read-only viewers, highlighted in
+// the result format. demo.js still writes them in their <pre>.
+describe("setupViewers", () => {
+  const RESULT = `
+    <select id="result-format"><option value="turtle">Turtle</option><option value="jsonld">JSON-LD</option></select>
+    <div class="result">
+      <pre class="output" id="output" data-viewer="Converted data" data-format-select="result-format">:a :b :c .</pre>
+    </div>`;
+  const pre = () => document.getElementById("output");
+  const settled = () => new Promise((resolve) => setTimeout(resolve));
+
+  it("puts a viewer before each <pre> marked with data-viewer, with its text", () => {
+    page(RESULT);
+    const [view] = setupViewers();
+    expect(pre().previousElementSibling).toBe(view.dom);
+    expect(pre().classList).toContain("has-viewer");
+    expect(view.state.doc.toString()).toBe(":a :b :c .");
+    expect(view.dom.dataset.viewerFor).toBe("output");
+    expect(viewerFor(pre())).toBe(view);
+  });
+
+  it("can't be edited", () => {
+    page(RESULT);
+    const [view] = setupViewers();
+    expect(view.state.readOnly).toBe(true);
+    expect(view.contentDOM.getAttribute("aria-readonly")).toBe("true");
+    expect(view.contentDOM.getAttribute("aria-label")).toBe("Converted data");
+  });
+
+  it("can be called again without making a second viewer", () => {
+    page(RESULT);
+    const [first] = setupViewers();
+    const [second] = setupViewers();
+    expect(second).toBe(first);
+    expect(document.querySelectorAll(".cm-viewer")).toHaveLength(1);
+  });
+
+  it("follows the text of the <pre>, and whether it is hidden", async () => {
+    page(RESULT);
+    const [view] = setupViewers();
+    pre().textContent = '{ "@id": "a" }';
+    pre().hidden = true;
+    await settled();
+    expect(view.state.doc.toString()).toBe('{ "@id": "a" }');
+    expect(view.dom.hidden).toBe(true);
+  });
+
+  it("highlights the text in the format of the result, but not errors", async () => {
+    page(RESULT);
+    const [view] = setupViewers();
+    expect(view.dom.dataset.format).toBe("turtle");
+    document.getElementById("result-format").value = "jsonld";
+    pre().textContent = "{}";
+    await settled();
+    expect(view.dom.dataset.format).toBe("jsonld");
+    pre().closest(".result").dataset.kind = "error";
+    pre().textContent = "Error: bad data";
+    await settled();
+    expect(view.dom.dataset.format).toBe("text");
   });
 });

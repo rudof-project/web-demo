@@ -264,6 +264,10 @@ table.report .details {
 .result.converted { display: flex; flex-direction: column; height: 16rem; }
 .result.converted:not([data-kind]) .result-head { color: var(--muted); font-weight: 400; }
 .result.converted .output { flex: 1; min-height: 0; overflow: auto; }
+/* A result shown in a viewer (codemirror-setup.js): the <pre> keeps the text */
+.output.has-viewer { display: none; }
+.cm-viewer[hidden] { display: none; }
+.result.converted .cm-viewer { flex: 1; min-height: 0; max-height: none; }
 
 button.secondary {
   font: inherit;

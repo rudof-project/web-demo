@@ -14,11 +14,13 @@ export const FORMATS = {
   rdfxml: "xml",
   jsonld: "json",
   shexj: "json",
+  json: "json",
   shexc: "shexc",
   shapemap: "shapemap",
   sparql: "sparql",
-  // Property graphs: no language yet
+  // Property graphs: no language yet. compact is YARS-PG written by rudof.
   yarspg: null,
+  compact: null,
   pgschema: null,
   typemap: null,
 };

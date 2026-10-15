@@ -40,6 +40,10 @@ set up by [`codemirror-setup.js`](codemirror-setup.js):
 - The editors have line numbers, undo history, search (Ctrl+F), bracket
   matching and closing, and take the colors of the page, light or dark.
   Ctrl+Enter still validates.
+- The results of conversions (RDF data, property graphs, and ShEx and SHACL
+  schemas) are shown in read-only editors, highlighted in the format chosen
+  for the result. demo.js still writes the result in its `<pre>`, which is
+  hidden, and the viewer follows it (`pre[data-viewer]`).
 
 ## Examples
 

@@ -18,7 +18,7 @@ test.describe("the page", () => {
 
   test("has an editor in place of each input textarea", async ({ page }) => {
     await open(page);
-    await expect(page.locator(".cm-editor")).toHaveCount(INPUTS.length);
+    await expect(page.locator(".cm-editor[data-editor-for]")).toHaveCount(INPUTS.length);
     for (const id of INPUTS) {
       await expect(page.locator(`#${id}`)).toBeHidden();
       await expect(editor(page, id)).toHaveCount(1);
@@ -169,6 +169,32 @@ test.describe("the demo uses the editors", () => {
     await setInput(page, "sparql-query", example("sparql/construct.rq"));
     await page.locator("#sparql-validate").click();
     await expect(page.locator("#sparql-result .output")).toContainText(":isKnownBy");
+  });
+
+  test("shows the converted data in a viewer, highlighted in its format", async ({ page }) => {
+    await open(page);
+    const viewer = page.locator('.cm-viewer[data-viewer-for="rdf-output"]');
+    await page.locator("#rdf-result-format").selectOption("turtle");
+    await page.locator("#rdf-validate").click();
+    await expect(viewer).toBeVisible();
+    await expect(viewer).toHaveAttribute("data-format", "turtle");
+    await expect(viewer.locator(".cm-content")).toContainText("foaf:Person");
+    await expect(viewer.locator(".cm-line span[class]").first()).toBeVisible();
+    await expect(page.locator("#rdf-output")).toBeHidden();
+    await expect(viewer.locator(".cm-content")).toHaveAttribute("aria-readonly", "true");
+
+    await page.locator("#rdf-result-format").selectOption("rdfxml");
+    await expect(viewer).toHaveAttribute("data-format", "rdfxml");
+    await expect(viewer.locator(".cm-content")).toContainText("<rdf:RDF");
+  });
+
+  test("shows the converted schema in a viewer", async ({ page }) => {
+    await open(page, "#validate/shex");
+    await page.locator("#shex-schema-result-format").selectOption("shexj");
+    await page.locator("#shex-schema-validate").click();
+    const viewer = page.locator('.cm-viewer[data-viewer-for="shex-schema-output"]');
+    await expect(viewer).toHaveAttribute("data-format", "shexj");
+    await expect(viewer.locator(".cm-content")).toContainText('"type"');
   });
 
   test("Use as input puts the converted data in the editor, in its format", async ({ page }) => {

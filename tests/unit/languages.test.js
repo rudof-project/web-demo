@@ -51,6 +51,7 @@ describe("formats and languages", () => {
     ["rdfxml", "xml"],
     ["jsonld", "json"],
     ["shexj", "json"],
+    ["json", "json"],
     ["shexc", "shexc"],
     ["shapemap", "shapemap"],
     ["sparql", "sparql"],
@@ -58,7 +59,7 @@ describe("formats and languages", () => {
     expect(languageOf(format)).toBe(name);
   });
 
-  it.each(["yarspg", "pgschema", "typemap", "unknown"])("%s is plain text", (format) => {
+  it.each(["yarspg", "compact", "plantuml", "pgschema", "typemap", "unknown"])("%s is plain text", (format) => {
     expect(languageOf(format)).toBeNull();
   });
 });
