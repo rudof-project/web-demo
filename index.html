@@ -8,10 +8,10 @@
   <meta name="description"
     content="Convert, validate (ShEx, SHACL, DCTAP, PGSchema) and query (SPARQL) RDF data and property graphs in your browser, with rudof compiled to WebAssembly.">
   <link rel="icon" href="./assets/logo-Bi_PJdUG.svg" type="image/svg+xml">
-  <script type="module" crossorigin src="./assets/main-CD-ubVaX.js"></script>
+  <script type="module" crossorigin src="./assets/main-BCjD6c_A.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/dist-BfNtFVOv.js">
   <link rel="modulepreload" crossorigin href="./assets/dctap-DPKc_rXz.js">
-  <link rel="stylesheet" crossorigin href="./assets/demo-BU-xunP1.css">
+  <link rel="stylesheet" crossorigin href="./assets/demo-D-ZurJKt.css">
 </head>
 
 <body>
@@ -58,6 +58,7 @@
     <div class="tabs-row">
       <div class="tabs" role="tablist" aria-label="Section">
         <button role="tab" id="tab-data" aria-controls="panel-data" aria-selected="true">Data</button>
+        <button role="tab" id="tab-schema" aria-controls="panel-schema" aria-selected="false" tabindex="-1">Schema</button>
         <button role="tab" id="tab-validate" aria-controls="panel-validate" aria-selected="false"
           tabindex="-1">Validate</button>
         <button role="tab" id="tab-query" aria-controls="panel-query" aria-selected="false" tabindex="-1">Query</button>
@@ -184,6 +185,85 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
           <button class="secondary" id="pg-copy" disabled>Copy</button>
           <button class="secondary" id="pg-use-as-input" disabled title="Replace the input with the converted data">Use
             as input</button>
+          <span class="shortcut">Ctrl + Enter</span>
+        </div>
+      </section>
+    </section>
+
+    <!-- Schema: schemas of ShEx, SHACL, DCTAP or PGSchema, converted (schema-convert.js) -->
+    <section id="panel-schema" role="tabpanel" aria-labelledby="tab-schema" class="section" hidden>
+      <div class="tabs subtabs" role="tablist" aria-label="Schema tools">
+        <button role="tab" id="tab-convert" aria-controls="panel-convert" aria-selected="true">Convert</button>
+      </div>
+
+      <section id="panel-convert" role="tabpanel" aria-labelledby="tab-convert" class="panel">
+        <div class="inputs two">
+          <div class="field">
+            <div class="field-head">
+              <label for="convert-schema">Schema</label>
+              <select id="convert-language" aria-label="Schema language">
+                <option value="shex">ShEx</option>
+                <option value="shacl">SHACL</option>
+                <option value="dctap">DCTAP</option>
+                <option value="pgschema">PGSchema</option>
+              </select>
+              <select id="convert-format" aria-label="Schema format">
+                <option value="shexc">ShExC</option>
+              </select>
+              <div class="view-switch" id="convert-view" role="group" aria-label="View of the profile" hidden>
+                <button type="button" data-view="csv" aria-pressed="true">CSV</button>
+                <button type="button" data-view="table" aria-pressed="false">Table</button>
+              </div>
+            </div>
+            <textarea id="convert-schema" data-editor data-format-select="convert-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
+prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
+
+:Person {
+  :name      xsd:string ;
+  :birthDate xsd:date ? ;
+  :knows     @:Person *
+}</textarea>
+            <div class="table-view-cells" id="convert-table" hidden></div>
+          </div>
+          <div class="field">
+            <div class="field-head">
+              <label for="convert-to">Converted to</label>
+              <select id="convert-to" aria-label="Convert to"></select>
+              <select id="convert-result-format" aria-label="Format of the result"></select>
+            </div>
+            <div class="result converted" id="convert-result">
+              <div class="result-head"><span class="verdict">Press Convert</span><span class="timing"></span></div>
+              <pre class="output" id="convert-output" data-viewer="Converted schema" data-format-select="convert-result-format"></pre>
+              <div class="diagram" hidden>
+                <div class="diagram-tools">
+                  <button class="link" data-action="source">Show PlantUML source</button>
+                  <a class="link" data-action="download" download="schema.svg">Download SVG</a>
+                </div>
+                <div class="diagram-image"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="field" id="convert-dctap-options" hidden>
+          <div class="field-head">
+            <label for="convert-prefixes">Prefixes of the profile</label>
+            <label class="inline hint">Picklist values separated by
+              <select id="convert-picklist" aria-label="Separator of the values of picklists">
+                <option value=" ">spaces</option>
+                <option value="|">|</option>
+              </select>
+            </label>
+          </div>
+          <textarea id="convert-prefixes" data-editor data-language="turtle" class="short" spellcheck="false">BASE &lt;http://example.org/&gt;
+PREFIX : &lt;http://example.org/&gt;
+PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
+        </div>
+        <div class="toolbar">
+          <button class="primary" id="convert-validate" disabled>Convert</button>
+          <button class="secondary" id="convert-copy" disabled>Copy</button>
+          <button class="secondary" id="convert-use-as-input" disabled
+            title="Replace the schema with the converted one, when it is a schema">Use as input</button>
+          <span class="hint">Conversions that rudof can't do yet are in the menus, and can't be chosen.</span>
           <span class="shortcut">Ctrl + Enter</span>
         </div>
       </section>
