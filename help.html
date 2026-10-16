@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Help: manifests of examples — rudof online demo</title>
+  <meta name="description" content="How to run the examples of a manifest in the rudof online demo, and the format of manifest files.">
+  <link rel="icon" href="./assets/logo-Bi_PJdUG.svg" type="image/svg+xml">
+  <link rel="stylesheet" crossorigin href="./assets/demo-BiMRfwCj.css">
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <a href="../index.html" class="logo"><img src="./assets/logo-Bi_PJdUG.svg" alt="" width="40" height="32">rudof</a>
+      <span class="subtitle">online demo</span>
+    </div>
+    <nav class="links">
+      <a href="./">Demo</a>
+      <a href="help.html" aria-current="page">Help</a>
+      <a href="../index.html">Manual</a>
+      <a href="https://www.npmjs.com/package/@rudof/rudof">npm</a>
+      <a href="https://github.com/rudof-project/rudof">GitHub</a>
+    </nav>
+  </header>
+
+  <main class="help">
+    <h1>Manifests of examples</h1>
+    <p class="lead">
+      A <em>manifest</em> is a YAML file with a list of examples. The demo can list the examples of a manifest, and
+      load the one you choose: it puts the data, schema or query of the example in the editors of its tab, and
+      validates it if it is a validation.
+    </p>
+
+    <nav class="toc" aria-label="Contents">
+      <ol>
+        <li><a href="#run">Run the examples of a manifest</a></li>
+        <li><a href="#format">The format of a manifest</a></li>
+        <li><a href="#examples">Examples of entries</a>
+          <ol>
+            <li><a href="#example-shex">Validate with ShEx</a></li>
+            <li><a href="#example-shacl">Validate with SHACL</a></li>
+            <li><a href="#example-pgschema">Validate a property graph with PGSchema</a></li>
+            <li><a href="#example-data">Load data</a></li>
+            <li><a href="#example-query">Run a SPARQL query</a></li>
+          </ol>
+        </li>
+        <li><a href="#keys">All the keys</a></li>
+        <li><a href="#defaults">How the tab and the formats are chosen</a></li>
+        <li><a href="#unsupported">Examples that can't be run</a></li>
+        <li><a href="#shexjs">Manifests of shex.js</a></li>
+      </ol>
+    </nav>
+
+    <section id="run">
+      <h2>Run the examples of a manifest</h2>
+      <ol>
+        <li>
+          <p>Open the demo with the URL of the manifest in <code>manifestURL</code>:</p>
+          <pre><code>https://rudof-project.github.io/web-demo/?manifestURL=https://example.org/my-examples.yaml</code></pre>
+          <p>The URL can be relative to the page, for example <code>?manifestURL=examples.yml</code> for a manifest
+            next to the demo. Try the
+            <a href="./?manifestURL=https://raw.githubusercontent.com/validatingrdf/Tutorial/refs/heads/master/ISWC_2026/manifest.yml">manifest
+              of the ISWC 2026 tutorial</a>.</p>
+        </li>
+        <li>
+          <p>Above the tabs, the demo shows <strong>Examples from</strong> the manifest, and a list of its examples.
+            Each example is named by its <code>comment</code> (or its <code>dataLabel</code>), and the examples are
+            grouped by <code>schemaLabel</code>. ✓ and ✗ mark the examples whose <code>status</code> is
+            <code>conformant</code> or <code>nonconformant</code>.</p>
+        </li>
+        <li>
+          <p>Choose an example. The demo opens the tab of its <a href="#key-action"><code>action</code></a> and puts
+            its inputs in the editors:</p>
+          <ul>
+            <li><strong>validate</strong>: the Validate tab of its engine (ShEx, SHACL or PGSchema). The example is
+              validated at once, and the verdict says whether the result is the one of its <code>status</code>
+              (“as the manifest expects”).</li>
+            <li><strong>query</strong>: the SPARQL tab. Press <strong>Run query</strong> to run the query.</li>
+            <li><strong>data</strong>: the RDF or Property graph tab of the Data section. Press
+              <strong>Convert</strong> to convert the data.</li>
+          </ul>
+          <p>Below the list, the demo shows what the example expects and its comment.</p>
+        </li>
+        <li>
+          <p>You can change the inputs and run them again. The verdict compares the result with the
+            <code>status</code> only while the inputs are those of the example.</p>
+        </li>
+      </ol>
+      <p>When you choose an example, the URL of the page gets <code>&amp;example=&lt;n&gt;</code> (the n-th example,
+        from 1) and the inputs of the tab, so it is a permalink of the example as it is now. To start again from the
+        list, use <strong>Reload the examples</strong>, at the right of the list: it opens the page with only
+        <code>?manifestURL=…</code>. A URL with <code>?manifestURL=…&amp;example=3</code> and no inputs loads the third
+        example when the page opens.</p>
+      <p class="note">The browser reads the manifest and the files of its examples, so their server must allow other
+        sites to read them (<a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS">CORS</a>). GitHub Pages and
+        <code>raw.githubusercontent.com</code> do. If a manifest can't be read, the demo says why below the list.</p>
+    </section>
+
+    <section id="format">
+      <h2>The format of a manifest</h2>
+      <p>A manifest is a YAML list. Each item of the list is an example: a map of keys and values. Each input of an
+        example (its data, schema, shape map, type map or query) is given either as text, with the name of the input,
+        or as the URL of a file, with the name and <code>URL</code>:</p>
+      <pre><code>- data: |                  # the data, as text…
+    PREFIX : &lt;http://example.org/&gt;
+    :alice :name "Alice" .
+- dataURL: data/alice.ttl  # …or the URL of a file with the data</code></pre>
+      <p>URLs are relative to the URL of the manifest. Use <code>|</code> for text of several lines, and quotes for
+        text with a <code>:</code> followed by a space, or that starts with <code>@</code>, <code>[</code> or
+        <code>{</code> (for example <code>queryMap: ":alice@:Person"</code>).</p>
+      <p>Every key is optional. Without <code>action</code>, an example is a validation, as in the manifests of shex.js,
+        and without <code>validationEngine</code> the demo chooses the engine from the inputs
+        (<a href="#defaults">see below</a>).</p>
+    </section>
+
+    <section id="examples">
+      <h2>Examples of entries</h2>
+
+      <h3 id="example-shex">Validate with ShEx</h3>
+      <p>ShEx needs a schema, data, and a shape map (<code>queryMap</code>) that says which nodes to validate with which
+        shapes.</p>
+      <pre class="manifest-example"><code>- schemaLabel: Person
+  schema: |
+    PREFIX : &lt;http://example.org/&gt;
+    PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
+    :Person { :name xsd:string }
+  dataLabel: Alice has a name
+  data: |
+    PREFIX : &lt;http://example.org/&gt;
+    :alice :name "Alice" .
+  queryMap: ":alice@:Person"
+  status: conformant
+  comment: Alice has a name, so she is a Person</code></pre>
+
+      <h3 id="example-shacl">Validate with SHACL</h3>
+      <p>Set <code>validationEngine: shacl</code>. The schema is the shapes graph, in an RDF format
+        (<code>schemaFormat</code>, Turtle by default). SHACL has no shape map: the shapes say which nodes they apply
+        to (<code>sh:targetClass</code>, <code>sh:targetNode</code>…).</p>
+      <pre class="manifest-example"><code>- schemaLabel: Person (SHACL)
+  validationEngine: shacl
+  schema: |
+    PREFIX : &lt;http://example.org/&gt;
+    PREFIX sh: &lt;http://www.w3.org/ns/shacl#&gt;
+    :PersonShape a sh:NodeShape ;
+      sh:targetClass :Person ;
+      sh:property [ sh:path :name ; sh:minCount 1 ] .
+  dataLabel: Bob has no name
+  data: |
+    PREFIX : &lt;http://example.org/&gt;
+    :bob a :Person .
+  status: nonconformant
+  comment: A Person needs a name</code></pre>
+      <p>Without <code>validationEngine</code>, an example is also validated with SHACL when its schema is in an RDF
+        format (a <code>schemaFormat</code> such as <code>turtle</code>, or a file such as <code>shapes.ttl</code>) and
+        it has no <code>queryMap</code>, or when it gives its schema as <code>shapes</code> or
+        <code>shapesURL</code>. Writing <code>validationEngine: shacl</code> makes it clear.</p>
+
+      <h3 id="example-pgschema">Validate a property graph with PGSchema</h3>
+      <p>The data is a property graph in YARS-PG (<code>dataFormat: yars-pg</code>), the schema is in PGSchemaC, and
+        the type map (<code>typeMap</code>) says which type each node or edge should have.</p>
+      <pre class="manifest-example"><code>- schemaLabel: Person (PGSchema)
+  validationEngine: pgschema
+  schema: |
+    CREATE NODE TYPE ( PersonType : Person { name: STRING } )
+  dataLabel: Alice in a property graph
+  dataFormat: yars-pg
+  data: |
+    (n1 {Person} [ name: "Alice" ])
+  typeMap: "n1: PersonType"
+  status: conformant
+  comment: A person in a property graph</code></pre>
+
+      <h3 id="example-data">Load data</h3>
+      <p><code>action: data</code> puts the data in the Data section, to convert it to other formats: RDF data in the
+        RDF tab, property graphs (<code>dataFormat: yars-pg</code>) in the Property graph tab.</p>
+      <pre class="manifest-example"><code>- action: data
+  dataFormat: turtle
+  data: |
+    PREFIX : &lt;http://example.org/&gt;
+    :alice :knows :bob .
+  comment: Alice knows Bob, in RDF
+- action: data
+  dataFormat: yars-pg
+  data: |
+    (n1 {Person} [ name: "Alice" ])
+    (n2 {Person} [ name: "Bob" ])
+    (n1) - ({knows}) -&gt; (n2)
+  comment: Alice knows Bob, as a property graph</code></pre>
+
+      <h3 id="example-query">Run a SPARQL query</h3>
+      <p><code>action: query</code> puts the query in the SPARQL tab, with the data it runs on, or with an
+        <code>endpoint</code>: then the query runs on the endpoint (which must allow other sites to query it, as
+        Wikidata does), and the example needs no data.</p>
+      <pre class="manifest-example"><code>- action: query
+  data: |
+    PREFIX foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
+    PREFIX : &lt;http://example.org/&gt;
+    :alice foaf:name "Alice" ; foaf:knows :bob .
+    :bob foaf:name "Bob" .
+  query: |
+    PREFIX foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
+    SELECT ?name WHERE { ?person foaf:name ?name }
+  comment: The names in the data
+- action: query
+  endpoint: https://query.wikidata.org/sparql
+  query: |
+    PREFIX wd: &lt;http://www.wikidata.org/entity/&gt;
+    PREFIX wdt: &lt;http://www.wikidata.org/prop/direct/&gt;
+    SELECT ?occupation WHERE { wd:Q80 wdt:P106 ?occupation }
+  comment: The occupations of Tim Berners-Lee, in Wikidata</code></pre>
+    </section>
+
+    <section id="keys">
+      <h2>All the keys</h2>
+      <p>The names of the keys are case-sensitive; their values (actions, engines and formats) are not.</p>
+
+      <h3>What the example is</h3>
+      <div class="table-wrap">
+        <table class="keys">
+          <thead>
+            <tr><th>Key</th><th>Values</th><th>Default</th></tr>
+          </thead>
+          <tbody>
+            <tr id="key-action">
+              <td><code>action</code></td>
+              <td><code>validate</code>: validate the data with a schema;<br><code>data</code>: load the data;<br><code>query</code>: run a query on the data or on an endpoint</td>
+              <td><code>validate</code></td>
+            </tr>
+            <tr>
+              <td><code>validationEngine</code></td>
+              <td><code>shex</code>, <code>shacl</code> or <code>pgschema</code>, for <code>action: validate</code>. <code>type</code> (of shex.js) is read as <code>validationEngine</code> too.</td>
+              <td>From the inputs (<a href="#defaults">see below</a>); <code>shex</code> in the end</td>
+            </tr>
+            <tr>
+              <td><code>queryEngine</code></td>
+              <td><code>sparql</code>, for <code>action: query</code></td>
+              <td><code>sparql</code></td>
+            </tr>
+            <tr>
+              <td><code>status</code></td>
+              <td><code>conformant</code> or <code>nonconformant</code>: the result the validation should have</td>
+              <td>None</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Its inputs</h3>
+      <p>Each input is text, or the URL of a file with the input (the key with <code>URL</code>).</p>
+      <div class="table-wrap">
+        <table class="keys">
+          <thead>
+            <tr><th>Key</th><th>What it is</th><th>Used by</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>data</code>, <code>dataURL</code></td>
+              <td>The data: RDF, or a property graph in YARS-PG</td>
+              <td>All the actions. Optional for a query with an <code>endpoint</code></td>
+            </tr>
+            <tr>
+              <td><code>schema</code>, <code>schemaURL</code></td>
+              <td>The schema: ShEx, SHACL shapes (also <code>shapes</code>, <code>shapesURL</code>) or PGSchemaC</td>
+              <td><code>validate</code></td>
+            </tr>
+            <tr>
+              <td><code>queryMap</code>, <code>queryMapURL</code></td>
+              <td>The shape map of ShEx: which nodes to validate with which shapes, such as
+                <code>":alice@:Person"</code> or <code>"{FOCUS a :Person}@:Person"</code></td>
+              <td><code>validate</code> with ShEx</td>
+            </tr>
+            <tr>
+              <td><code>typeMap</code>, <code>typeMapURL</code></td>
+              <td>The type map of PGSchema: which type each node or edge should have, such as
+                <code>"n1: PersonType, e1: KnowsType"</code> (<code>queryMap</code> is read as the type map too)</td>
+              <td><code>validate</code> with PGSchema</td>
+            </tr>
+            <tr>
+              <td><code>query</code>, <code>queryURL</code></td>
+              <td>The SPARQL query</td>
+              <td><code>query</code></td>
+            </tr>
+            <tr>
+              <td><code>endpoint</code></td>
+              <td>The URL of a SPARQL endpoint: the query runs on it, instead of the data</td>
+              <td><code>query</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>The formats of the inputs</h3>
+      <div class="table-wrap">
+        <table class="keys">
+          <thead>
+            <tr><th>Key</th><th>Values</th><th>Default</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>dataFormat</code></td>
+              <td>RDF: <code>turtle</code>, <code>ntriples</code>, <code>rdfxml</code>, <code>jsonld</code>,
+                <code>trig</code>, <code>n3</code>, <code>nquads</code>;<br>property graphs: <code>yars-pg</code></td>
+              <td>The format of the file extension, else <code>turtle</code> (<code>jsonld</code> for text that starts
+                with <code>{</code> or <code>[</code>)</td>
+            </tr>
+            <tr>
+              <td><code>schemaFormat</code></td>
+              <td>ShEx: <code>shex</code> (ShExC), <code>shexj</code> or <code>json</code> (ShExJ), or an RDF format
+                (ShExR);<br>SHACL: an RDF format (<code>json</code> is JSON-LD);<br>PGSchema: <code>pgschema</code></td>
+              <td>The format of the file extension, else <code>shex</code> for ShEx (<code>shexj</code> for text that
+                starts with <code>{</code>) and <code>turtle</code> for SHACL</td>
+            </tr>
+            <tr>
+              <td><code>queryFormat</code></td>
+              <td><code>sparql</code></td>
+              <td><code>sparql</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The file extensions the demo knows: <code>.ttl</code>, <code>.nt</code>, <code>.rdf</code>, <code>.xml</code>,
+        <code>.owl</code>, <code>.jsonld</code>, <code>.trig</code>, <code>.n3</code>, <code>.nq</code> (RDF);
+        <code>.shex</code>, <code>.shexc</code>, <code>.shexj</code>, <code>.json</code> (ShEx); <code>.pg</code>,
+        <code>.ypg</code>, <code>.yarspg</code> (YARS-PG); <code>.pgs</code>, <code>.pgschema</code> (PGSchemaC).</p>
+
+      <h3>How it is shown</h3>
+      <div class="table-wrap">
+        <table class="keys">
+          <thead>
+            <tr><th>Key</th><th>What it is</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>comment</code></td>
+              <td>The name of the example in the list, also shown below the list when it is chosen</td>
+            </tr>
+            <tr>
+              <td><code>dataLabel</code> (or <code>name</code>)</td>
+              <td>The name of the example when it has no <code>comment</code>; else shown when the mouse is on the
+                example</td>
+            </tr>
+            <tr>
+              <td><code>schemaLabel</code> (or <code>label</code>)</td>
+              <td>The group of the example in the list: consecutive examples with the same label are in one group</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="defaults">
+      <h2>How the tab and the formats are chosen</h2>
+      <ul>
+        <li><code>action: data</code> goes to the Property graph tab when the data is a property graph
+          (<code>dataFormat: yars-pg</code>, or a <code>.pg</code> file), and to the RDF tab otherwise.</li>
+        <li><code>action: query</code> goes to the SPARQL tab.</li>
+        <li><code>action: validate</code> (or no <code>action</code>) goes to the tab of its
+          <code>validationEngine</code>. Without one, the engine is:
+          <ol>
+            <li><code>pgschema</code> when the data is a property graph or the schema is PGSchemaC
+              (<code>schemaFormat: pgschema</code>, or a <code>.pgs</code> file);</li>
+            <li><code>shacl</code> when the schema is given as <code>shapes</code> or <code>shapesURL</code>, or is in
+              an RDF format and there is no <code>queryMap</code> (ShEx needs one);</li>
+            <li><code>shex</code> otherwise.</li>
+          </ol>
+        </li>
+        <li>The format of each input is its key (<code>dataFormat</code>, <code>schemaFormat</code>…), else the format
+          of the extension of its file, else the default of its tab.</li>
+      </ul>
+    </section>
+
+    <section id="unsupported">
+      <h2>Examples that can't be run</h2>
+      <p>They are in the list, marked “(not supported)”, and can't be chosen; the reason is shown when the mouse is on
+        the example. They are:</p>
+      <ul>
+        <li>examples without an input that their tab needs (for example a ShEx validation without
+          <code>queryMap</code>, or a query without <code>data</code> or <code>endpoint</code>);</li>
+        <li>formats that their tab can't read (for example TriX, or a <code>shex</code> schema for SHACL);</li>
+        <li>unknown actions, validation engines or query engines;</li>
+        <li>queries on property graphs;</li>
+        <li>validations that read their data from an endpoint as they go (<code>neighborhood</code> in the manifests
+          of shex.js): rudof can't do this in the browser yet.</li>
+      </ul>
+    </section>
+
+    <section id="shexjs">
+      <h2>Manifests of shex.js</h2>
+      <p>The demo reads the manifests of <a href="https://shex.js.org/">shex.js</a>, such as
+        <a href="./?manifestURL=https://shex.js.org/doc/tests-manifest.yaml">its own examples</a>: they have no
+        <code>action</code>, so they are ShEx validations, with <code>schemaLabel</code>, <code>schemaURL</code>,
+        <code>dataLabel</code>, <code>dataURL</code>, <code>queryMap</code> and <code>status</code>. Examples written for
+        the plugins of shex.js (<code>plugins</code>) can be loaded, with a note: rudof may not run their semantic
+        actions.</p>
+    </section>
+  </main>
+
+  <footer>
+    <a href="./">Back to the demo</a>
+  </footer>
+</body>
+
+</html>
