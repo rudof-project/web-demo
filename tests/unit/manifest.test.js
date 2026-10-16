@@ -322,6 +322,52 @@ describe("DCTAP examples", () => {
   });
 });
 
+describe("schema examples (action: schema)", () => {
+  const one = (yaml) => parseManifest(yaml, MANIFEST_URL)[0];
+  const inputsOf = async (example) => Object.fromEntries((await loadExample(example, async () => "")).map((i) => [i.name, i]));
+
+  it("go to the Schema tab, in the language of the schema", () => {
+    const shex = one("- action: schema\n  schema: 'start = @<S>'\n");
+    expect(shex).toMatchObject({ action: "schema", target: "convert-shex", unsupported: undefined });
+    expect(TARGETS[shex.target]).toMatchObject({ tab: "schema/convert", validator: "convert", selects: { "convert-language": "shex" } });
+    expect(one("- action: schema\n  schemaLanguage: shacl\n  schema: ''\n").target).toBe("convert-shacl");
+    expect(one("- action: schema\n  schemaEngine: pgschema\n  schema: ''\n").target).toBe("convert-pgschema");
+  });
+
+  it("take the language from the format or the file, as validations do", () => {
+    expect(one("- action: schema\n  schemaURL: s.shex\n").target).toBe("convert-shex");
+    expect(one("- action: schema\n  schemaURL: s.json\n").target).toBe("convert-shex");
+    expect(one("- action: schema\n  schemaURL: shapes.ttl\n").target).toBe("convert-shacl");
+    expect(one("- action: schema\n  shapes: ''\n")).toMatchObject({ target: "convert-shacl", inputs: { schema: { text: "" } } });
+    expect(one("- action: schema\n  schemaURL: p.csv\n").target).toBe("convert-dctap");
+    expect(one("- action: schema\n  schemaURL: s.pgs\n").target).toBe("convert-pgschema");
+    // ShExR, said by the language
+    expect(one("- action: schema\n  schemaLanguage: shex\n  schemaURL: s.ttl\n").formats.schema).toBe("turtle");
+  });
+
+  it("put the schema in the Schema tab, in the formats of its menu", async () => {
+    const inputs = await inputsOf(one("- action: schema\n  schema: '{ \"type\": \"Schema\" }'\n"));
+    expect(inputs.schema).toMatchObject({ textarea: "convert-schema", formatSelect: "convert-format", format: "shexj" });
+    expect((await inputsOf(one("- action: schema\n  schemaURL: p.csv\n"))).schema.format).toBe("dctap");
+    expect((await inputsOf(one("- action: schema\n  schemaURL: s.pgs\n"))).schema.format).toBe("pgschema");
+    expect((await inputsOf(one("- action: schema\n  schemaLanguage: shacl\n  schema: '[]'\n"))).schema.format).toBe("jsonld");
+  });
+
+  it("put the prefixes and the picklist separator of DCTAP in the Schema tab", async () => {
+    const example = one("- action: schema\n  schemaFormat: csv\n  schema: 'shapeID'\n  prefixes: 'PREFIX : <http://e/>'\n  picklistSeparator: bar\n");
+    expect(example).toMatchObject({ target: "convert-dctap", unsupported: undefined });
+    const inputs = await inputsOf(example);
+    expect(inputs.prefixes).toMatchObject({ textarea: "convert-prefixes", text: "PREFIX : <http://e/>" });
+    expect(inputs.picklistSeparator).toMatchObject({ textarea: "convert-picklist", text: "|" });
+  });
+
+  it("need a schema, in a format that the Schema tab reads", () => {
+    expect(one("- action: schema\n  data: ''\n")).toMatchObject({ unsupported: "has no schema", help: "format" });
+    expect(one("- action: schema\n  schemaLanguage: shex\n  schemaFormat: n3\n  schema: ''\n").unsupported).toMatch(/schemaFormat "n3" that the Schema tab \(shex\) can't use/);
+    expect(one("- action: schema\n  schemaLanguage: owl\n  schema: ''\n").unsupported).toBe('has a schema in the unknown language "owl"');
+  });
+});
+
 describe("why an example can't be run", () => {
   const one = (yaml) => parseManifest(yaml, MANIFEST_URL)[0];
 
@@ -337,7 +383,7 @@ describe("why an example can't be run", () => {
     const shacl = one("- schema: ''\n  schemaFormat: shex\n  validationEngine: shacl\n  data: ''\n");
     expect(shacl.hint).toBe("The schemaFormat of SHACL can be an RDF format (turtle, ntriples, rdfxml, jsonld, trig, n3, nquads).");
 
-    expect(one("- data: ''\n  action: convert\n")).toMatchObject({ hint: "Write action: data, action: validate, action: query, or leave it out to validate.", help: "key-action" });
+    expect(one("- data: ''\n  action: convert\n")).toMatchObject({ hint: "Write action: data, action: validate, action: query, action: schema, or leave it out to validate.", help: "key-action" });
     expect(one("- query: 'ASK {}'\n  action: query\n")).toMatchObject({ help: "example-query" });
     expect(examples[2]).toMatchObject({ help: "unsupported", hint: expect.stringMatching(/neighborhood/) });
   });

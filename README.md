@@ -192,7 +192,7 @@ ShEx validation, as in the manifests of shex.js:
 
 | Key | Values | Default |
 |-----|--------|---------|
-| `action` | `data` (load the data in the Data tab), `validate` (validate it in the Validate tab), `query` (run a query on it in the Query tab) | `validate` |
+| `action` | `data` (load the data in the Data tab), `validate` (validate it in the Validate tab), `query` (run a query on it in the Query tab), `schema` (show the schema in the Schema tab, to convert it) | `validate` |
 | `dataFormat` | an RDF format (`turtle`, `ntriples`, `rdfxml`, `jsonld`, `trig`, `n3`, `nquads`), or `yars-pg` for property graphs | `turtle` |
 | `schemaFormat` | `shex` (ShExC), `shexj` or `json` (ShExJ), an RDF format (ShExR, or SHACL shapes; `json` is JSON-LD for SHACL), `pgschema`, or `csv` (DCTAP) | `shex` |
 | `validationEngine` | `shex`, `shacl` or `pgschema` | `pgschema` for property graphs or `pgschema` schemas, otherwise `shex` |
@@ -201,7 +201,7 @@ ShEx validation, as in the manifests of shex.js:
 | `queryEngine` | `sparql` | `sparql` |
 | `endpoint` | the SPARQL endpoint the query runs on, instead of the data (then the data is optional) | |
 | `typeMap`, `typeMapURL` | the type map of PGSchema (or `queryMap`) | |
-| `schemaLanguage` (or `schemaEngine`) | `shex`, `shacl`, `pgschema` or `dctap`: the language of the schema. DCTAP profiles go to the DCTAP tab, which validates them with ShEx | `dctap` for CSV schemas (`schemaFormat: csv` or `.csv` files) |
+| `schemaLanguage` (or `schemaEngine`) | `shex`, `shacl`, `pgschema` or `dctap`: the language of the schema. DCTAP profiles go to the DCTAP tab, which validates them with ShEx. With `action: schema`, the language of the Schema tab | `dctap` for CSV schemas (`schemaFormat: csv` or `.csv` files) |
 | `prefixes`, `prefixesURL` | the prefixes of a DCTAP profile, as Turtle declarations (`PREFIX`, `BASE`) | |
 | `picklistSeparator` | `space` or `"\|"`: the separator of the values of picklists in DCTAP | `space` |
 
@@ -215,6 +215,8 @@ ShEx validation, as in the manifests of shex.js:
   dataURL: ex02.pg
   dataFormat: yars-pg
   action: data
+- schemaURL: ex11_researcher.shex
+  action: schema                      # opens the schema in the Schema tab
 ```
 
 URLs are relative to the manifest. Without a format, the format of a file is

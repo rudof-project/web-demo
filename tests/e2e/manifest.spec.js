@@ -71,6 +71,24 @@ const FILES = {
   status: nonconformant
   comment: Bob has no name, and an unknown status
 `,
+  "https://manifests.example/doc/schemas.yaml": `
+- schemaURL: ../examples/person.shex
+  action: schema
+  comment: A ShEx schema
+- schemaURL: ../examples/person.csv
+  prefixes: "PREFIX : <http://example.org/>"
+  picklistSeparator: bar
+  action: schema
+  comment: A DCTAP profile
+- schemaLanguage: shacl
+  schemaFormat: turtle
+  schema: |
+    prefix : <http://example.org/>
+    prefix sh: <http://www.w3.org/ns/shacl#>
+    :PersonShape a sh:NodeShape ; sh:targetClass :Person .
+  action: schema
+  comment: SHACL shapes
+`,
   "https://manifests.example/examples/person.csv": `shapeID,propertyID,mandatory,valueDataType,valueConstraint,valueConstraintType
 Person,:name,true,xsd:string,,
 Person,:status,false,,:Active|:Retired,picklist`,
@@ -249,6 +267,39 @@ test("a DCTAP example opens the DCTAP tab, with its prefixes", async ({ page }) 
   await expect(page.locator("#dctap-picklist")).toHaveValue("|");
   await page.locator("#dctap-validate").click();
   await expect(page.locator("#dctap-result .verdict")).toHaveText(/^Does not conform.*\(as the manifest expects\)$/);
+});
+
+test("a schema example opens the Schema tab, in the language of the schema", async ({ page }) => {
+  await open(page, `?manifestURL=${encodeURIComponent("https://manifests.example/doc/schemas.yaml")}&example=1`);
+  await expect(page.locator("#panel-convert")).toBeVisible();
+  await expect(page).toHaveURL(/#schema\/convert$/);
+  await expect(page.locator("#convert-language")).toHaveValue("shex");
+  await expect(page.locator("#convert-format")).toHaveValue("shexc");
+  await expect(page.locator("#convert-schema")).toHaveJSProperty("value", FILES["https://manifests.example/examples/person.shex"]);
+  // It waits for Convert
+  await expect(page.locator("#convert-result .verdict")).toHaveText("Press Convert");
+  await page.locator("#convert-validate").click();
+  await expect(page.locator("#convert-result")).toHaveAttribute("data-kind", "ok");
+  await expect(page.locator("#convert-output")).toContainText("ShapeDecl");
+
+  await select(page).selectOption({ label: "A DCTAP profile" });
+  await expect(page.locator("#convert-language")).toHaveValue("dctap");
+  await expect(page.locator("#convert-schema")).toHaveJSProperty("value", FILES["https://manifests.example/examples/person.csv"]);
+  await expect(page.locator("#convert-prefixes")).toHaveJSProperty("value", "PREFIX : <http://example.org/>");
+  await expect(page.locator("#convert-picklist")).toHaveValue("|");
+  await expect(page.locator("#convert-dctap-options")).toBeVisible();
+  // The result of the example before is gone
+  await expect(page.locator("#convert-result .verdict")).toHaveText("Press Convert");
+  await expect(page.locator("#convert-result")).not.toHaveAttribute("data-kind");
+  await expect(page.locator("#convert-copy")).toBeDisabled();
+  await page.locator("#convert-validate").click();
+  await expect(page.locator("#convert-output")).toContainText(":Active");
+
+  await select(page).selectOption({ label: "SHACL shapes" });
+  await expect(page.locator("#convert-language")).toHaveValue("shacl");
+  await expect(page.locator("#convert-format")).toHaveValue("turtle");
+  await expect.poll(() => page.locator("#convert-schema").inputValue()).toContain(":PersonShape");
+  await expect(page.locator("#convert-to")).toHaveValue("shex");
 });
 
 test("says when the manifest can't be read", async ({ page }) => {

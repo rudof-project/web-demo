@@ -1073,7 +1073,7 @@ for (const prefix of Object.keys(validators)) {
 // ?manifestURL=<url> lists the examples of a manifest (see manifest.js) above
 // the tabs, and ?example=<n> loads the n-th one (from 1), unless the URL has
 // the inputs too (a permalink of the example, maybe edited). An example is
-// loaded in the tab of its action (data, validate or query), and waits for
+// loaded in the tab of its action (data, validate, query or schema), and waits for
 // the button of the tab (Validate, Run query, Convert). manifest.js, with its
 // YAML parser, is only loaded then.
 
@@ -1188,8 +1188,13 @@ async function chooseExample(manifest, example) {
     return;
   }
   if (choosing !== token) return; // another example was chosen meanwhile
-  const validator = example.target;
-  const { tab } = manifest.TARGETS[validator];
+  // The prefix of the ids of the tab (the Schema tab has a target for each
+  // language), and the selects that go before the inputs
+  const { tab, validator = example.target, selects = {} } = manifest.TARGETS[example.target];
+  for (const [id, value] of Object.entries(selects)) {
+    $(id).value = value;
+    $(id).dispatchEvent(new Event("change"));
+  }
   for (const { textarea, text, formatSelect, format } of inputs) {
     const select = formatSelect && $(formatSelect);
     if (select && [...select.options].some((o) => o.value === format)) {
@@ -1200,9 +1205,17 @@ async function chooseExample(manifest, example) {
     $(textarea).value = text;
   }
   showEndpointUse();
-  // The result of the inputs before is not the result of these
-  $(`${validator}-result`).hidden = true;
+  // The result of the inputs before is not the result of these. The result
+  // of a conversion stays next to its input, and waits for the button again.
   delete last[validator];
+  const box = $(`${validator}-result`);
+  if (box.classList.contains("converted")) {
+    showResult(validator, { verdict: `Press ${$(`${validator}-validate`).textContent}`, output: "" });
+    delete box.dataset.kind;
+    updateConvertButtons();
+  } else {
+    box.hidden = true;
+  }
   loadedExample = { example, validator, texts: inputs.map(({ textarea }) => [textarea, $(textarea).value]) };
 
   const url = new URL(location.href);

@@ -18,7 +18,8 @@
 // and with optional keys that say what to do with it (the defaults are those
 // of shex.js manifests, which don't have them):
 //
-//     action: validate            # data (load the data), validate or query
+//     action: validate            # data (load the data), validate, query, or
+//                                 # schema (convert the schema, in the Schema tab)
 //     dataFormat: turtle          # an RDF format, or yars-pg (property graphs)
 //     schemaFormat: shex          # shex (ShExC), shexj, json, an RDF format
 //                                 # (ShExR or SHACL), or pgschema
@@ -39,7 +40,9 @@
 // and PGSchema schemas, SHACL validates shapes (shapes: or shapesURL:) and
 // schemas in an RDF format without a shape map, and ShEx everything else.
 // A schema in CSV (schemaFormat: csv, or a .csv file) is a DCTAP profile,
-// which the DCTAP tab converts to ShEx to validate.
+// which the DCTAP tab converts to ShEx to validate. With action: schema, the
+// schema goes to the Schema tab, in its language: the schemaLanguage, or else
+// the one that would validate it (DCTAP for CSV).
 // help.html documents all of it for the users of the demo.
 
 import { parse, stringify } from "yaml";
@@ -81,6 +84,21 @@ const RDF_NAMES = "turtle, ntriples, rdfxml, jsonld, trig, n3, nquads";
 
 const rdfData = (textarea, formatSelect) => ({ name: "data", key: "dataFormat", textarea, formatSelect, formats: RDF_FORMATS, names: RDF_NAMES, extensions: RDF_EXTENSIONS, inline: rdfOf });
 const pgData = (textarea) => ({ name: "data", key: "dataFormat", textarea, formats: PG_FORMATS, names: "yars-pg", extensions: PG_EXTENSIONS });
+
+// The schema of the Schema tab, in a language. The tab reads ShExR in fewer
+// RDF formats than the ShEx tab, and calls the formats of DCTAP and PGSchema
+// by the name of the language.
+const without = (formats, ...names) => Object.fromEntries(Object.entries(formats).filter(([, v]) => !names.includes(v)));
+const CONVERT_SHEX_FORMATS = without(SHEX_FORMATS, "n3");
+const convertSchema = (language, input, ...others) => ({
+  tab: "schema/convert",
+  action: "schema",
+  validator: "convert",
+  what: `the Schema tab (${language})`,
+  // The language goes first: choosing it changes the formats of the schema
+  selects: { "convert-language": language },
+  inputs: [{ name: "schema", key: "schemaFormat", textarea: "convert-schema", formatSelect: "convert-format", ...input }, ...others],
+});
 
 // Where the examples go: for each tab, its id in the URL fragment (and the
 // prefix of the ids of its inputs and its result), the action it is for, and
@@ -144,9 +162,19 @@ export const TARGETS = {
       { name: "endpoint", textarea: "sparql-endpoint", optional: true },
     ],
   },
+  // action: schema, in the Schema tab
+  "convert-shex": convertSchema("shex", { formats: CONVERT_SHEX_FORMATS, names: `shex, shexj, json, or an RDF format for ShExR (turtle, ntriples, rdfxml, trig, nquads)`, extensions: SHEX_EXTENSIONS, inline: shexOf }),
+  "convert-shacl": convertSchema("shacl", { aliases: ["shapes"], formats: SHACL_FORMATS, names: `an RDF format (${RDF_NAMES})`, extensions: SHACL_EXTENSIONS, inline: rdfOf }),
+  "convert-dctap": convertSchema(
+    "dctap",
+    { formats: { csv: "dctap" }, names: "csv", extensions: { csv: "dctap" }, inline: () => "dctap" },
+    { name: "prefixes", textarea: "convert-prefixes", optional: true },
+    { name: "picklistSeparator", textarea: "convert-picklist", optional: true, default: " ", values: PICKLIST_SEPARATORS },
+  ),
+  "convert-pgschema": convertSchema("pgschema", { formats: PGSCHEMA_FORMATS, names: "pgschema", extensions: PGSCHEMA_EXTENSIONS, inline: () => "pgschema" }),
 };
 
-export const ACTIONS = ["data", "validate", "query"];
+export const ACTIONS = ["data", "validate", "query", "schema"];
 const VALIDATION_ENGINES = ["shex", "shacl", "pgschema"];
 // The languages of schemas, and the engines that can validate with each one
 const SCHEMA_LANGUAGES = { shex: ["shex"], shacl: ["shacl"], pgschema: ["pgschema"], dctap: ["shex"] };
@@ -198,17 +226,20 @@ function targetOf(entry, isPg, manifestURL) {
   // The language of the schema (schemaEngine is another name of the key)
   const languageKey = entry.schemaLanguage != null ? "schemaLanguage" : "schemaEngine";
   const language = lower(entry[languageKey]) ?? (isDctap(entry, manifestURL) ? "dctap" : undefined);
+  if (language != null && !SCHEMA_LANGUAGES[language]) {
+    return {
+      problem: problem(
+        `has a schema in the unknown language "${entry[languageKey]}"`,
+        `Write ${languageKey}: ${Object.keys(SCHEMA_LANGUAGES).join(", ")}, or leave it out.`,
+        "keys",
+      ),
+    };
+  }
+  // The Schema tab, in the language of the schema, or else the language of
+  // the engine that would validate it
+  if (action === "schema") return { target: `convert-${language ?? defaultEngine(entry, false, manifestURL)}` };
   if (language != null) {
     const engines = SCHEMA_LANGUAGES[language];
-    if (!engines) {
-      return {
-        problem: problem(
-          `has a schema in the unknown language "${entry[languageKey]}"`,
-          `Write ${languageKey}: ${Object.keys(SCHEMA_LANGUAGES).join(", ")}, or leave it out.`,
-          "keys",
-        ),
-      };
-    }
     const engine = lower(entry.validationEngine) ?? engines[0];
     if (!engines.includes(engine)) {
       return {

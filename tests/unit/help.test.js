@@ -8,6 +8,7 @@ import { JSDOM } from "jsdom";
 import { Rudof, RudofConfig } from "@rudof/rudof";
 import { parseManifest, loadExample } from "../../manifest.js";
 import { dctapConfig } from "../../dctap.js";
+import { readSchema } from "../../schema-convert.js";
 
 const read = (file) => readFileSync(new URL(`../../${file}`, import.meta.url), "utf8");
 const help = new JSDOM(read("help.html")).window.document;
@@ -79,7 +80,7 @@ describe("the examples of the help page", () => {
   const entries = examples.flatMap((e) => e.entries.map((entry) => [e.heading, entry]));
 
   it("has an example for each action and validation engine", () => {
-    expect(new Set(entries.map(([, e]) => e.target))).toEqual(new Set(["shex", "shacl", "pgschema", "dctap", "rdf", "pg", "sparql"]));
+    expect(new Set(entries.map(([, e]) => e.target))).toEqual(new Set(["shex", "shacl", "pgschema", "dctap", "rdf", "pg", "sparql", "convert-shex", "convert-dctap"]));
   });
 
   it.each(entries)("%s: %o can be loaded", async (_, example) => {
@@ -93,5 +94,13 @@ describe("the examples of the help page", () => {
   it.each(entries.filter(([, e]) => e.action === "validate" && e.status).filter(inline))("%s: the validation gives its status", async (_, example) => {
     const inputs = await loadExample(example);
     expect(conforms(example, inputs)).toBe(example.status === "conformant");
+  });
+
+  // The schemas of the Schema tab, read by rudof in their language
+  it.each(entries.filter(([, e]) => e.action === "schema"))("%s: rudof reads the schema", async (_, example) => {
+    const by = Object.fromEntries((await loadExample(example)).map((i) => [i.name, i]));
+    const language = example.target.replace("convert-", "");
+    const config = language === "dctap" ? RudofConfig.fromToml(dctapConfig(by.prefixes.text, { picklistSeparator: by.picklistSeparator.text })) : undefined;
+    expect(() => readSchema(new Rudof(), { language, format: by.schema.format, text: by.schema.text, config })).not.toThrow();
   });
 });
