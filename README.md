@@ -111,6 +111,10 @@ editors with. The tests check that rudof accepts all of them.
 
 ## Manifests
 
+The **Help** page of the demo ([`help.html`](help.html)) explains how to run
+the examples of a manifest and documents the format of manifests, with an
+example for each action and validation engine.
+
 The page can list the examples of a manifest, a YAML file such as the one of
 shex.js, and load the example chosen into the editors:
 

@@ -201,6 +201,23 @@ describe("parseManifest, with actions", () => {
     expect([shacl.target, shacl.formats.schema, shacl.unsupported]).toEqual(["shacl", "jsonld", undefined]);
   });
 
+  it("validates schemas in an RDF format without a shape map with SHACL", () => {
+    expect(one("- schemaURL: shapes.ttl\n  data: ''\n").target).toBe("shacl");
+    expect(one("- schema: ''\n  schemaFormat: turtle\n  data: ''\n").target).toBe("shacl");
+    expect(one("- shapes: ''\n  data: ''\n")).toMatchObject({ target: "shacl", inputs: { schema: { text: "" } }, unsupported: undefined });
+    // ShExR, with a shape map, is ShEx
+    expect(one("- schemaURL: schema.ttl\n  data: ''\n  queryMap: ''\n").target).toBe("shex");
+    // ShExC and ShExJ without a shape map are still ShEx, which needs one
+    expect(one("- schemaURL: schema.shex\n  data: ''\n")).toMatchObject({ target: "shex", unsupported: "has no queryMap" });
+    expect(one("- schemaURL: schema.json\n  data: ''\n").target).toBe("shex");
+    // validationEngine wins
+    expect(one("- schemaURL: shapes.ttl\n  data: ''\n  validationEngine: shex\n").target).toBe("shex");
+  });
+
+  it("validates PGSchemaC files with PGSchema", () => {
+    expect(one("- schemaURL: schema.pgs\n  data: ''\n  typeMap: ''\n").target).toBe("pgschema");
+  });
+
   it("validates property graphs and PGSchema schemas with PGSchema", () => {
     const pg = one("- schema: ''\n  data: ''\n  dataFormat: yars-pg\n  typeMap: 'n1: T'\n");
     expect([pg.target, pg.unsupported]).toEqual(["pgschema", undefined]);

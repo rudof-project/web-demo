@@ -93,7 +93,9 @@ code { font-family: var(--mono); font-size: 0.9em; }
 }
 .logo img { height: 32px; width: auto; }
 .subtitle { color: var(--muted); }
-.links { display: flex; gap: 1rem; }
+.links { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; }
+/* Narrow screens: the links go below the name */
+.topbar { flex-wrap: wrap; }
 .links a { text-decoration: none; }
 .links a:hover { text-decoration: underline; }
 
@@ -479,3 +481,32 @@ body.has-maximized { overflow: hidden; }
 #sparql-endpoint:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .field.unused > .cm-editor { opacity: 0.5; }
 .result[data-kind="running"] .result-head { color: var(--muted); font-weight: 400; }
+
+/* The help page (help.html) */
+.help { max-width: 860px; line-height: 1.6; }
+.help h1 { margin: 0.5rem 0 0.25rem; font-size: 1.8rem; }
+.help h2 { margin: 2.25rem 0 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border); font-size: 1.35rem; }
+.help h3 { margin: 1.5rem 0 0.4rem; font-size: 1.05rem; }
+.help .lead { color: var(--muted); font-size: 1.05em; }
+.help pre {
+  margin: 0.5rem 0 1rem;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  font: 13px/1.45 var(--mono);
+}
+.help pre code { font-size: inherit; }
+.help .note { padding: 0.6rem 0.9rem; border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 6px 6px 0; }
+.help .toc { margin: 1rem 0 1.5rem; padding: 0.5rem 1rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+.help .toc ol { margin: 0.25rem 0; padding-left: 1.4rem; }
+.help .toc li { margin: 0.1rem 0; }
+.help li > p { margin: 0.35rem 0; }
+.table-wrap { overflow-x: auto; }
+table.keys { width: 100%; border-collapse: collapse; font-size: 0.92em; margin: 0.25rem 0 1rem; }
+table.keys th, table.keys td { text-align: left; vertical-align: top; padding: 0.45rem 0.6rem; border-top: 1px solid var(--border); }
+table.keys th { color: var(--muted); font-weight: 600; border-top: none; }
+table.keys td:first-child { white-space: nowrap; }
+table.keys tr:target { background: var(--cm-selection-match); }
+.links a[aria-current="page"] { color: var(--text); font-weight: 600; text-decoration: none; }

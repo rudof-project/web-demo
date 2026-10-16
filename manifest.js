@@ -32,7 +32,9 @@
 //
 // Without a format, the format is the one of the extension of the file, or
 // the default. Without a validationEngine, PGSchema validates property graphs
-// and PGSchema schemas, and ShEx everything else.
+// and PGSchema schemas, SHACL validates shapes (shapes: or shapesURL:) and
+// schemas in an RDF format without a shape map, and ShEx everything else.
+// help.html documents all of it for the users of the demo.
 
 import { parse } from "yaml";
 
@@ -128,8 +130,22 @@ const lower = (value) => text(value)?.trim().toLowerCase();
 
 const extension = (url) => new URL(url).pathname.split(".").pop().toLowerCase();
 
+// The validation engine of an entry without validationEngine: PGSchema for
+// property graphs and PGSchemaC schemas; SHACL for shapes (shapes:), and for
+// schemas in an RDF format without a shape map, which ShEx needs; else ShEx.
+function defaultEngine(entry, isPg, manifestURL) {
+  const schema = inputOf(entry, ["schema"], manifestURL);
+  const ext = schema?.url ? extension(schema.url) : undefined;
+  const format = lower(entry.schemaFormat);
+  if (isPg || format in PGSCHEMA_FORMATS || (format == null && ext in PGSCHEMA_EXTENSIONS)) return "pgschema";
+  if (inputOf(entry, ["shapes"], manifestURL)) return "shacl";
+  const rdf = format != null ? format in RDF_FORMATS : ext in RDF_EXTENSIONS;
+  if (rdf && !inputOf(entry, ["queryMap"], manifestURL)) return "shacl";
+  return "shex";
+}
+
 // The tab of an entry, or why there is none: { target } or { unsupported }.
-function targetOf(entry, isPg) {
+function targetOf(entry, isPg, manifestURL) {
   const action = lower(entry.action) ?? "validate";
   if (!ACTIONS.includes(action)) return { unsupported: `has an unknown action "${entry.action}" (it can be ${ACTIONS.join(", ")})` };
   if (action === "data") return { target: isPg ? "pg" : "rdf" };
@@ -140,7 +156,7 @@ function targetOf(entry, isPg) {
     return { target: engine };
   }
   // shex.js named kinds of examples with `type:`
-  const engine = lower(entry.validationEngine ?? entry.type) ?? (isPg || lower(entry.schemaFormat) === "pgschema" ? "pgschema" : "shex");
+  const engine = lower(entry.validationEngine ?? entry.type) ?? defaultEngine(entry, isPg, manifestURL);
   if (!VALIDATION_ENGINES.includes(engine)) return { unsupported: `is for the validation engine "${entry.validationEngine ?? entry.type}", which this demo doesn't have` };
   return { target: engine };
 }
@@ -186,7 +202,7 @@ export function parseManifest(source, manifestURL) {
     if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
       throw new Error(`entry ${index + 1} of the manifest is not a map of keys and values`);
     }
-    const { target, unsupported: noTarget } = targetOf(entry, isPgData(entry, manifestURL));
+    const { target, unsupported: noTarget } = targetOf(entry, isPgData(entry, manifestURL), manifestURL);
     const { action, inputs: specs } = TARGETS[target] ?? { action: lower(entry.action) ?? "validate", inputs: [] };
     const inputs = {};
     const formats = {};

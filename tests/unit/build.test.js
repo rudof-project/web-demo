@@ -25,6 +25,12 @@ describe("vite build", () => {
     expect(html).toContain("<title>rudof online demo</title>");
   });
 
+  it("writes the help page, with its styles", () => {
+    const help = readFileSync(join(outDir, "help.html"), "utf8");
+    expect(help).toContain("<title>Help: manifests of examples");
+    expect(help).toMatch(/href="\.\/assets\/[^"]+\.css"/);
+  });
+
   it("bundles the scripts, with no bare imports left", () => {
     expect(js().length).toBeGreaterThan(0);
     for (const file of js()) expect(read(file)).not.toMatch(/from\s*["']@codemirror\//);

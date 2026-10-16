@@ -8,6 +8,10 @@ export default defineConfig({
   plugins: [lezer()],
   build: {
     outDir: "dist",
+    // The demo, and its help page
+    rollupOptions: {
+      input: { main: "index.html", help: "help.html" },
+    },
     // demo.js waits for rudof at the top level of the module
     target: "es2022",
   },
