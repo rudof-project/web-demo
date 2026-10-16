@@ -60,8 +60,9 @@ set up by [`codemirror-setup.js`](codemirror-setup.js):
   matching and closing, and take the colors of the page, light or dark.
   Ctrl+Enter still validates.
 - The results of conversions (RDF data, property graphs, and ShEx and SHACL
-  schemas) are shown in read-only editors, highlighted in the format chosen
-  for the result. demo.js still writes the result in its `<pre>`, which is
+  schemas), of validations and of queries are shown in read-only editors,
+  highlighted in the format chosen for the result. Results in CSV have a
+  **CSV | Table** switch, to see them as a table; the browser remembers it. demo.js still writes the result in its `<pre>`, which is
   hidden, and the viewer follows it (`pre[data-viewer]`).
 
 ## DCTAP
@@ -199,8 +200,8 @@ taken from its extension (`.shex`, `.json`, `.ttl`, `.nt`, `.jsonld`, `.pg`…),
 and the one of inline text is the default (or JSON-LD and ShExJ for text that
 starts with `{`). The list shows the `comment` of each example (or its
 `dataLabel`, if it has no comment). Choosing an example opens the tab of its
-action and loads its inputs. Examples to `validate` are validated at once;
-for examples to `query`, press **Run query**. When an
+action and loads its inputs; press the button of the tab (**Validate**,
+**Run query**, **Convert**) to run it. When an
 example is validated as loaded, the verdict says whether the result is the
 one of its `status`. Examples that the demo can't run are listed but can't be
 loaded; **Why … examples can't be run**, below the list, says why, with a

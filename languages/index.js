@@ -23,6 +23,9 @@ export const FORMATS = {
   shexc: "shexc",
   shapemap: "shapemap",
   sparql: "sparql",
+  // The results of validations and queries: CSV, and tables drawn with
+  // characters (compact, details…), which are plain text
+  csv: "csv",
   // DCTAP profiles in CSV, and DCTAP as rudof writes it in JSON
   dctap: "dctap",
   "dctap-json": "json",
@@ -45,6 +48,7 @@ const LOADERS = {
   json: async () => (await import("@codemirror/lang-json")).json(),
   // Lezer grammars, in their own folders
   dctap: async () => stream((await import("./dctap/index.js")).dctap),
+  csv: async () => stream((await import("./csv.js")).csv),
   yarspg: async () => (await import("./yars-pg/index.js")).yarspg(),
   pgschema: async () => (await import("./pgschema/index.js")).pgschema(),
   typemap: async () => (await import("./pgschema/index.js")).typemap(),

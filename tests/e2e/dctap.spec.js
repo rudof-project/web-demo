@@ -86,18 +86,18 @@ test.describe("the table view of the profile", () => {
   test("switches between the CSV and a table", async ({ page }) => {
     await open(page, "#validate/dctap");
     await expect(editor(page, "dctap-schema")).toBeVisible();
-    await page.locator('#panel-dctap .view-switch button[data-view="table"]').click();
+    await page.locator('#dctap-view button[data-view="table"]').click();
     await expect(editor(page, "dctap-schema")).toBeHidden();
     await expect(table(page).locator("thead input").first()).toHaveValue("shapeID");
     await expect(table(page).locator("tbody tr")).toHaveCount(3);
-    await page.locator('#panel-dctap .view-switch button[data-view="csv"]').click();
+    await page.locator('#dctap-view button[data-view="csv"]').click();
     await expect(editor(page, "dctap-schema")).toBeVisible();
     await expect(table(page)).toBeHidden();
   });
 
   test("edits in the table change the profile that is validated", async ({ page }) => {
     await open(page, "#validate/dctap");
-    await page.locator('#panel-dctap .view-switch button[data-view="table"]').click();
+    await page.locator('#dctap-view button[data-view="table"]').click();
     // name is not mandatory any more: Bob, with two names, still fails for his date
     const mandatory = table(page).locator("tbody tr").first().locator("input").nth(4);
     await expect(mandatory).toHaveValue("true");
@@ -117,7 +117,7 @@ test.describe("the table view of the profile", () => {
 
   test("follows a profile loaded from a permalink, and is remembered", async ({ page }) => {
     await open(page, "#validate/dctap");
-    await page.locator('#panel-dctap .view-switch button[data-view="table"]').click();
+    await page.locator('#dctap-view button[data-view="table"]').click();
     await open(page, `?dctap=${encodeURIComponent("shapeID,propertyID\nBook,:title")}#validate/dctap`);
     await expect(table(page)).toBeVisible();
     await expect(table(page).locator("tbody input").first()).toHaveValue("Book");

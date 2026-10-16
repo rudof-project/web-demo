@@ -7,6 +7,7 @@ import { setupLayout } from "./layout.js";
 import { queryEndpoint, queryPrefixes, solutionsCsv } from "./endpoint.js";
 import { dctapConfig, columnClass } from "./dctap.js";
 import { setupTableView } from "./table-view.js";
+import { parseCsv } from "./csv.js";
 import { devDependencies } from "./package.json";
 
 // The exact version of package.json (the one the tests use), so that updating
@@ -144,7 +145,7 @@ setupLayout();
 setupTableView({
   textarea: $("dctap-schema"),
   container: $("dctap-table"),
-  toggle: document.querySelectorAll("#panel-dctap .view-switch button"),
+  toggle: document.querySelectorAll("#dctap-view button"),
   cellClass: columnClass,
 });
 restoreInputs();
@@ -195,6 +196,60 @@ function showResult(prefix, { verdict, kind, output, millis }) {
   diagrams.set(box, null); // a diagram still being drawn is not shown
   pre.hidden = isElement;
   if (!isElement) pre.textContent = plain(output);
+  showCsvView(box, prefix, kind !== "error" && kind !== "running" && !isElement);
+}
+
+// CSV results, as text (in the viewer of the result) or as a table: the
+// switch of the result chooses, for all the results, and the browser
+// remembers it.
+const CSV_VIEW_KEY = "rudof-demo-view-results";
+let csvView = "csv";
+try {
+  csvView = localStorage.getItem(CSV_VIEW_KEY) === "table" ? "table" : "csv";
+} catch {
+  // not remembered
+}
+
+function csvTable(text) {
+  const [header = [], ...rows] = parseCsv(text);
+  const el = (tag, props = {}, ...children) => {
+    const e = Object.assign(document.createElement(tag), props);
+    e.append(...children);
+    return e;
+  };
+  return el(
+    "table",
+    { className: "report csv-result" },
+    el("thead", {}, el("tr", {}, ...header.map((h) => el("th", {}, h)))),
+    el("tbody", {}, ...rows.map((row) => el("tr", {}, ...row.map((cell) => el("td", {}, el("code", {}, cell)))))),
+  );
+}
+
+// text: whether the result is text, which may be CSV (not an error or a table)
+function showCsvView(box, prefix, text = box.dataset.csvText === "true") {
+  const toggle = box.querySelector(".csv-switch");
+  if (!toggle) return;
+  box.dataset.csvText = String(text);
+  const isCsv = text && $(`${prefix}-result-format`)?.value === "csv";
+  const asTable = isCsv && csvView === "table";
+  toggle.hidden = !isCsv;
+  for (const button of toggle.querySelectorAll("button")) button.setAttribute("aria-pressed", String(button.dataset.view === csvView));
+  box.classList.toggle("csv-as-table", asTable);
+  const table = box.querySelector(".csv-output");
+  table.hidden = !asTable;
+  table.replaceChildren(...(asTable ? [csvTable(box.querySelector(".output").textContent)] : []));
+}
+
+for (const button of document.querySelectorAll(".csv-switch button")) {
+  button.addEventListener("click", () => {
+    csvView = button.dataset.view;
+    try {
+      localStorage.setItem(CSV_VIEW_KEY, csvView);
+    } catch {
+      // not remembered
+    }
+    for (const box of document.querySelectorAll(".result:has(.csv-switch)")) showCsvView(box, box.id.replace(/-result$/, ""));
+  });
 }
 
 // Diagrams
@@ -300,10 +355,6 @@ function setStatus(kind, text) {
 
 let rudofModule;
 const sessions = {};
-
-// Resolved when rudof is loaded, to run the example of a manifest
-let rudofIsLoaded;
-const rudofLoaded = new Promise((resolve) => (rudofIsLoaded = resolve));
 
 function session(name) {
   sessions[name] ??= new rudofModule.Rudof();
@@ -877,9 +928,9 @@ for (const prefix of Object.keys(validators)) {
 // ?manifestURL=<url> lists the examples of a manifest (see manifest.js) above
 // the tabs, and ?example=<n> loads the n-th one (from 1), unless the URL has
 // the inputs too (a permalink of the example, maybe edited). An example is
-// loaded in the tab of its action (data, validate or query). Validations are
-// run then; queries wait for the Run query button. manifest.js, with its YAML
-// parser, is only loaded then.
+// loaded in the tab of its action (data, validate or query), and waits for
+// the button of the tab (Validate, Run query, Convert). manifest.js, with its
+// YAML parser, is only loaded then.
 
 // The example loaded last, and the text it put in each input, to compare the
 // result with the one the manifest expects while the inputs are unchanged.
@@ -1023,12 +1074,6 @@ async function chooseExample(manifest, example) {
   if (example.comment) parts.push(example.comment);
   for (const note of example.notes) parts.push("\n", note);
   manifestNote(parts);
-
-  // Validations are run, once rudof is loaded. Data is only shown, and
-  // queries wait for the Run query button.
-  if (example.action !== "validate") return;
-  await rudofLoaded;
-  if (choosing === token) run(validator);
 }
 
 // Whether a validation gives the result the manifest expects, while the inputs
@@ -1053,7 +1098,6 @@ try {
   setStatus("ready", `rudof ${new rudofModule.Rudof().getVersion()} ready`);
   $("status").title = `@rudof/rudof from ${RUDOF_MODULE}`;
   for (const b of document.querySelectorAll('button[id$="-validate"]')) b.disabled = false;
-  rudofIsLoaded();
 } catch (e) {
   console.error(e);
   setStatus("error", `Could not load rudof: ${e.message ?? e}`);

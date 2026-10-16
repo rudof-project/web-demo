@@ -10,6 +10,7 @@ import { language, StringStream } from "@codemirror/language";
 import { FORMATS, languageOf, loadLanguage } from "../../languages/index.js";
 import { turtle } from "../../languages/turtle.js";
 import { shexc, shapemap } from "../../languages/shexc.js";
+import { csv } from "../../languages/csv.js";
 import { setupEditors, editorFor, setFormat } from "../../codemirror-setup.js";
 
 // The tokens of a text as [text, style] pairs, without spaces.
@@ -62,11 +63,12 @@ describe("formats and languages", () => {
     ["compact", "yarspg"],
     ["pgschema", "pgschema"],
     ["typemap", "typemap"],
+    ["csv", "csv"],
   ])("%s is written in %s", (format, name) => {
     expect(languageOf(format)).toBe(name);
   });
 
-  it.each(["plantuml", "csv", "unknown"])("%s is plain text", (format) => {
+  it.each(["plantuml", "details", "minimal", "unknown"])("%s is plain text", (format) => {
     expect(languageOf(format)).toBeNull();
   });
 });
@@ -249,5 +251,27 @@ describe("editors follow the format of their text", () => {
     expect(view.state.doc.toString()).toBe("# x\n:a :b :c .");
     const { undoDepth } = await import("@codemirror/commands");
     expect(undoDepth(view.state)).toBe(1);
+  });
+});
+
+describe("CSV results", () => {
+  const text = `?person,?name,age,"a, b"
+<http://example.org/alice>,Alice,23,ex:x
+_:b0,"Bob, ""the builder""",true,http://example.org/bob`;
+
+  it.each([
+    ["?person", "keyword"],
+    ['"a, b"', "keyword"],
+    ["<http://example.org/alice>", "url"],
+    ["http://example.org/bob", "url"],
+    ["Alice", null],
+    ["23", "number"],
+    ["true", "bool"],
+    ["ex:x", "propertyName"],
+    ["_:b0", "variableName"],
+    ['"Bob, ""the builder"""', "string"],
+    [",", "punctuation"],
+  ])("%s is a %s", (token, style) => {
+    expect(styleOf(csv, text, token)).toBe(style);
   });
 });

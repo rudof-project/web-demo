@@ -584,3 +584,24 @@ table.keys tr:target { background: var(--cm-selection-match); }
 .csv-table td.cell-comment input { color: var(--cm-comment); font-style: italic; }
 .field.maximized > .table-view-cells { flex: 1 1 0; min-height: 0; }
 .field.maximized .table-scroll { flex: 1 1 0; max-height: none; }
+
+/* Results: CSV as a table (the CSV | Table switch of the result head) */
+.result-head .csv-switch { align-self: center; font-weight: 400; }
+.result-head .csv-switch[hidden] { display: none; }
+.result.csv-as-table > .cm-viewer { display: none !important; }
+.result > .csv-output { flex: 1 1 auto; overflow: auto; background: var(--surface); }
+.result > .csv-output[hidden] { display: none; }
+.result.maximized > .csv-output { flex: 1 1 0; }
+/* Long cells wrap at spaces, and words are not cut */
+table.csv-result td code { font-size: 12px; white-space: pre-wrap; overflow-wrap: break-word; }
+
+/* Results drawn as tables with characters (compact, details…): lines close
+   together, so that the borders join, and no wrapping */
+.result:not(.converted) > .cm-viewer:is([data-format="compact"], [data-format="details"], [data-format="minimal"]) .cm-scroller {
+  line-height: 1.2;
+}
+.result:not(.converted) > .cm-viewer:is([data-format="compact"], [data-format="details"], [data-format="minimal"]) .cm-content.cm-lineWrapping {
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+}

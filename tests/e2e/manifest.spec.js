@@ -123,9 +123,12 @@ test("loads the chosen example into the editors, and validates it", async ({ pag
   await expect(page.locator("#shex-result .verdict")).toHaveText(/^Does not conform.*\(as the manifest expects\)$/);
 });
 
-test("validates the chosen example", async ({ page }) => {
+test("the chosen example waits for Validate", async ({ page }) => {
   await open(page, `?manifestURL=${encodeURIComponent(MANIFEST_URL)}`);
   await select(page).selectOption({ label: "✓ Alice has a name." });
+  await expect(page.locator("#manifest-note")).toContainText("Alice has a name.");
+  await expect(page.locator("#shex-result")).toBeHidden();
+  await page.locator("#shex-validate").click();
   await expect(page.locator("#shex-result .verdict")).toHaveText(/^Conforms.*\(as the manifest expects\)$/);
 });
 
@@ -161,6 +164,8 @@ test.describe("the action of an example", () => {
     await select(page).selectOption({ label: "✗ Alice without a name" });
     await expect(page.locator("#panel-shacl")).toBeVisible();
     await expect(page.locator("#shacl-shapes-format")).toHaveValue("turtle");
+    await expect(page.locator("#shacl-result")).toBeHidden();
+    await page.locator("#shacl-validate").click();
     await expect(page.locator("#shacl-result .verdict")).toHaveText(/^Does not conform.*\(as the manifest expects\)$/);
   });
 });
@@ -236,12 +241,13 @@ test("there are no reasons when all the examples can be run", async ({ page }) =
   await expect(page.locator("#manifest-problems")).toBeHidden();
 });
 
-test("a DCTAP example opens the DCTAP tab, with its prefixes, and validates", async ({ page }) => {
+test("a DCTAP example opens the DCTAP tab, with its prefixes", async ({ page }) => {
   await open(page, `?manifestURL=${encodeURIComponent("https://manifests.example/doc/dctap.yaml")}&example=1`);
   await expect(page.locator("#panel-dctap")).toBeVisible();
   await expect(page.locator("#dctap-schema")).toHaveJSProperty("value", FILES["https://manifests.example/examples/person.csv"]);
   await expect(page.locator("#dctap-prefixes")).toHaveJSProperty("value", "BASE <http://example.org/>\nPREFIX : <http://example.org/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n");
   await expect(page.locator("#dctap-picklist")).toHaveValue("|");
+  await page.locator("#dctap-validate").click();
   await expect(page.locator("#dctap-result .verdict")).toHaveText(/^Does not conform.*\(as the manifest expects\)$/);
 });
 
