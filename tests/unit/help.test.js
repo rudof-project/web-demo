@@ -5,8 +5,9 @@
 import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { JSDOM } from "jsdom";
-import { Rudof } from "@rudof/rudof";
+import { Rudof, RudofConfig } from "@rudof/rudof";
 import { parseManifest, loadExample } from "../../manifest.js";
+import { dctapConfig } from "../../dctap.js";
 
 const read = (file) => readFileSync(new URL(`../../${file}`, import.meta.url), "utf8");
 const help = new JSDOM(read("help.html")).window.document;
@@ -26,6 +27,13 @@ function conforms(example, inputs) {
   if (example.target === "shex") {
     rudof.readData(by.data.text, by.data.format);
     rudof.readShex(by.schema.text, by.schema.format);
+    rudof.readShapemap(by.queryMap.text);
+    return rudof.validateShex().conforms;
+  }
+  if (example.target === "dctap") {
+    rudof.updateConfig(RudofConfig.fromToml(dctapConfig(by.prefixes.text, { picklistSeparator: by.picklistSeparator.text })));
+    rudof.readData(by.data.text, by.data.format);
+    rudof.readShex(rudof.convertSchemas(by.schema.text, "dctap", "shex", "csv", "shexj"), "shexj");
     rudof.readShapemap(by.queryMap.text);
     return rudof.validateShex().conforms;
   }
@@ -61,6 +69,7 @@ describe("the help page", () => {
       "action", "validationEngine", "queryEngine", "status", "comment", "dataLabel", "schemaLabel",
       "data", "dataURL", "schema", "schemaURL", "shapes", "shapesURL", "queryMap", "queryMapURL",
       "typeMap", "typeMapURL", "query", "queryURL", "endpoint", "dataFormat", "schemaFormat", "queryFormat",
+      "schemaLanguage", "schemaEngine", "prefixes", "prefixesURL", "picklistSeparator",
     ];
     expect(keys.filter((key) => !documented.has(key))).toEqual([]);
   });
@@ -70,15 +79,18 @@ describe("the examples of the help page", () => {
   const entries = examples.flatMap((e) => e.entries.map((entry) => [e.heading, entry]));
 
   it("has an example for each action and validation engine", () => {
-    expect(new Set(entries.map(([, e]) => e.target))).toEqual(new Set(["shex", "shacl", "pgschema", "rdf", "pg", "sparql"]));
+    expect(new Set(entries.map(([, e]) => e.target))).toEqual(new Set(["shex", "shacl", "pgschema", "dctap", "rdf", "pg", "sparql"]));
   });
 
   it.each(entries)("%s: %o can be loaded", async (_, example) => {
     expect(example.unsupported).toBeUndefined();
-    await loadExample(example, () => Promise.reject(new Error("no files here")));
+    // The files of the examples are not here: they are empty
+    await loadExample(example, async () => "");
   });
 
-  it.each(entries.filter(([, e]) => e.action === "validate"))("%s: the validation gives its status", async (_, example) => {
+  // The validations with their inputs in the manifest
+  const inline = ([, e]) => Object.values(e.inputs).every((input) => input.text != null);
+  it.each(entries.filter(([, e]) => e.action === "validate" && e.status).filter(inline))("%s: the validation gives its status", async (_, example) => {
     const inputs = await loadExample(example);
     expect(conforms(example, inputs)).toBe(example.status === "conformant");
   });

@@ -42,6 +42,7 @@
             <li><a href="#example-shex">Validate with ShEx</a></li>
             <li><a href="#example-shacl">Validate with SHACL</a></li>
             <li><a href="#example-pgschema">Validate a property graph with PGSchema</a></li>
+            <li><a href="#example-dctap">Validate with a DCTAP profile</a></li>
             <li><a href="#example-data">Load data</a></li>
             <li><a href="#example-query">Run a SPARQL query</a></li>
           </ol>
@@ -172,6 +173,43 @@
   status: conformant
   comment: A person in a property graph</code></pre>
 
+      <h3 id="example-dctap">Validate with a DCTAP profile</h3>
+      <p>A <a href="https://www.dublincore.org/specifications/dctap/">DCTAP</a> profile is a table in CSV. Its language
+        is <code>schemaLanguage: dctap</code>, which a CSV schema (<code>schemaFormat: csv</code>, or a
+        <code>.csv</code> file) has without saying it. The DCTAP tab converts the profile to ShEx and validates the data
+        with it, for the shape map (<code>queryMap</code>): <code>validationEngine</code> is <code>shex</code>, the only
+        one for DCTAP until rudof can convert DCTAP to SHACL.</p>
+      <p>The names of the profile are prefixed names (<code>foaf:name</code>) or names without prefix
+        (<code>Person</code>), so the example gives the prefixes of the profile in <code>prefixes</code> (or
+        <code>prefixesURL</code>), as Turtle declarations: <code>PREFIX</code>, and <code>BASE</code> for the names without
+        prefix. The values of picklists are separated by spaces, unless <code>picklistSeparator: "|"</code>.</p>
+      <pre class="manifest-example"><code>- schemaLabel: Person (DCTAP)
+  schemaLanguage: dctap
+  validationEngine: shex
+  schemaFormat: csv
+  schema: |
+    shapeID,shapeLabel,propertyID,propertyLabel,mandatory,repeatable,valueNodeType,valueDataType,valueShape
+    Person,Person,:name,Name,true,false,literal,xsd:string,
+    Person,,:knows,Knows,false,true,iri,,Person
+  prefixes: |
+    BASE &lt;http://example.org/&gt;
+    PREFIX : &lt;http://example.org/&gt;
+    PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
+  dataLabel: Alice knows Bob
+  data: |
+    PREFIX : &lt;http://example.org/&gt;
+    :alice :name "Alice" ; :knows :bob .
+    :bob :name "Bob" .
+  queryMap: ":alice@:Person"
+  status: conformant
+  comment: Alice, validated with a DCTAP profile
+- schemaLabel: Person (DCTAP)
+  schemaURL: person.csv
+  prefixesURL: person-prefixes.ttl
+  dataURL: people.ttl
+  queryMap: ":bob@:Person"
+  comment: The same, with files (the .csv file makes it DCTAP)</code></pre>
+
       <h3 id="example-data">Load data</h3>
       <p><code>action: data</code> puts the data in the Data section, to convert it to other formats: RDF data in the
         RDF tab, property graphs (<code>dataFormat: yars-pg</code>) in the Property graph tab.</p>
@@ -231,7 +269,14 @@
             <tr>
               <td><code>validationEngine</code></td>
               <td><code>shex</code>, <code>shacl</code> or <code>pgschema</code>, for <code>action: validate</code>. <code>type</code> (of shex.js) is read as <code>validationEngine</code> too.</td>
-              <td>From the inputs (<a href="#defaults">see below</a>); <code>shex</code> in the end</td>
+              <td>The engine of the <code>schemaLanguage</code>, or from the inputs (<a href="#defaults">see below</a>); <code>shex</code> in the end</td>
+            </tr>
+            <tr>
+              <td><code>schemaLanguage</code></td>
+              <td>The language of the schema: <code>shex</code>, <code>shacl</code>, <code>pgschema</code> or
+                <code>dctap</code>. <code>schemaEngine</code> is another name of this key. A <code>dctap</code> schema is
+                validated with <code>shex</code>; the others with their own engine.</td>
+              <td><code>dctap</code> for a CSV schema; else the language of the <code>validationEngine</code></td>
             </tr>
             <tr>
               <td><code>queryEngine</code></td>
@@ -287,6 +332,19 @@
               <td>The URL of a SPARQL endpoint: the query runs on it, instead of the data</td>
               <td><code>query</code></td>
             </tr>
+            <tr>
+              <td><code>prefixes</code>, <code>prefixesURL</code></td>
+              <td>The prefixes of a DCTAP profile, as Turtle declarations (<code>PREFIX ex: &lt;…&gt;</code>, and
+                <code>BASE &lt;…&gt;</code> for the names without prefix). <code>rdf</code>, <code>rdfs</code>,
+                <code>xsd</code>, <code>sh</code> and <code>dc</code> are always there.</td>
+              <td><code>validate</code> with DCTAP</td>
+            </tr>
+            <tr>
+              <td><code>picklistSeparator</code></td>
+              <td>What separates the values of picklists in a DCTAP profile: <code>space</code> (the default, as in
+                DCTAP) or <code>"|"</code> (or <code>bar</code>)</td>
+              <td><code>validate</code> with DCTAP</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -308,7 +366,8 @@
             <tr>
               <td><code>schemaFormat</code></td>
               <td>ShEx: <code>shex</code> (ShExC), <code>shexj</code> or <code>json</code> (ShExJ), or an RDF format
-                (ShExR);<br>SHACL: an RDF format (<code>json</code> is JSON-LD);<br>PGSchema: <code>pgschema</code></td>
+                (ShExR);<br>SHACL: an RDF format (<code>json</code> is JSON-LD);<br>PGSchema: <code>pgschema</code>;<br>DCTAP:
+                <code>csv</code></td>
               <td>The format of the file extension, else <code>shex</code> for ShEx (<code>shexj</code> for text that
                 starts with <code>{</code>) and <code>turtle</code> for SHACL</td>
             </tr>
@@ -323,7 +382,8 @@
       <p>The file extensions the demo knows: <code>.ttl</code>, <code>.nt</code>, <code>.rdf</code>, <code>.xml</code>,
         <code>.owl</code>, <code>.jsonld</code>, <code>.trig</code>, <code>.n3</code>, <code>.nq</code> (RDF);
         <code>.shex</code>, <code>.shexc</code>, <code>.shexj</code>, <code>.json</code> (ShEx); <code>.pg</code>,
-        <code>.ypg</code>, <code>.yarspg</code> (YARS-PG); <code>.pgs</code>, <code>.pgschema</code> (PGSchemaC).</p>
+        <code>.ypg</code>, <code>.yarspg</code> (YARS-PG); <code>.pgs</code>, <code>.pgschema</code> (PGSchemaC);
+        <code>.csv</code> (DCTAP).</p>
 
       <h3>How it is shown</h3>
       <div class="table-wrap">
@@ -356,8 +416,11 @@
         <li><code>action: data</code> goes to the Property graph tab when the data is a property graph
           (<code>dataFormat: yars-pg</code>, or a <code>.pg</code> file), and to the RDF tab otherwise.</li>
         <li><code>action: query</code> goes to the SPARQL tab.</li>
-        <li><code>action: validate</code> (or no <code>action</code>) goes to the tab of its
-          <code>validationEngine</code>. Without one, the engine is:
+        <li><code>action: validate</code> (or no <code>action</code>) with a DCTAP profile
+          (<code>schemaLanguage: dctap</code>, <code>schemaFormat: csv</code> or a <code>.csv</code> file) goes to the
+          DCTAP tab.</li>
+        <li>Other validations go to the tab of their <code>schemaLanguage</code> or <code>validationEngine</code>.
+          Without them, the engine is:
           <ol>
             <li><code>pgschema</code> when the data is a property graph or the schema is PGSchemaC
               (<code>schemaFormat: pgschema</code>, or a <code>.pgs</code> file);</li>

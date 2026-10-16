@@ -262,6 +262,66 @@ describe("parseManifest, with actions", () => {
   });
 });
 
+describe("DCTAP examples", () => {
+  const one = (yaml) => parseManifest(yaml, MANIFEST_URL)[0];
+  const DCTAP = `
+- schemaLanguage: dctap
+  validationEngine: shex
+  schemaFormat: csv
+  schema: "shapeID,propertyID\\nPerson,:name\\n"
+  prefixes: "PREFIX : <http://example.org/>"
+  picklistSeparator: "|"
+  data: ":alice :name 'Alice' ."
+  queryMap: ":alice@:Person"
+`;
+
+  it("go to the DCTAP tab, with their prefixes and picklist separator", async () => {
+    const example = one(DCTAP);
+    expect(example).toMatchObject({ action: "validate", target: "dctap", unsupported: undefined });
+    const inputs = Object.fromEntries((await loadExample(example)).map((i) => [i.name, i]));
+    expect(inputs.schema).toMatchObject({ textarea: "dctap-schema", text: "shapeID,propertyID\nPerson,:name\n" });
+    expect(inputs.prefixes).toMatchObject({ textarea: "dctap-prefixes", text: "PREFIX : <http://example.org/>" });
+    expect(inputs.picklistSeparator).toMatchObject({ textarea: "dctap-picklist", text: "|" });
+    expect(inputs.data).toMatchObject({ textarea: "dctap-data", format: "turtle" });
+    expect(inputs.queryMap).toMatchObject({ textarea: "dctap-shapemap" });
+  });
+
+  it("are DCTAP by their CSV format, or the .csv extension of their file", () => {
+    expect(one("- schema: ''\n  schemaFormat: csv\n  data: ''\n  queryMap: ''\n").target).toBe("dctap");
+    expect(one("- schemaURL: person.csv\n  data: ''\n  queryMap: ''\n").target).toBe("dctap");
+    expect(one("- schema: ''\n  schemaEngine: dctap\n  data: ''\n  queryMap: ''\n").target).toBe("dctap");
+  });
+
+  it("separate the values of picklists with spaces, unless they say", async () => {
+    const example = one("- schemaURL: p.csv\n  data: ''\n  queryMap: ''\n");
+    const inputs = Object.fromEntries((await loadExample(example, async () => "")).map((i) => [i.name, i.text]));
+    expect(inputs.picklistSeparator).toBe(" ");
+    expect(inputs.prefixes).toBe("");
+    expect(one("- schemaURL: p.csv\n  data: ''\n  queryMap: ''\n  picklistSeparator: space\n").inputs.picklistSeparator.text).toBe(" ");
+    expect(one("- schemaURL: p.csv\n  data: ''\n  queryMap: ''\n  picklistSeparator: ';'\n")).toMatchObject({
+      unsupported: 'has a picklistSeparator ";" that DCTAP can\'t use',
+      hint: "The picklistSeparator of DCTAP can be space or | or bar.",
+    });
+  });
+
+  it("are validated with ShEx, the only engine for DCTAP for now", () => {
+    const shacl = one("- schemaURL: p.csv\n  validationEngine: shacl\n  data: ''\n");
+    expect(shacl.unsupported).toBe("validates a dctap schema with shacl, which this demo can't do");
+    expect(shacl).toMatchObject({ help: "example-dctap", hint: expect.stringMatching(/validationEngine: shex/) });
+  });
+
+  it("need a shape map", () => {
+    expect(one("- schemaURL: p.csv\n  data: ''\n").unsupported).toBe("has no queryMap");
+  });
+
+  it("schemaLanguage says the engine of the other schemas", () => {
+    expect(one("- schema: ''\n  schemaLanguage: shacl\n  data: ''\n").target).toBe("shacl");
+    expect(one("- schema: ''\n  schemaLanguage: shex\n  data: ''\n  queryMap: ''\n").target).toBe("shex");
+    expect(one("- schema: ''\n  schemaLanguage: shex\n  validationEngine: shacl\n  data: ''\n").unsupported).toMatch(/shex schema with shacl/);
+    expect(one("- schema: ''\n  schemaLanguage: owl\n  data: ''\n")).toMatchObject({ unsupported: 'has a schema in the unknown language "owl"' });
+  });
+});
+
 describe("why an example can't be run", () => {
   const one = (yaml) => parseManifest(yaml, MANIFEST_URL)[0];
 

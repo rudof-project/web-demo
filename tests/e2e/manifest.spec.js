@@ -56,6 +56,24 @@ const FILES = {
   status: nonconformant
   action: validate
 `,
+  "https://manifests.example/doc/dctap.yaml": `
+- schemaLabel: DCTAP
+  schemaURL: ../examples/person.csv
+  prefixes: |
+    BASE <http://example.org/>
+    PREFIX : <http://example.org/>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+  picklistSeparator: "|"
+  data: |
+    prefix : <http://example.org/>
+    :bob :status :Unknown .
+  queryMap: ":bob@:Person"
+  status: nonconformant
+  comment: Bob has no name, and an unknown status
+`,
+  "https://manifests.example/examples/person.csv": `shapeID,propertyID,mandatory,valueDataType,valueConstraint,valueConstraintType
+Person,:name,true,xsd:string,,
+Person,:status,false,,:Active|:Retired,picklist`,
   "https://manifests.example/examples/graph.pg": `(n1 {Person} [ name: "Alice" ])`,
   "https://manifests.example/examples/person.shex": `prefix : <http://example.org/>
 prefix xsd: <http://www.w3.org/2001/XMLSchema#>
@@ -216,6 +234,15 @@ test("there are no reasons when all the examples can be run", async ({ page }) =
   await open(page, `?manifestURL=${encodeURIComponent("https://manifests.example/doc/actions.yaml")}`);
   await expect(select(page)).toBeEnabled();
   await expect(page.locator("#manifest-problems")).toBeHidden();
+});
+
+test("a DCTAP example opens the DCTAP tab, with its prefixes, and validates", async ({ page }) => {
+  await open(page, `?manifestURL=${encodeURIComponent("https://manifests.example/doc/dctap.yaml")}&example=1`);
+  await expect(page.locator("#panel-dctap")).toBeVisible();
+  await expect(page.locator("#dctap-schema")).toHaveJSProperty("value", FILES["https://manifests.example/examples/person.csv"]);
+  await expect(page.locator("#dctap-prefixes")).toHaveJSProperty("value", "BASE <http://example.org/>\nPREFIX : <http://example.org/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n");
+  await expect(page.locator("#dctap-picklist")).toHaveValue("|");
+  await expect(page.locator("#dctap-result .verdict")).toHaveText(/^Does not conform.*\(as the manifest expects\)$/);
 });
 
 test("says when the manifest can't be read", async ({ page }) => {

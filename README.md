@@ -167,13 +167,16 @@ ShEx validation, as in the manifests of shex.js:
 |-----|--------|---------|
 | `action` | `data` (load the data in the Data tab), `validate` (validate it in the Validate tab), `query` (run a query on it in the Query tab) | `validate` |
 | `dataFormat` | an RDF format (`turtle`, `ntriples`, `rdfxml`, `jsonld`, `trig`, `n3`, `nquads`), or `yars-pg` for property graphs | `turtle` |
-| `schemaFormat` | `shex` (ShExC), `shexj` or `json` (ShExJ), an RDF format (ShExR, or SHACL shapes; `json` is JSON-LD for SHACL), or `pgschema` | `shex` |
+| `schemaFormat` | `shex` (ShExC), `shexj` or `json` (ShExJ), an RDF format (ShExR, or SHACL shapes; `json` is JSON-LD for SHACL), `pgschema`, or `csv` (DCTAP) | `shex` |
 | `validationEngine` | `shex`, `shacl` or `pgschema` | `pgschema` for property graphs or `pgschema` schemas, otherwise `shex` |
 | `query`, `queryURL` | the query, for `action: query` | |
 | `queryFormat` | `sparql` | `sparql` |
 | `queryEngine` | `sparql` | `sparql` |
 | `endpoint` | the SPARQL endpoint the query runs on, instead of the data (then the data is optional) | |
 | `typeMap`, `typeMapURL` | the type map of PGSchema (or `queryMap`) | |
+| `schemaLanguage` (or `schemaEngine`) | `shex`, `shacl`, `pgschema` or `dctap`: the language of the schema. DCTAP profiles go to the DCTAP tab, which validates them with ShEx | `dctap` for CSV schemas (`schemaFormat: csv` or `.csv` files) |
+| `prefixes`, `prefixesURL` | the prefixes of a DCTAP profile, as Turtle declarations (`PREFIX`, `BASE`) | |
+| `picklistSeparator` | `space` or `"\|"`: the separator of the values of picklists in DCTAP | `space` |
 
 ```yaml
 - dataLabel: Tim Berners Lee in RDF (SPARQL query)

@@ -29,11 +29,17 @@
 //     endpoint: https://...       # the SPARQL endpoint the query runs on,
 //                                 # instead of the data
 //     typeMap: n1: PersonType     # or typeMapURL: ..., for PGSchema
+//     schemaLanguage: dctap       # the language of the schema: shex, shacl,
+//                                 # pgschema or dctap (also schemaEngine:)
+//     prefixes: PREFIX : <...>    # or prefixesURL: ..., for DCTAP
+//     picklistSeparator: space    # or |, for DCTAP
 //
 // Without a format, the format is the one of the extension of the file, or
 // the default. Without a validationEngine, PGSchema validates property graphs
 // and PGSchema schemas, SHACL validates shapes (shapes: or shapesURL:) and
 // schemas in an RDF format without a shape map, and ShEx everything else.
+// A schema in CSV (schemaFormat: csv, or a .csv file) is a DCTAP profile,
+// which the DCTAP tab converts to ShEx to validate.
 // help.html documents all of it for the users of the demo.
 
 import { parse, stringify } from "yaml";
@@ -49,6 +55,7 @@ const SHEX_FORMATS = { ...RDF_FORMATS, shex: "shexc", shexc: "shexc", shexj: "sh
 const SHACL_FORMATS = { ...RDF_FORMATS, json: "jsonld" };
 const PGSCHEMA_FORMATS = { pgschema: "pgschema", pgschemac: "pgschema", pgs: "pgschema" };
 const QUERY_FORMATS = { sparql: "sparql", rq: "sparql" };
+const DCTAP_FORMATS = { csv: "csv" };
 
 // The formats of the files, by their extension.
 const RDF_EXTENSIONS = {
@@ -59,6 +66,10 @@ const PG_EXTENSIONS = { pg: "pg", ypg: "pg", yarspg: "pg" };
 const SHEX_EXTENSIONS = { shex: "shexc", shexc: "shexc", json: "shexj", shexj: "shexj", ttl: "turtle", nt: "ntriples", rdf: "rdfxml", trig: "trig", nq: "nquads" };
 const SHACL_EXTENSIONS = { ...RDF_EXTENSIONS, json: "jsonld" };
 const PGSCHEMA_EXTENSIONS = { pgs: "pgschema", pgschema: "pgschema" };
+const DCTAP_EXTENSIONS = { csv: "csv" };
+
+// The separators of the values of picklists in DCTAP, by their names
+const PICKLIST_SEPARATORS = { space: " ", " ": " ", "|": "|", bar: "|" };
 
 // The format of inline text, guessed from its first character.
 const rdfOf = (text) => (/^\s*[[{]/.test(text) ? "jsonld" : "turtle");
@@ -99,6 +110,19 @@ export const TARGETS = {
       rdfData("shacl-data", "shacl-data-format"),
     ],
   },
+  // DCTAP profiles, converted to ShEx to validate
+  dctap: {
+    tab: "validate/dctap",
+    action: "validate",
+    what: "DCTAP",
+    inputs: [
+      { name: "schema", key: "schemaFormat", textarea: "dctap-schema", formats: DCTAP_FORMATS, names: "csv", extensions: DCTAP_EXTENSIONS },
+      rdfData("dctap-data", "dctap-data-format"),
+      { name: "queryMap", textarea: "dctap-shapemap" },
+      { name: "prefixes", textarea: "dctap-prefixes", optional: true },
+      { name: "picklistSeparator", textarea: "dctap-picklist", optional: true, default: " ", values: PICKLIST_SEPARATORS },
+    ],
+  },
   pgschema: {
     tab: "validate/pgschema",
     action: "validate",
@@ -124,6 +148,8 @@ export const TARGETS = {
 
 export const ACTIONS = ["data", "validate", "query"];
 const VALIDATION_ENGINES = ["shex", "shacl", "pgschema"];
+// The languages of schemas, and the engines that can validate with each one
+const SCHEMA_LANGUAGES = { shex: ["shex"], shacl: ["shacl"], pgschema: ["pgschema"], dctap: ["shex"] };
 const QUERY_ENGINES = ["sparql"];
 
 function text(value) {
@@ -169,6 +195,35 @@ function targetOf(entry, isPg, manifestURL) {
     }
     return { target: engine };
   }
+  // The language of the schema (schemaEngine is another name of the key)
+  const languageKey = entry.schemaLanguage != null ? "schemaLanguage" : "schemaEngine";
+  const language = lower(entry[languageKey]) ?? (isDctap(entry, manifestURL) ? "dctap" : undefined);
+  if (language != null) {
+    const engines = SCHEMA_LANGUAGES[language];
+    if (!engines) {
+      return {
+        problem: problem(
+          `has a schema in the unknown language "${entry[languageKey]}"`,
+          `Write ${languageKey}: ${Object.keys(SCHEMA_LANGUAGES).join(", ")}, or leave it out.`,
+          "keys",
+        ),
+      };
+    }
+    const engine = lower(entry.validationEngine) ?? engines[0];
+    if (!engines.includes(engine)) {
+      return {
+        problem: problem(
+          `validates a ${language} schema with ${engine}, which this demo can't do`,
+          language === "dctap"
+            ? `The demo converts DCTAP to ShEx to validate (rudof can't convert DCTAP to SHACL yet): write validationEngine: shex, or leave it out.`
+            : `Write validationEngine: ${engines.join(", ")}, or leave it out.`,
+          language === "dctap" ? "example-dctap" : "keys",
+        ),
+      };
+    }
+    // DCTAP has its own tab, which validates with ShEx
+    return { target: language === "dctap" ? "dctap" : engine };
+  }
   // shex.js named kinds of examples with `type:`
   const engine = lower(entry.validationEngine ?? entry.type) ?? defaultEngine(entry, isPg, manifestURL);
   if (!VALIDATION_ENGINES.includes(engine)) {
@@ -190,6 +245,15 @@ function inputOf(entry, names, manifestURL) {
     if (entry[`${name}URL`] != null) return { url: new URL(text(entry[`${name}URL`]), manifestURL).href };
   }
   return undefined;
+}
+
+// Whether the schema of an entry is a DCTAP profile, by its format or the
+// extension of its file.
+function isDctap(entry, manifestURL) {
+  const format = lower(entry.schemaFormat);
+  if (format != null) return format in DCTAP_FORMATS;
+  const schema = inputOf(entry, ["schema"], manifestURL);
+  return Boolean(schema?.url && extension(schema.url) in DCTAP_EXTENSIONS);
 }
 
 // Whether the data of an entry is a property graph, by its format or the
@@ -232,9 +296,16 @@ export function parseManifest(source, manifestURL) {
     const inputs = {};
     const formats = {};
     const problems = [];
-    for (const { name, aliases = [], key, formats: known, names, extensions } of specs) {
+    for (const { name, aliases = [], key, formats: known, names, extensions, values } of specs) {
       const input = inputOf(entry, [name, ...aliases], manifestURL);
       if (!input) continue;
+      // An input with some values only, such as picklistSeparator
+      if (values) {
+        const value = values[input.text ?? ""] ?? values[lower(input.text) ?? ""];
+        if (value == null) problems.push({ key: name, value: input.text ?? input.url, names: Object.keys(values).filter((v) => v.trim()).join(" or ") });
+        inputs[name] = { text: value };
+        continue;
+      }
       inputs[name] = input;
       if (!key) continue;
       if (entry[key] != null) {
@@ -326,8 +397,8 @@ export function groupExamples(examples) {
 export async function loadExample(example, fetchText = defaultFetchText) {
   if (example.unsupported) throw new Error(`This example ${example.unsupported}.`);
   return Promise.all(
-    TARGETS[example.target].inputs.map(async ({ name, textarea, formatSelect, inline }) => {
-      const input = example.inputs[name] ?? { text: "" };
+    TARGETS[example.target].inputs.map(async ({ name, textarea, formatSelect, inline, default: missing = "" }) => {
+      const input = example.inputs[name] ?? { text: missing };
       const value = input.text ?? (await fetchText(input.url));
       const format = formatSelect ? (example.formats[name] ?? inline(value)) : undefined;
       return { name, textarea, text: value, formatSelect, format };
