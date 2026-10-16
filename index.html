@@ -8,10 +8,10 @@
   <meta name="description"
     content="Convert, validate (ShEx, SHACL, DCTAP, PGSchema) and query (SPARQL) RDF data and property graphs in your browser, with rudof compiled to WebAssembly.">
   <link rel="icon" href="./assets/logo-Bi_PJdUG.svg" type="image/svg+xml">
-  <script type="module" crossorigin src="./assets/main-Bo6PyYJh.js"></script>
+  <script type="module" crossorigin src="./assets/main-CD-ubVaX.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/dist-BfNtFVOv.js">
   <link rel="modulepreload" crossorigin href="./assets/dctap-DPKc_rXz.js">
-  <link rel="stylesheet" crossorigin href="./assets/demo-IR5uxaoS.css">
+  <link rel="stylesheet" crossorigin href="./assets/demo-BU-xunP1.css">
 </head>
 
 <body>
@@ -271,8 +271,14 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
           <span class="shortcut">Ctrl + Enter</span>
         </div>
         <div class="result" id="shex-result" hidden>
-          <div class="result-head"><span class="verdict"></span><span class="timing"></span></div>
-          <pre class="output"></pre>
+          <div class="result-head"><span class="verdict"></span><span class="timing"></span>
+            <div class="view-switch csv-switch" role="group" aria-label="View of the CSV result" hidden>
+              <button type="button" data-view="csv" aria-pressed="true">CSV</button>
+              <button type="button" data-view="table" aria-pressed="false">Table</button>
+            </div>
+          </div>
+          <pre class="output" id="shex-output" data-viewer="Validation result" data-format-select="shex-result-format"></pre>
+          <div class="csv-output" hidden></div>
         </div>
         <div class="toolbar schema-tools">
           <label class="inline">Convert the schema to
@@ -382,8 +388,14 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
           <span class="shortcut">Ctrl + Enter</span>
         </div>
         <div class="result" id="shacl-result" hidden>
-          <div class="result-head"><span class="verdict"></span><span class="timing"></span></div>
-          <pre class="output"></pre>
+          <div class="result-head"><span class="verdict"></span><span class="timing"></span>
+            <div class="view-switch csv-switch" role="group" aria-label="View of the CSV result" hidden>
+              <button type="button" data-view="csv" aria-pressed="true">CSV</button>
+              <button type="button" data-view="table" aria-pressed="false">Table</button>
+            </div>
+          </div>
+          <pre class="output" id="shacl-output" data-viewer="Validation result" data-format-select="shacl-result-format"></pre>
+          <div class="csv-output" hidden></div>
         </div>
         <div class="toolbar schema-tools">
           <label class="inline">Convert the schema to
@@ -445,7 +457,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
           <div class="field">
             <div class="field-head">
               <label for="dctap-schema">DCTAP profile</label>
-              <div class="view-switch" role="group" aria-label="View of the profile"
+              <div class="view-switch" id="dctap-view" role="group" aria-label="View of the profile"
                 title="Spreadsheets (xlsx, xls…) can be saved as CSV">
                 <button type="button" data-view="csv" aria-pressed="true">CSV</button>
                 <button type="button" data-view="table" aria-pressed="false">Table</button>
@@ -502,8 +514,14 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
           <span class="shortcut">Ctrl + Enter</span>
         </div>
         <div class="result" id="dctap-result" hidden>
-          <div class="result-head"><span class="verdict"></span><span class="timing"></span></div>
-          <pre class="output"></pre>
+          <div class="result-head"><span class="verdict"></span><span class="timing"></span>
+            <div class="view-switch csv-switch" role="group" aria-label="View of the CSV result" hidden>
+              <button type="button" data-view="csv" aria-pressed="true">CSV</button>
+              <button type="button" data-view="table" aria-pressed="false">Table</button>
+            </div>
+          </div>
+          <pre class="output" id="dctap-output" data-viewer="Validation result" data-format-select="dctap-result-format"></pre>
+          <div class="csv-output" hidden></div>
         </div>
         <div class="toolbar schema-tools">
           <label class="inline">Convert the profile to
@@ -613,8 +631,14 @@ e2: EnrolledInType</textarea>
           <span class="shortcut">Ctrl + Enter</span>
         </div>
         <div class="result" id="pgschema-result" hidden>
-          <div class="result-head"><span class="verdict"></span><span class="timing"></span></div>
-          <pre class="output"></pre>
+          <div class="result-head"><span class="verdict"></span><span class="timing"></span>
+            <div class="view-switch csv-switch" role="group" aria-label="View of the CSV result" hidden>
+              <button type="button" data-view="csv" aria-pressed="true">CSV</button>
+              <button type="button" data-view="table" aria-pressed="false">Table</button>
+            </div>
+          </div>
+          <pre class="output" id="pgschema-output" data-viewer="Validation result" data-format-select="pgschema-result-format"></pre>
+          <div class="csv-output" hidden></div>
           <div class="table-output" hidden></div>
         </div>
       </section>
@@ -702,8 +726,14 @@ ORDER BY ?name</textarea>
           <span class="shortcut">Ctrl + Enter</span>
         </div>
         <div class="result" id="sparql-result" hidden>
-          <div class="result-head"><span class="verdict"></span><span class="timing"></span></div>
-          <pre class="output"></pre>
+          <div class="result-head"><span class="verdict"></span><span class="timing"></span>
+            <div class="view-switch csv-switch" role="group" aria-label="View of the CSV result" hidden>
+              <button type="button" data-view="csv" aria-pressed="true">CSV</button>
+              <button type="button" data-view="table" aria-pressed="false">Table</button>
+            </div>
+          </div>
+          <pre class="output" id="sparql-output" data-viewer="Query result" data-format-select="sparql-result-format"></pre>
+          <div class="csv-output" hidden></div>
           <div class="table-output" hidden></div>
         </div>
       </section>
