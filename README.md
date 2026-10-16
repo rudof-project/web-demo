@@ -65,6 +65,28 @@ set up by [`codemirror-setup.js`](codemirror-setup.js):
   **CSV | Table** switch, to see them as a table; the browser remembers it. demo.js still writes the result in its `<pre>`, which is
   hidden, and the viewer follows it (`pre[data-viewer]`).
 
+## Schema
+
+The **Schema** section (between Data and Validate) converts a schema in
+ShEx, SHACL, DCTAP or PGSchema, in one of its formats, to another format, to
+another schema language, to a UML diagram or to a SPARQL query.
+[`schema-convert.js`](schema-convert.js) has what each language converts to:
+
+| From \ To | ShEx | SHACL | DCTAP | PGSchema | UML | SPARQL |
+|---|---|---|---|---|---|---|
+| ShEx | ✓ | – | – | – | ✓ | ✓ |
+| SHACL | ✓ | ✓ | – | – | ✓ | ✓ |
+| DCTAP | ✓ | – | ✓ | – | ✓ | ✓ |
+| PGSchema | – | – | – | ✓ | – | – |
+
+The conversions to ShEx, UML and SPARQL go through ShEx (ShExJ); SHACL,
+DCTAP and PGSchema are written again as rudof reads them (DCTAP as text or
+JSON, PGSchema as text: rudof 0.3.25 can't write DCTAP CSV or PGSchemaC yet).
+What rudof can't do yet (–) is in the menus, marked "not in rudof yet", and
+can't be chosen. A DCTAP profile has its prefixes and its table view, as in
+the DCTAP tab of Validate. **Use as input** reads the result as the schema,
+when it is a schema in a format the tab reads.
+
 ## DCTAP
 
 The DCTAP tab of Validate reads a
@@ -237,6 +259,7 @@ copies it. Opening the URL puts the inputs and options back in their tab.
 
 | Tab      | Parameters |
 |----------|------------|
+| Convert (Schema) | `schema-language`, `schema-format`, `schema`, `prefixes`, `picklist`, `to`, `to-format` |
 | RDF      | `data`, `data-format`, `result-format` |
 | Property graph | `data`, `result-format` |
 | ShEx     | `schema`, `data`, `shape-map`, `schema-format`, `data-format`, `result-format`, `schema-result-format` |

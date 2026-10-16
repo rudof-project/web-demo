@@ -6,6 +6,18 @@
 // read from and written to. The tab is in the fragment of the URL; a URL
 // without one is for the tab its parameters are for (see panelOfParams).
 export const PANELS = {
+  convert: {
+    section: "schema",
+    params: {
+      "schema-language": "convert-language",
+      "schema-format": "convert-format",
+      schema: "convert-schema",
+      prefixes: "convert-prefixes",
+      picklist: "convert-picklist",
+      to: "convert-to",
+      "to-format": "convert-result-format",
+    },
+  },
   rdf: {
     section: "data",
     params: { data: "rdf-data", "data-format": "rdf-data-format", "result-format": "rdf-result-format" },
@@ -81,7 +93,7 @@ export function hasState(params) {
 // The tab of parameters without a fragment: the first one with a parameter
 // only it has, or the RDF converter for data alone. Links of shex.js
 // (?schema=…&data=…&shape-map=…) open the ShEx tab.
-const DISTINCTIVE = [["dctap", "dctap"], ["shape-map", "shex"], ["shapes", "shacl"], ["type-map", "pgschema"], ["query", "sparql"], ["endpoint", "sparql"], ["schema", "shex"], ["data", "rdf"]];
+const DISTINCTIVE = [["to", "convert"], ["dctap", "dctap"], ["shape-map", "shex"], ["shapes", "shacl"], ["type-map", "pgschema"], ["query", "sparql"], ["endpoint", "sparql"], ["schema", "shex"], ["data", "rdf"]];
 
 export function panelOfParams(params) {
   return DISTINCTIVE.find(([name]) => params.has(name))?.[1];

@@ -19,7 +19,7 @@ describe("index.html", () => {
   });
 
   it("has input textareas", () => {
-    expect(textareas.length).toBe(16);
+    expect(textareas.length).toBe(18);
   });
 
   it("gives every textarea a unique id", () => {
@@ -49,6 +49,8 @@ describe("index.html", () => {
     const formats = Object.fromEntries(textareas.map((t) => [t.id, t.dataset.formatSelect ?? t.dataset.language]));
     expect(formats).toEqual({
       "rdf-data": "rdf-data-format",
+      "convert-schema": "convert-format",
+      "convert-prefixes": "turtle",
       "pg-data": "yarspg",
       "shex-data": "shex-data-format",
       "shex-schema": "shex-schema-format",

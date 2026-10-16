@@ -8,6 +8,7 @@ import { queryEndpoint, queryPrefixes, solutionsCsv } from "./endpoint.js";
 import { dctapConfig, columnClass } from "./dctap.js";
 import { setupTableView } from "./table-view.js";
 import { parseCsv } from "./csv.js";
+import { LANGUAGES, TARGETS, DEFAULT_TARGET, canConvert, readSchema as readAnySchema, convertSchema, sourceLabel, targetLabel, asSource } from "./schema-convert.js";
 import { devDependencies } from "./package.json";
 
 // The exact version of package.json (the one the tests use), so that updating
@@ -23,6 +24,10 @@ const PLANTUML_VERSION = "1.2026.8";
 const PLANTUML_BASE = `https://cdn.jsdelivr.net/npm/@plantuml/core@${PLANTUML_VERSION}/`;
 
 const $ = (id) => document.getElementById(id);
+
+// The last successful validation of each tab, so that changing the result
+// format serializes it again without validating again.
+const last = {};
 
 // ---------------------------------------------------------------------------
 // Tabs
@@ -140,6 +145,138 @@ function restoreInputs() {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Schema: a schema of any language, converted to other formats and languages
+// (schema-convert.js). The menus have the conversions rudof can't do yet,
+// which can't be chosen.
+
+const NOT_YET = " (not in rudof yet)";
+
+// The example of each language: the schemas of the Validate tabs
+const SCHEMA_EXAMPLES = {
+  shex: [$("shex-schema").textContent, "shexc"],
+  shacl: [$("shacl-shapes").textContent, "turtle"],
+  dctap: [$("dctap-schema").textContent, "dctap"],
+  pgschema: [$("pgschema-schema").textContent, "pgschema"],
+};
+
+const option = (value, text, enabled = true) => {
+  const o = new Option(enabled ? text : text + NOT_YET, value);
+  o.disabled = !enabled;
+  return o;
+};
+
+// Options of a select, keeping its value when it is still one of them
+function setOptions(select, options, preferred) {
+  const value = select.value;
+  select.replaceChildren(...options);
+  const enabled = (v) => options.some((o) => o.value === v && !o.disabled);
+  select.value = [value, preferred].find(enabled) ?? options.find((o) => !o.disabled)?.value ?? "";
+  select.dispatchEvent(new Event("change"));
+}
+
+function convertSource() {
+  const language = $("convert-language").value;
+  const text = $("convert-schema").value;
+  const config =
+    language === "dctap"
+      ? rudofModule.RudofConfig.fromToml(dctapConfig($("convert-prefixes").value, { picklistSeparator: $("convert-picklist").value }))
+      : undefined;
+  return { language, format: $("convert-format").value, text, config };
+}
+
+function updateTargetFormats() {
+  const from = $("convert-language").value;
+  const to = $("convert-to").value;
+  const options = TARGETS[to].formats.map(([value, text, available]) => option(value, text, available && canConvert(from, to, value)));
+  setOptions($("convert-result-format"), options, DEFAULT_TARGET[from][0] === to ? DEFAULT_TARGET[from][1] : undefined);
+}
+
+function updateTargets() {
+  const from = $("convert-language").value;
+  const options = Object.entries(TARGETS).map(([value, { label }]) => option(value, label, canConvert(from, value)));
+  setOptions($("convert-to"), options, DEFAULT_TARGET[from][0]);
+}
+
+// A new language of the schema: its formats, its example (when the schema is
+// still the example of the language before), and what it converts to
+let convertLanguage = $("convert-language").value;
+function changeConvertLanguage() {
+  const language = $("convert-language").value;
+  const before = SCHEMA_EXAMPLES[convertLanguage];
+  if (!$("convert-schema").value.trim() || (before && $("convert-schema").value === before[0])) {
+    $("convert-schema").value = SCHEMA_EXAMPLES[language][0];
+  }
+  convertLanguage = language;
+  setOptions(
+    $("convert-format"),
+    LANGUAGES[language].formats.map(([value, text]) => option(value, text)),
+    SCHEMA_EXAMPLES[language][1],
+  );
+  $("convert-dctap-options").hidden = language !== "dctap";
+  $("convert-view").hidden = language !== "dctap";
+  if (language !== "dctap") convertTable.setView("csv");
+  updateTargets();
+}
+
+$("convert-language").addEventListener("change", changeConvertLanguage);
+$("convert-to").addEventListener("change", () => {
+  updateTargetFormats();
+  reformat("convert");
+});
+
+function readConvertSource() {
+  const start = performance.now();
+  const source = convertSource();
+  readAnySchema(session("convert"), source);
+  return { kind: "ok", millis: performance.now() - start, verdict: convertVerdict(), source };
+}
+
+function convertVerdict() {
+  const source = { language: $("convert-language").value, format: $("convert-format").value };
+  return `${sourceLabel(source)} → ${targetLabel({ to: $("convert-to").value, format: $("convert-result-format").value })}`;
+}
+
+function serializeConversion() {
+  last.convert.verdict = convertVerdict();
+  const target = { to: $("convert-to").value, format: $("convert-result-format").value };
+  return convertSchema(session("convert"), session("convert-shex"), last.convert.source, target);
+}
+
+// The result, read back as the schema: when it is a schema in a format of its language
+function convertedAsSource() {
+  return asSource({ to: $("convert-to").value, format: $("convert-result-format").value });
+}
+
+function updateConvertSchemaButtons() {
+  const converted = Boolean(last.convert) && !crashed && $("convert-result").dataset.kind === "ok";
+  $("convert-copy").disabled = !converted;
+  $("convert-use-as-input").disabled = !converted || !convertedAsSource();
+}
+
+$("convert-copy").addEventListener("click", async (e) => {
+  const button = e.currentTarget;
+  try {
+    await navigator.clipboard.writeText($("convert-output").textContent);
+    button.textContent = "Copied";
+  } catch {
+    button.textContent = "Copy failed";
+  }
+  setTimeout(() => (button.textContent = "Copy"), 1500);
+});
+
+$("convert-use-as-input").addEventListener("click", () => {
+  const source = convertedAsSource();
+  if (!source) return;
+  const text = $("convert-output").textContent;
+  $("convert-language").value = source.language;
+  changeConvertLanguage();
+  $("convert-format").value = source.format;
+  $("convert-format").dispatchEvent(new Event("change"));
+  $("convert-schema").value = text;
+  $("convert-schema").focus();
+});
+
 setupLayout();
 // The DCTAP profile, as CSV or as a table
 setupTableView({
@@ -148,6 +285,15 @@ setupTableView({
   toggle: document.querySelectorAll("#dctap-view button"),
   cellClass: columnClass,
 });
+// The schema of the Schema tab, when it is a DCTAP profile
+const convertTable = setupTableView({
+  textarea: $("convert-schema"),
+  container: $("convert-table"),
+  toggle: document.querySelectorAll("#convert-view button"),
+  cellClass: columnClass,
+});
+// The formats and targets of the schema of the Schema tab
+changeConvertLanguage();
 restoreInputs();
 showEndpointUse();
 selectTabFromHash();
@@ -817,6 +963,7 @@ function serializeSchema(language) {
 }
 
 const validators = {
+  convert: { validate: readConvertSource, serialize: serializeConversion },
   shex: { validate: validateShex, serialize: serializeShex },
   shacl: { validate: validateShacl, serialize: serializeShacl },
   dctap: { validate: validateDctap, serialize: serializeDctap },
@@ -835,6 +982,7 @@ for (const language of ["shex", "shacl"]) {
 const CONVERTERS = ["rdf", "pg"];
 
 function updateConvertButtons() {
+  updateConvertSchemaButtons();
   for (const prefix of CONVERTERS) {
     const converted = Boolean(last[prefix]) && !crashed;
     const format = $(`${prefix}-result-format`).value;
@@ -867,9 +1015,6 @@ for (const prefix of CONVERTERS) {
   });
 }
 
-// The last successful validation of each tab, so that changing the result
-// format serializes it again without validating again.
-const last = {};
 
 // The last run of each tab, so that only its result is shown (a query on an
 // endpoint takes a while, and can be run again meanwhile).

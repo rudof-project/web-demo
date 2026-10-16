@@ -605,3 +605,6 @@ table.csv-result td code { font-size: 12px; white-space: pre-wrap; overflow-wrap
   word-break: normal;
   overflow-wrap: normal;
 }
+
+/* Boxes with a display of their own are still hidden by [hidden] */
+.field[hidden], .view-switch[hidden] { display: none; }
