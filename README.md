@@ -3,7 +3,7 @@
 This repo contains the source code of the Web demo based on rudof-lib WebAssembly features
 
 The demo converts RDF data and property graphs between formats, validates them
-with ShEx, SHACL or PGSchema, and queries RDF data with SPARQL, all in the
+with ShEx, SHACL, DCTAP or PGSchema, and queries RDF data with SPARQL, all in the
 browser. rudof ([`@rudof/rudof`](https://www.npmjs.com/package/@rudof/rudof))
 and PlantUML are loaded from jsDelivr when the page runs; everything else is
 built from this repo.
@@ -63,6 +63,29 @@ set up by [`codemirror-setup.js`](codemirror-setup.js):
   schemas) are shown in read-only editors, highlighted in the format chosen
   for the result. demo.js still writes the result in its `<pre>`, which is
   hidden, and the viewer follows it (`pre[data-viewer]`).
+
+## DCTAP
+
+The DCTAP tab of Validate reads a
+[DCTAP](https://www.dublincore.org/specifications/dctap/) profile in CSV
+(spreadsheets can be saved as CSV). The names of the profile are prefixed
+names (`foaf:name`) or names without prefix (`Person`), so the tab also has
+**Prefixes of the profile**, in Turtle syntax: `PREFIX foaf: <…>`, and
+`BASE <…>` for the names without prefix. The basic prefixes of rudof (`rdf`,
+`rdfs`, `xsd`, `sh`, `dc`) are always there. The values of picklists are
+separated by spaces, as in DCTAP, or by `|`, as rudof does by default.
+[`dctap.js`](dctap.js) turns the prefixes into the configuration of rudof
+(TOML).
+
+- **Validate** converts the profile to ShEx and validates the data with it,
+  for the shape map. rudof can't convert DCTAP to SHACL yet: the SHACL
+  option of **Validate with** is there for when it can.
+- **Convert the profile to** ShEx (ShExC, ShExJ or ShExR), a UML diagram, a
+  SPARQL query, or DCTAP as rudof reads it (text or JSON). SHACL will come
+  with rudof.
+
+The profile is highlighted by column ([`languages/dctap/`](languages/dctap/)):
+the header names the column of each cell.
 
 ## SPARQL endpoints
 
@@ -210,6 +233,7 @@ copies it. Opening the URL puts the inputs and options back in their tab.
 | Property graph | `data`, `result-format` |
 | ShEx     | `schema`, `data`, `shape-map`, `schema-format`, `data-format`, `result-format`, `schema-result-format` |
 | SHACL    | `shapes`, `data`, `shapes-format`, `data-format`, `mode`, `result-format`, `schema-result-format` |
+| DCTAP    | `dctap`, `prefixes`, `picklist`, `data`, `shape-map`, `data-format`, `engine`, `result-format`, `schema-result-format` |
 | PGSchema | `schema`, `data`, `type-map`, `result-format` |
 | SPARQL   | `data`, `data-format`, `query`, `endpoint`, `result-format` |
 

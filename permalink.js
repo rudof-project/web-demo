@@ -38,6 +38,20 @@ export const PANELS = {
       "schema-result-format": "shacl-schema-result-format",
     },
   },
+  dctap: {
+    section: "validate",
+    params: {
+      dctap: "dctap-schema",
+      prefixes: "dctap-prefixes",
+      picklist: "dctap-picklist",
+      data: "dctap-data",
+      "shape-map": "dctap-shapemap",
+      "data-format": "dctap-data-format",
+      engine: "dctap-engine",
+      "result-format": "dctap-result-format",
+      "schema-result-format": "dctap-schema-result-format",
+    },
+  },
   pgschema: {
     section: "validate",
     params: { schema: "pgschema-schema", data: "pgschema-data", "type-map": "pgschema-typemap", "result-format": "pgschema-result-format" },
@@ -67,7 +81,7 @@ export function hasState(params) {
 // The tab of parameters without a fragment: the first one with a parameter
 // only it has, or the RDF converter for data alone. Links of shex.js
 // (?schema=…&data=…&shape-map=…) open the ShEx tab.
-const DISTINCTIVE = [["shape-map", "shex"], ["shapes", "shacl"], ["type-map", "pgschema"], ["query", "sparql"], ["endpoint", "sparql"], ["schema", "shex"], ["data", "rdf"]];
+const DISTINCTIVE = [["dctap", "dctap"], ["shape-map", "shex"], ["shapes", "shacl"], ["type-map", "pgschema"], ["query", "sparql"], ["endpoint", "sparql"], ["schema", "shex"], ["data", "rdf"]];
 
 export function panelOfParams(params) {
   return DISTINCTIVE.find(([name]) => params.has(name))?.[1];

@@ -5,6 +5,7 @@
 import { PANELS, hasState, panelOfParams, stateParams, queryString, inputsOfParams } from "./permalink.js";
 import { setupLayout } from "./layout.js";
 import { queryEndpoint, queryPrefixes, solutionsCsv } from "./endpoint.js";
+import { dctapConfig } from "./dctap.js";
 import { devDependencies } from "./package.json";
 
 // The exact version of package.json (the one the tests use), so that updating
@@ -308,7 +309,10 @@ function validateShex() {
   rudof.readData($("shex-data").value, $("shex-data-format").value);
   rudof.readShex($("shex-schema").value, $("shex-schema-format").value);
   rudof.readShapemap($("shex-shapemap").value);
-  const report = rudof.validateShex();
+  return shexResult(rudof.validateShex(), start);
+}
+
+function shexResult(report, start) {
   const millis = performance.now() - start;
   const failed = report.entries.filter((e) => e.status !== "conformant").length;
   return {
@@ -322,6 +326,63 @@ function validateShex() {
 
 function serializeShex() {
   return session("shex").serializeShexValidationResults($("shex-result-format").value);
+}
+
+// DCTAP: rudof converts the profile to ShEx, with the prefixes of the profile
+// (dctap.js), and validates with the ShEx schema. Other engines (SHACL) will
+// take their own schemas from the profile when rudof can convert it to them.
+function dctapSession(name) {
+  const rudof = session(name);
+  rudof.resetAll();
+  const toml = dctapConfig($("dctap-prefixes").value, { picklistSeparator: $("dctap-picklist").value });
+  rudof.updateConfig(rudofModule.RudofConfig.fromToml(toml));
+  return rudof;
+}
+
+// The ShEx schema (ShExJ) of the profile
+function dctapToShex(rudof, format = "shexj") {
+  return rudof.convertSchemas($("dctap-schema").value, "dctap", "shex", "csv", format);
+}
+
+function validateDctap() {
+  const engine = $("dctap-engine").value;
+  if (engine !== "shex") throw new Error(`rudof can't convert DCTAP to ${engine.toUpperCase()} yet, so this demo can only validate it with ShEx`);
+  const start = performance.now();
+  const rudof = dctapSession("dctap");
+  const shexj = dctapToShex(rudof);
+  rudof.readData($("dctap-data").value, $("dctap-data-format").value);
+  rudof.readShex(shexj, "shexj");
+  rudof.readShapemap($("dctap-shapemap").value);
+  return shexResult(rudof.validateShex(), start);
+}
+
+function serializeDctap() {
+  return session("dctap").serializeShexValidationResults($("dctap-result-format").value);
+}
+
+// The profile converted: to ShEx (and what rudof makes from ShEx: diagrams,
+// SPARQL queries), or written back as rudof reads it.
+function readDctap() {
+  const start = performance.now();
+  const rudof = dctapSession("dctap-schema");
+  rudof.readDctap($("dctap-schema").value, "csv");
+  rudof.readShex(dctapToShex(rudof), "shexj");
+  return { kind: "ok", millis: performance.now() - start, verdict: dctapVerdict() };
+}
+
+function dctapVerdict() {
+  return `DCTAP → ${label("dctap-schema-result-format")}`;
+}
+
+function serializeDctapSchema() {
+  const rudof = session("dctap-schema");
+  const format = $("dctap-schema-result-format").value;
+  last["dctap-schema"].verdict = dctapVerdict();
+  if (format === "internal") return rudof.serializeDctap("internal");
+  if (format === "dctap-json") return rudof.serializeDctap("json");
+  if (format === "plantuml") return { plantuml: rudof.serializeCurrentShex("plantuml") };
+  if (format === "sparql") return rudof.convertSchemas(rudof.serializeCurrentShex("shexj"), "shex", "sparql", "shexj", "internal");
+  return rudof.serializeCurrentShex(format);
 }
 
 function validateShacl() {
@@ -699,6 +760,8 @@ function serializeSchema(language) {
 const validators = {
   shex: { validate: validateShex, serialize: serializeShex },
   shacl: { validate: validateShacl, serialize: serializeShacl },
+  dctap: { validate: validateDctap, serialize: serializeDctap },
+  "dctap-schema": { validate: readDctap, serialize: serializeDctapSchema },
   pgschema: { validate: validatePgschema, serialize: serializePgschema },
   rdf: { validate: convertRdf, serialize: serializeRdf },
   pg: { validate: convertPg, serialize: serializePg },

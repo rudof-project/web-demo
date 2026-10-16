@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>rudof online demo</title>
   <meta name="description"
-    content="Convert, validate (ShEx, SHACL, PGSchema) and query (SPARQL) RDF data and property graphs in your browser, with rudof compiled to WebAssembly.">
+    content="Convert, validate (ShEx, SHACL, DCTAP, PGSchema) and query (SPARQL) RDF data and property graphs in your browser, with rudof compiled to WebAssembly.">
   <link rel="icon" href="images/logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="demo.css">
   <script type="module" src="codemirror-setup.js"></script>
@@ -30,7 +30,7 @@
   <main>
     <p class="intro">
       Convert RDF data and property graphs between formats, validate them with
-      <strong>ShEx</strong>, <strong>SHACL</strong> or <strong>PGSchema</strong>,
+      <strong>ShEx</strong>, <strong>SHACL</strong>, <strong>DCTAP</strong> or <strong>PGSchema</strong>,
       and query RDF data with <strong>SPARQL</strong>.
       Everything runs in your browser: rudof is compiled to WebAssembly, and
       nothing you type is sent anywhere.
@@ -188,11 +188,12 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
       </section>
     </section>
 
-    <!-- Validate: ShEx, SHACL or PGSchema -->
+    <!-- Validate: ShEx, SHACL, DCTAP or PGSchema -->
     <section id="panel-validate" role="tabpanel" aria-labelledby="tab-validate" class="section" hidden>
       <div class="tabs subtabs" role="tablist" aria-label="Schema language">
         <button role="tab" id="tab-shex" aria-controls="panel-shex" aria-selected="true">ShEx</button>
         <button role="tab" id="tab-shacl" aria-controls="panel-shacl" aria-selected="false" tabindex="-1">SHACL</button>
+        <button role="tab" id="tab-dctap" aria-controls="panel-dctap" aria-selected="false" tabindex="-1">DCTAP</button>
         <button role="tab" id="tab-pgschema" aria-controls="panel-pgschema" aria-selected="false"
           tabindex="-1">PGSchema</button>
       </div>
@@ -406,6 +407,119 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
             <div class="diagram-tools">
               <button class="link" data-action="source">Show PlantUML source</button>
               <a class="link" data-action="download" download="shacl.svg">Download SVG</a>
+            </div>
+            <div class="diagram-image"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- DCTAP: tabular application profiles, converted to ShEx -->
+      <section id="panel-dctap" role="tabpanel" aria-labelledby="tab-dctap" class="panel" hidden>
+        <div class="inputs two">
+          <div class="field">
+            <div class="field-head">
+              <label for="dctap-data">RDF data</label>
+              <select id="dctap-data-format" aria-label="RDF data format">
+                <option value="turtle">Turtle</option>
+                <option value="ntriples">N-Triples</option>
+                <option value="rdfxml">RDF/XML</option>
+                <option value="jsonld">JSON-LD</option>
+                <option value="trig">TriG</option>
+                <option value="n3">N3</option>
+                <option value="nquads">N-Quads</option>
+              </select>
+            </div>
+            <textarea id="dctap-data" data-editor data-format-select="dctap-data-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
+prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
+
+:alice :name "Alice" ;
+       :birthDate "1995-03-12"^^xsd:date ;
+       :knows :carol .
+
+:bob   :name "Robert", "Bob" ;
+       :birthDate "unknown" .
+
+:carol :name "Carol" .</textarea>
+          </div>
+          <div class="field">
+            <div class="field-head">
+              <label for="dctap-schema">DCTAP profile</label>
+              <span class="format-tag" title="Spreadsheets (xlsx, xls…) can be saved as CSV">CSV</span>
+            </div>
+            <textarea id="dctap-schema" data-editor data-language="dctap" spellcheck="false">shapeID,shapeLabel,propertyID,propertyLabel,mandatory,repeatable,valueNodeType,valueDataType,valueShape
+Person,Person,:name,Name,true,false,literal,xsd:string,
+Person,,:birthDate,Birth date,false,false,literal,xsd:date,
+Person,,:knows,Knows,false,true,iri,,Person</textarea>
+          </div>
+        </div>
+        <div class="inputs two">
+          <div class="field">
+            <div class="field-head">
+              <label for="dctap-shapemap">Shape map</label>
+              <span class="hint">e.g. <code>:alice@:Person</code></span>
+            </div>
+            <textarea id="dctap-shapemap" data-editor data-language="shapemap" class="short"
+              spellcheck="false">:alice@:Person, :bob@:Person, :carol@:Person</textarea>
+          </div>
+          <div class="field">
+            <div class="field-head">
+              <label for="dctap-prefixes">Prefixes of the profile</label>
+              <label class="inline hint">Picklist values separated by
+                <select id="dctap-picklist" aria-label="Separator of the values of picklists">
+                  <option value=" ">spaces</option>
+                  <option value="|">|</option>
+                </select>
+              </label>
+            </div>
+            <textarea id="dctap-prefixes" data-editor data-language="turtle" class="short" spellcheck="false">BASE &lt;http://example.org/&gt;
+PREFIX : &lt;http://example.org/&gt;
+PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button class="primary" id="dctap-validate" disabled>Validate</button>
+          <label class="inline">Validate with
+            <select id="dctap-engine" title="The DCTAP profile is converted to a schema of this engine">
+              <option value="shex">ShEx (converted from DCTAP)</option>
+              <option value="shacl" disabled>SHACL (not in rudof yet)</option>
+            </select>
+          </label>
+          <label class="inline">Result format
+            <select id="dctap-result-format">
+              <option value="compact">Compact</option>
+              <option value="details">Details</option>
+              <option value="json">JSON</option>
+              <option value="csv">CSV</option>
+            </select>
+          </label>
+          <span class="shortcut">Ctrl + Enter</span>
+        </div>
+        <div class="result" id="dctap-result" hidden>
+          <div class="result-head"><span class="verdict"></span><span class="timing"></span></div>
+          <pre class="output"></pre>
+        </div>
+        <div class="toolbar schema-tools">
+          <label class="inline">Convert the profile to
+            <select id="dctap-schema-result-format">
+              <option value="shexc" selected>ShEx (ShExC)</option>
+              <option value="shexj">ShEx (ShExJ)</option>
+              <option value="turtle">ShEx (ShExR, Turtle)</option>
+              <option value="shacl" disabled>SHACL (not in rudof yet)</option>
+              <option value="plantuml">UML diagram</option>
+              <option value="sparql">SPARQL query</option>
+              <option value="internal">DCTAP (as rudof reads it)</option>
+              <option value="dctap-json">DCTAP (JSON)</option>
+            </select>
+          </label>
+          <button class="secondary" id="dctap-schema-validate" disabled>Convert profile</button>
+        </div>
+        <div class="result" id="dctap-schema-result" hidden>
+          <div class="result-head"><span class="verdict"></span><span class="timing"></span></div>
+          <pre class="output" id="dctap-schema-output" data-viewer="Converted profile" data-format-select="dctap-schema-result-format"></pre>
+          <div class="diagram" hidden>
+            <div class="diagram-tools">
+              <button class="link" data-action="source">Show PlantUML source</button>
+              <a class="link" data-action="download" download="dctap.svg">Download SVG</a>
             </div>
             <div class="diagram-image"></div>
           </div>

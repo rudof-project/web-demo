@@ -23,6 +23,9 @@ export const FORMATS = {
   shexc: "shexc",
   shapemap: "shapemap",
   sparql: "sparql",
+  // DCTAP profiles in CSV, and DCTAP as rudof writes it in JSON
+  dctap: "dctap",
+  "dctap-json": "json",
   // Property graphs (YARS-PG; compact is YARS-PG written by rudof), their
   // schemas (PGSchemaC) and type maps
   yarspg: "yarspg",
@@ -41,6 +44,7 @@ const LOADERS = {
   xml: async () => (await import("@codemirror/lang-xml")).xml(),
   json: async () => (await import("@codemirror/lang-json")).json(),
   // Lezer grammars, in their own folders
+  dctap: async () => stream((await import("./dctap/index.js")).dctap),
   yarspg: async () => (await import("./yars-pg/index.js")).yarspg(),
   pgschema: async () => (await import("./pgschema/index.js")).pgschema(),
   typemap: async () => (await import("./pgschema/index.js")).typemap(),

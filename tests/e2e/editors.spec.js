@@ -7,6 +7,7 @@ const example = (path) => readFileSync(new URL(`../../examples/${path}`, import.
 
 const INPUTS = [
   "rdf-data", "pg-data", "shex-data", "shex-schema", "shex-shapemap", "shacl-data", "shacl-shapes",
+  "dctap-data", "dctap-schema", "dctap-shapemap", "dctap-prefixes",
   "pgschema-data", "pgschema-schema", "pgschema-typemap", "sparql-data", "sparql-query",
 ];
 

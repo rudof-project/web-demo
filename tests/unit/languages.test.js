@@ -37,7 +37,9 @@ describe("formats and languages", () => {
     const values = [...html.matchAll(/<option value="([^"]+)"/g)].map((m) => m[1]).filter((v) => v && !/^https?:/.test(v));
     const fixed = [...html.matchAll(/data-language="([^"]+)"/g)].map((m) => m[1]);
     // The selects of the input formats, and the examples of the SPARQL query
-    const outputs = ["plantuml", "compact", "details", "json", "csv", "minimal", "table", "native", "sparql", "select", "count", "ask", "construct", "describe", "text"];
+    const outputs = ["plantuml", "compact", "details", "json", "csv", "minimal", "table", "native", "sparql", "select", "count", "ask", "construct", "describe", "text",
+      // DCTAP: what rudof writes of a profile, the engines it is validated with, and the separators of picklists
+      "internal", "shex", "shacl", " ", "|"];
     for (const format of [...new Set([...values, ...fixed])].filter((f) => !outputs.includes(f))) {
       expect(FORMATS, format).toHaveProperty(format);
     }

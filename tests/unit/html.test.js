@@ -19,7 +19,7 @@ describe("index.html", () => {
   });
 
   it("has input textareas", () => {
-    expect(textareas.length).toBe(12);
+    expect(textareas.length).toBe(16);
   });
 
   it("gives every textarea a unique id", () => {
@@ -55,6 +55,10 @@ describe("index.html", () => {
       "shex-shapemap": "shapemap",
       "shacl-data": "shacl-data-format",
       "shacl-shapes": "shacl-shapes-format",
+      "dctap-data": "dctap-data-format",
+      "dctap-schema": "dctap",
+      "dctap-shapemap": "shapemap",
+      "dctap-prefixes": "turtle",
       "pgschema-data": "yarspg",
       "pgschema-schema": "pgschema",
       "pgschema-typemap": "typemap",
