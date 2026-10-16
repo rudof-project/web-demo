@@ -79,3 +79,47 @@ test("the profile and its prefixes are in the permalink", async ({ page }) => {
   await open(page, url.search);
   await expect(page.locator("#panel-dctap")).toBeVisible();
 });
+
+test.describe("the table view of the profile", () => {
+  const table = (page) => page.locator("#dctap-table");
+
+  test("switches between the CSV and a table", async ({ page }) => {
+    await open(page, "#validate/dctap");
+    await expect(editor(page, "dctap-schema")).toBeVisible();
+    await page.locator('#panel-dctap .view-switch button[data-view="table"]').click();
+    await expect(editor(page, "dctap-schema")).toBeHidden();
+    await expect(table(page).locator("thead input").first()).toHaveValue("shapeID");
+    await expect(table(page).locator("tbody tr")).toHaveCount(3);
+    await page.locator('#panel-dctap .view-switch button[data-view="csv"]').click();
+    await expect(editor(page, "dctap-schema")).toBeVisible();
+    await expect(table(page)).toBeHidden();
+  });
+
+  test("edits in the table change the profile that is validated", async ({ page }) => {
+    await open(page, "#validate/dctap");
+    await page.locator('#panel-dctap .view-switch button[data-view="table"]').click();
+    // name is not mandatory any more: Bob, with two names, still fails for his date
+    const mandatory = table(page).locator("tbody tr").first().locator("input").nth(4);
+    await expect(mandatory).toHaveValue("true");
+    await mandatory.fill("false");
+    await expect.poll(() => page.locator("#dctap-schema").evaluate((t) => t.value)).toContain("Person,Person,:name,Name,false,false");
+    // A new row: Enter in the last row adds one
+    await table(page).locator("tbody tr").last().locator("input").first().press("Enter");
+    await expect(table(page).locator("tbody tr")).toHaveCount(4);
+    await table(page).locator("tbody tr").last().locator("input").first().fill("Person");
+    await table(page).locator("tbody tr").last().locator("input").nth(2).fill(":email");
+    await page.locator("#dctap-schema-validate").click();
+    await expect(viewer(page).locator(".cm-content")).toContainText(":email");
+    // Ctrl+Enter in a cell validates
+    await table(page).locator("tbody input").first().press("Control+Enter");
+    await expect(verdict(page, "dctap")).toContainText("conform");
+  });
+
+  test("follows a profile loaded from a permalink, and is remembered", async ({ page }) => {
+    await open(page, "#validate/dctap");
+    await page.locator('#panel-dctap .view-switch button[data-view="table"]').click();
+    await open(page, `?dctap=${encodeURIComponent("shapeID,propertyID\nBook,:title")}#validate/dctap`);
+    await expect(table(page)).toBeVisible();
+    await expect(table(page).locator("tbody input").first()).toHaveValue("Book");
+  });
+});

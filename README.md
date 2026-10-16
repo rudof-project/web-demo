@@ -85,7 +85,11 @@ separated by spaces, as in DCTAP, or by `|`, as rudof does by default.
   with rudof.
 
 The profile is highlighted by column ([`languages/dctap/`](languages/dctap/)):
-the header names the column of each cell.
+the header names the column of each cell. The **CSV | Table** switch of the
+profile shows it as a table ([`table-view.js`](table-view.js), with
+[`csv.js`](csv.js)), whose cells can be edited: Enter goes to the cell below,
+**Add row** and × add and delete rows, and each change is written back to
+the CSV, which stays the input. The browser remembers the view.
 
 ## SPARQL endpoints
 

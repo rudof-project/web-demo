@@ -5,7 +5,8 @@
 import { PANELS, hasState, panelOfParams, stateParams, queryString, inputsOfParams } from "./permalink.js";
 import { setupLayout } from "./layout.js";
 import { queryEndpoint, queryPrefixes, solutionsCsv } from "./endpoint.js";
-import { dctapConfig } from "./dctap.js";
+import { dctapConfig, columnClass } from "./dctap.js";
+import { setupTableView } from "./table-view.js";
 import { devDependencies } from "./package.json";
 
 // The exact version of package.json (the one the tests use), so that updating
@@ -139,6 +140,13 @@ function restoreInputs() {
 }
 
 setupLayout();
+// The DCTAP profile, as CSV or as a table
+setupTableView({
+  textarea: $("dctap-schema"),
+  container: $("dctap-table"),
+  toggle: document.querySelectorAll("#panel-dctap .view-switch button"),
+  cellClass: columnClass,
+});
 restoreInputs();
 showEndpointUse();
 selectTabFromHash();

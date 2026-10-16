@@ -5,23 +5,7 @@
 // keywords, labels and constraints are strings, and notes are comments.
 // (https://codemirror.net/docs/ref/#language.StreamParser)
 
-// The style of the cells of each column of DCTAP (in lower case, as DCTAP
-// headers are read in any case)
-export const COLUMNS = {
-  shapeid: "typeName",
-  shapelabel: "string",
-  propertyid: "propertyName",
-  propertylabel: "string",
-  mandatory: "bool",
-  repeatable: "bool",
-  valuenodetype: "keyword",
-  valuedatatype: "typeName",
-  valueconstraint: "string",
-  valueconstrainttype: "keyword",
-  valueshape: "typeName",
-  note: "comment",
-  extends: "typeName",
-};
+import { COLUMNS } from "../../dctap.js";
 
 const SEPARATOR = /^[,\t]/;
 

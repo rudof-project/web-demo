@@ -444,12 +444,18 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
           <div class="field">
             <div class="field-head">
               <label for="dctap-schema">DCTAP profile</label>
-              <span class="format-tag" title="Spreadsheets (xlsx, xls…) can be saved as CSV">CSV</span>
+              <div class="view-switch" role="group" aria-label="View of the profile"
+                title="Spreadsheets (xlsx, xls…) can be saved as CSV">
+                <button type="button" data-view="csv" aria-pressed="true">CSV</button>
+                <button type="button" data-view="table" aria-pressed="false">Table</button>
+              </div>
             </div>
             <textarea id="dctap-schema" data-editor data-language="dctap" spellcheck="false">shapeID,shapeLabel,propertyID,propertyLabel,mandatory,repeatable,valueNodeType,valueDataType,valueShape
 Person,Person,:name,Name,true,false,literal,xsd:string,
 Person,,:birthDate,Birth date,false,false,literal,xsd:date,
 Person,,:knows,Knows,false,true,iri,,Person</textarea>
+            <!-- The profile as a table (table-view.js) -->
+            <div class="table-view-cells" id="dctap-table" hidden></div>
           </div>
         </div>
         <div class="inputs two">

@@ -210,3 +210,11 @@ test.describe("the demo uses the editors", () => {
     await expect(page.locator("#rdf-result")).toHaveAttribute("data-kind", "ok");
   });
 });
+
+test("a hidden viewer is not shown", async ({ page }) => {
+  await open(page, "#validate/shex");
+  await page.locator("#shex-schema-result-format").selectOption("plantuml");
+  await page.locator("#shex-schema-validate").click();
+  // The PlantUML source is hidden until it is asked for
+  await expect(page.locator('.cm-viewer[data-viewer-for="shex-schema-output"]')).toBeHidden();
+});

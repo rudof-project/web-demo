@@ -9,6 +9,28 @@
 //
 // which this module turns into the configuration of rudof (TOML).
 
+// The style of the cells of each column of DCTAP (in lower case, as DCTAP
+// headers are read in any case): for the highlighting of profiles
+// (languages/dctap) and their table view (table-view.js)
+export const COLUMNS = {
+  shapeid: "typeName",
+  shapelabel: "string",
+  propertyid: "propertyName",
+  propertylabel: "string",
+  mandatory: "bool",
+  repeatable: "bool",
+  valuenodetype: "keyword",
+  valuedatatype: "typeName",
+  valueconstraint: "string",
+  valueconstrainttype: "keyword",
+  valueshape: "typeName",
+  note: "comment",
+  extends: "typeName",
+};
+
+// The class of the cells of a column of a profile in its table view
+export const columnClass = (header) => `cell-${COLUMNS[String(header).trim().toLowerCase()] ?? "plain"}`;
+
 // The prefixes that rudof knows without being told (PrefixMap::basic)
 export const BASIC_PREFIXES = {
   rdf: "http://www.w3.org/1999/02/22-rdf-syntax-ns#",

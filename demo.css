@@ -310,7 +310,7 @@ table.report .details {
 .result.converted .output { flex: 1; min-height: 0; overflow: auto; }
 /* A result shown in a viewer (codemirror-setup.js): the <pre> keeps the text */
 .output.has-viewer { display: none; }
-.cm-viewer[hidden] { display: none; }
+.cm-viewer[hidden] { display: none !important; }
 .result.converted .cm-viewer { flex: 1; min-height: 0; max-height: none; }
 
 button.secondary {
@@ -531,3 +531,56 @@ table.keys tr:target { background: var(--cm-selection-match); }
   background: var(--bg);
   font: 12px/1.45 var(--mono);
 }
+
+/* A switch between two views of an input (CSV or table, table-view.js) */
+.view-switch { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.view-switch button {
+  font: inherit;
+  font-size: 0.8em;
+  padding: 0.1rem 0.6rem;
+  border: none;
+  background: var(--bg);
+  color: var(--muted);
+  cursor: pointer;
+}
+.view-switch button + button { border-left: 1px solid var(--border); }
+.view-switch button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); }
+
+/* The table view of a CSV input: the editor is hidden, the table is shown */
+/* (CodeMirror shows its editors with display: flex !important) */
+.field.table-view > .cm-editor { display: none !important; }
+.table-view-cells { display: flex; flex-direction: column; gap: 0.5rem; min-height: 16rem; }
+.table-view-cells[hidden] { display: none; }
+.table-scroll {
+  overflow: auto;
+  max-height: 40rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.csv-table { border-collapse: collapse; font: 13px/1.45 var(--mono); min-width: 100%; }
+.csv-table th, .csv-table td { padding: 0; border: 1px solid var(--border); }
+.csv-table thead th { position: sticky; top: 0; background: var(--bg); z-index: 1; }
+.csv-table input {
+  width: 100%;
+  min-width: 6rem;
+  padding: 0.25rem 0.45rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.csv-table input:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--bg); }
+.csv-table th input { font-weight: 600; color: var(--cm-keyword); }
+.csv-table .row-actions { width: 1.75rem; border-left: none; text-align: center; }
+.csv-table .row-actions button.icon { width: 1.5rem; height: 1.5rem; font-size: 1rem; line-height: 1; }
+.add-row { align-self: flex-start; padding: 0.2rem 0.8rem; font-size: 0.9em; }
+/* The colors of the columns, as in the editor */
+.csv-table td.cell-typeName input { color: var(--cm-prefix); }
+.csv-table td.cell-propertyName input { color: var(--cm-property); }
+.csv-table td.cell-string input { color: var(--cm-string); }
+.csv-table td.cell-bool input { color: var(--cm-number); }
+.csv-table td.cell-keyword input { color: var(--cm-keyword); }
+.csv-table td.cell-comment input { color: var(--cm-comment); font-style: italic; }
+.field.maximized > .table-view-cells { flex: 1 1 0; min-height: 0; }
+.field.maximized .table-scroll { flex: 1 1 0; max-height: none; }
