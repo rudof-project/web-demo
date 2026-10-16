@@ -81,6 +81,8 @@
             <li><strong>query</strong>: the SPARQL tab. Press <strong>Run query</strong> to run the query.</li>
             <li><strong>data</strong>: the RDF or Property graph tab of the Data section. Press
               <strong>Convert</strong> to convert the data.</li>
+            <li><strong>schema</strong>: the Schema tab, with the language and the format of the schema. Choose what
+              to convert it to, and press <strong>Convert</strong>.</li>
           </ul>
           <p>Below the list, the demo shows what the example expects and its comment.</p>
         </li>
@@ -248,6 +250,29 @@
     PREFIX wdt: &lt;http://www.wikidata.org/prop/direct/&gt;
     SELECT ?occupation WHERE { wd:Q80 wdt:P106 ?occupation }
   comment: The occupations of Tim Berners-Lee, in Wikidata</code></pre>
+
+      <h3 id="example-schema">Show a schema</h3>
+      <p><code>action: schema</code> puts the schema in the Schema tab, to convert it to other formats, to other
+        languages, to a UML diagram or to a SPARQL query. The language of the schema is its
+        <code>schemaLanguage</code>; without it, the demo chooses it as for validations
+        (<a href="#defaults">see below</a>). A DCTAP profile can have its <code>prefixes</code> and its
+        <code>picklistSeparator</code>.</p>
+      <pre class="manifest-example"><code>- action: schema
+  schemaLanguage: shex
+  schemaFormat: shexc
+  schema: |
+    PREFIX : &lt;http://example.org/&gt;
+    PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
+    :Person { :name xsd:string ; :knows @:Person * }
+  comment: A schema of people, in ShEx
+- action: schema
+  schemaFormat: csv
+  schema: |
+    shapeID,propertyID,valueDatatype
+    Person,:name,xsd:string
+  prefixes: |
+    PREFIX : &lt;http://example.org/&gt;
+  comment: The same people, in a DCTAP profile</code></pre>
     </section>
 
     <section id="keys">
@@ -263,7 +288,7 @@
           <tbody>
             <tr id="key-action">
               <td><code>action</code></td>
-              <td><code>validate</code>: validate the data with a schema;<br><code>data</code>: load the data;<br><code>query</code>: run a query on the data or on an endpoint</td>
+              <td><code>validate</code>: validate the data with a schema;<br><code>data</code>: load the data;<br><code>query</code>: run a query on the data or on an endpoint;<br><code>schema</code>: show the schema in the Schema tab, to convert it</td>
               <td><code>validate</code></td>
             </tr>
             <tr>
@@ -416,6 +441,9 @@
         <li><code>action: data</code> goes to the Property graph tab when the data is a property graph
           (<code>dataFormat: yars-pg</code>, or a <code>.pg</code> file), and to the RDF tab otherwise.</li>
         <li><code>action: query</code> goes to the SPARQL tab.</li>
+        <li><code>action: schema</code> goes to the Schema tab, in the <code>schemaLanguage</code> of the schema. Without
+          it, the language is <code>dctap</code> for a DCTAP profile, else the language of the engine that would
+          validate the schema (below).</li>
         <li><code>action: validate</code> (or no <code>action</code>) with a DCTAP profile
           (<code>schemaLanguage: dctap</code>, <code>schemaFormat: csv</code> or a <code>.csv</code> file) goes to the
           DCTAP tab.</li>
