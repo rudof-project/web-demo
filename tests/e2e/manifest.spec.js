@@ -173,6 +173,29 @@ test("in a permalink with an example, its inputs are the ones of the link", asyn
   await expect(page.locator("#shex-data")).toHaveJSProperty("value", data);
 });
 
+test("a link opens the page again with only the manifest", async ({ page }) => {
+  await open(page, `?manifestURL=${encodeURIComponent(MANIFEST_URL)}`);
+  const home = page.locator("#manifest-home");
+  await expect(home).toBeVisible();
+  await select(page).selectOption({ label: "✗ Bob" });
+  await expect(page.locator("#manifest-note")).toContainText("Expected:");
+  expect(new URL(page.url()).searchParams.has("data")).toBe(true);
+
+  await home.click();
+  await expect(page.locator("#status")).toHaveClass(/ready/, { timeout: 30_000 });
+  const url = new URL(page.url());
+  expect([...url.searchParams.keys()]).toEqual(["manifestURL"]);
+  expect(url.searchParams.get("manifestURL")).toBe(MANIFEST_URL);
+  await expect(select(page)).toHaveValue("");
+  await expect(select(page)).toBeEnabled();
+});
+
+test("the link keeps the manifest URL as it was given", async ({ page }) => {
+  await page.route("**/doc/relative.yaml", (route) => route.fulfill({ body: FILES["https://manifests.example/doc/manifest.yaml"] }));
+  await open(page, "?manifestURL=doc/relative.yaml");
+  await expect(page.locator("#manifest-home")).toHaveAttribute("href", "/?manifestURL=doc%2Frelative.yaml");
+});
+
 test("says when the manifest can't be read", async ({ page }) => {
   await open(page, "?manifestURL=https://manifests.example/missing.yaml");
   await expect(page.locator("#manifest-note")).toHaveText(/Could not load the manifest: .*404/);

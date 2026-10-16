@@ -836,6 +836,11 @@ async function loadManifest(manifestURL) {
   $("manifest").hidden = false;
   const link = $("manifest-link");
   link.textContent = manifestURL;
+  // The page with only the manifest (choosing an example adds its inputs
+  // to the URL), to start again from the list of examples
+  const home = $("manifest-home");
+  home.href = `${location.pathname}?${queryString([["manifestURL", manifestURL]])}`;
+  home.title = `Open ${home.href.replace(location.origin, "")} again, without the inputs of an example`;
   const select = $("manifest-examples");
   let manifest;
   let examples;

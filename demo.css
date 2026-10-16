@@ -368,6 +368,7 @@ table.solutions .term-note { color: var(--muted); font: 11px var(--mono); }
 .manifest-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
 .manifest-head label { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
 .manifest-head a { font-weight: 400; }
+.manifest-home { margin-left: auto; font-size: 0.9em; white-space: nowrap; }
 #manifest-examples { flex: 1 1 18rem; min-width: 0; max-width: 100%; }
 .manifest-note { margin: 0.5rem 0 0; color: var(--muted); font-size: 0.9em; white-space: pre-line; }
 .manifest-note.error { color: var(--fail-text); }

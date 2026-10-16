@@ -173,7 +173,10 @@ loaded, and say why: those that read their data from a SPARQL endpoint or
 Wikidata as they are validated (`neighborhood:`), queries on property
 graphs, and formats that the tab can't read (such as TriX).
 `&example=<n>` loads the n-th example (from 1) when the page opens; the URL
-gets it when an example is chosen, so it can be shared.
+gets it when an example is chosen, so it can be shared. Choosing an example
+also puts its inputs in the URL (see [Permalinks](#permalinks)); the
+**Reload the examples** link, next to the list, opens the page again with
+only `?manifestURL=…`.
 
 The manifest and its files are read by the browser, so their server must allow
 other sites to read them ([CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS));
