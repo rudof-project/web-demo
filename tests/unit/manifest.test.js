@@ -229,9 +229,9 @@ describe("parseManifest, with actions", () => {
   });
 
   it("does not support formats that the tab can't read", () => {
-    expect(one("- schema: ''\n  schemaFormat: shex\n  validationEngine: shacl\n  data: ''\n").unsupported).toMatch(/schemaFormat "shex" can't be used with SHACL/);
+    expect(one("- schema: ''\n  schemaFormat: shex\n  validationEngine: shacl\n  data: ''\n").unsupported).toMatch(/schemaFormat "shex" that SHACL can't use/);
     expect(one("- data: ''\n  dataFormat: trix\n  action: data\n").unsupported).toMatch(/dataFormat "trix"/);
-    expect(one("- data: ''\n  dataFormat: yars-pg\n  validationEngine: shex\n  schema: ''\n  queryMap: ''\n").unsupported).toMatch(/dataFormat "yars-pg" can't be used with ShEx/);
+    expect(one("- data: ''\n  dataFormat: yars-pg\n  validationEngine: shex\n  schema: ''\n  queryMap: ''\n").unsupported).toMatch(/dataFormat "yars-pg" that ShEx can't use/);
     expect(one("- data: ''\n  query: ''\n  queryFormat: cypher\n  action: query\n").unsupported).toMatch(/queryFormat "cypher"/);
   });
 
@@ -259,6 +259,45 @@ describe("parseManifest, with actions", () => {
     const local = one("- query: 'ASK {}'\n  data: '<a> <b> <c> .'\n  action: query\n");
     const inputs = Object.fromEntries((await loadExample(local)).map((i) => [i.name, i]));
     expect(inputs.endpoint.text).toBe("");
+  });
+});
+
+describe("why an example can't be run", () => {
+  const one = (yaml) => parseManifest(yaml, MANIFEST_URL)[0];
+
+  it("gives a hint and a section of the help page", () => {
+    const shex = one("- schemaURL: schema.shex\n  data: ''\n");
+    expect(shex).toMatchObject({ unsupported: "has no queryMap", help: "example-shex" });
+    expect(shex.hint).toMatch(/queryMap: or queryMapURL:.*validationEngine: shacl/);
+
+    const format = one("- data: ''\n  dataFormat: trix\n  action: data\n");
+    expect(format.unsupported).toBe('has a dataFormat "trix" that RDF data can\'t use');
+    expect(format).toMatchObject({ hint: "The dataFormat of RDF data can be turtle, ntriples, rdfxml, jsonld, trig, n3, nquads.", help: "keys" });
+
+    const shacl = one("- schema: ''\n  schemaFormat: shex\n  validationEngine: shacl\n  data: ''\n");
+    expect(shacl.hint).toBe("The schemaFormat of SHACL can be an RDF format (turtle, ntriples, rdfxml, jsonld, trig, n3, nquads).");
+
+    expect(one("- data: ''\n  action: convert\n")).toMatchObject({ hint: "Write action: data, action: validate, action: query, or leave it out to validate.", help: "key-action" });
+    expect(one("- query: 'ASK {}'\n  action: query\n")).toMatchObject({ help: "example-query" });
+    expect(examples[2]).toMatchObject({ help: "unsupported", hint: expect.stringMatching(/neighborhood/) });
+  });
+
+  it("points only to sections of the help page that exist", async () => {
+    const { readFileSync } = await import("node:fs");
+    const help = readFileSync(new URL("../../help.html", import.meta.url), "utf8");
+    for (const id of ["key-action", "keys", "unsupported", "format", "example-shex", "example-pgschema", "example-query"]) {
+      expect(help, id).toContain(`id="${id}"`);
+    }
+  });
+
+  it("keeps the entry, in YAML, only when it can't be run", () => {
+    expect(examples[2].source).toContain("neighborhood: sparql");
+    expect(parseManifest(examples[2].source.replace(/^/gm, "  ").replace(/^ {2}/, "- "), MANIFEST_URL)[0].label).toBe(examples[2].label);
+    expect(examples[0].source).toBeUndefined();
+  });
+
+  it("gives no hint to the examples that can be run", () => {
+    expect(examples[0]).toMatchObject({ unsupported: undefined, hint: undefined, help: undefined });
   });
 });
 

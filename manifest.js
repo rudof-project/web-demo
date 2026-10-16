@@ -36,7 +36,7 @@
 // schemas in an RDF format without a shape map, and ShEx everything else.
 // help.html documents all of it for the users of the demo.
 
-import { parse } from "yaml";
+import { parse, stringify } from "yaml";
 
 // Names of formats in manifests, and the format of the demo each one is.
 const RDF_FORMATS = {
@@ -64,8 +64,12 @@ const PGSCHEMA_EXTENSIONS = { pgs: "pgschema", pgschema: "pgschema" };
 const rdfOf = (text) => (/^\s*[[{]/.test(text) ? "jsonld" : "turtle");
 const shexOf = (text) => (/^\s*\{/.test(text) ? "shexj" : "shexc");
 
-const rdfData = (textarea, formatSelect) => ({ name: "data", key: "dataFormat", textarea, formatSelect, formats: RDF_FORMATS, extensions: RDF_EXTENSIONS, inline: rdfOf });
-const pgData = (textarea) => ({ name: "data", key: "dataFormat", textarea, formats: PG_FORMATS, extensions: PG_EXTENSIONS });
+// The names of the formats of an input, for the hints of the entries that
+// give another one
+const RDF_NAMES = "turtle, ntriples, rdfxml, jsonld, trig, n3, nquads";
+
+const rdfData = (textarea, formatSelect) => ({ name: "data", key: "dataFormat", textarea, formatSelect, formats: RDF_FORMATS, names: RDF_NAMES, extensions: RDF_EXTENSIONS, inline: rdfOf });
+const pgData = (textarea) => ({ name: "data", key: "dataFormat", textarea, formats: PG_FORMATS, names: "yars-pg", extensions: PG_EXTENSIONS });
 
 // Where the examples go: for each tab, its id in the URL fragment (and the
 // prefix of the ids of its inputs and its result), the action it is for, and
@@ -81,7 +85,7 @@ export const TARGETS = {
     action: "validate",
     what: "ShEx",
     inputs: [
-      { name: "schema", key: "schemaFormat", textarea: "shex-schema", formatSelect: "shex-schema-format", formats: SHEX_FORMATS, extensions: SHEX_EXTENSIONS, inline: shexOf },
+      { name: "schema", key: "schemaFormat", textarea: "shex-schema", formatSelect: "shex-schema-format", formats: SHEX_FORMATS, names: `shex, shexj, json, or an RDF format for ShExR (${RDF_NAMES})`, extensions: SHEX_EXTENSIONS, inline: shexOf },
       rdfData("shex-data", "shex-data-format"),
       { name: "queryMap", textarea: "shex-shapemap" },
     ],
@@ -91,7 +95,7 @@ export const TARGETS = {
     action: "validate",
     what: "SHACL",
     inputs: [
-      { name: "schema", aliases: ["shapes"], key: "schemaFormat", textarea: "shacl-shapes", formatSelect: "shacl-shapes-format", formats: SHACL_FORMATS, extensions: SHACL_EXTENSIONS, inline: rdfOf },
+      { name: "schema", aliases: ["shapes"], key: "schemaFormat", textarea: "shacl-shapes", formatSelect: "shacl-shapes-format", formats: SHACL_FORMATS, names: `an RDF format (${RDF_NAMES})`, extensions: SHACL_EXTENSIONS, inline: rdfOf },
       rdfData("shacl-data", "shacl-data-format"),
     ],
   },
@@ -100,7 +104,7 @@ export const TARGETS = {
     action: "validate",
     what: "PGSchema",
     inputs: [
-      { name: "schema", key: "schemaFormat", textarea: "pgschema-schema", formats: PGSCHEMA_FORMATS, extensions: PGSCHEMA_EXTENSIONS },
+      { name: "schema", key: "schemaFormat", textarea: "pgschema-schema", formats: PGSCHEMA_FORMATS, names: "pgschema", extensions: PGSCHEMA_EXTENSIONS },
       pgData("pgschema-data"),
       { name: "typeMap", aliases: ["queryMap"], textarea: "pgschema-typemap" },
     ],
@@ -112,7 +116,7 @@ export const TARGETS = {
     // The query runs on the data, or on the endpoint when there is one
     inputs: [
       { ...rdfData("sparql-data", "sparql-data-format"), optional: true },
-      { name: "query", key: "queryFormat", textarea: "sparql-query", formats: QUERY_FORMATS },
+      { name: "query", key: "queryFormat", textarea: "sparql-query", formats: QUERY_FORMATS, names: "sparql" },
       { name: "endpoint", textarea: "sparql-endpoint", optional: true },
     ],
   },
@@ -144,20 +148,38 @@ function defaultEngine(entry, isPg, manifestURL) {
   return "shex";
 }
 
-// The tab of an entry, or why there is none: { target } or { unsupported }.
+// Why an entry can't be run: the reason (after "This example"), a hint on
+// how to change the entry, and the section of help.html about it.
+const problem = (reason, hint, help) => ({ reason, hint, help });
+
+// The tab of an entry, or why there is none: { target } or { problem }.
 function targetOf(entry, isPg, manifestURL) {
   const action = lower(entry.action) ?? "validate";
-  if (!ACTIONS.includes(action)) return { unsupported: `has an unknown action "${entry.action}" (it can be ${ACTIONS.join(", ")})` };
+  if (!ACTIONS.includes(action)) {
+    return { problem: problem(`has an unknown action "${entry.action}"`, `Write action: ${ACTIONS.join(", action: ")}, or leave it out to validate.`, "key-action") };
+  }
   if (action === "data") return { target: isPg ? "pg" : "rdf" };
   if (action === "query") {
     const engine = lower(entry.queryEngine) ?? "sparql";
-    if (!QUERY_ENGINES.includes(engine)) return { unsupported: `is for the query engine "${entry.queryEngine}", which this demo doesn't have` };
-    if (isPg) return { unsupported: "queries a property graph, which this demo can't do yet" };
+    if (!QUERY_ENGINES.includes(engine)) {
+      return { problem: problem(`is for the query engine "${entry.queryEngine}", which this demo doesn't have`, `Write queryEngine: ${QUERY_ENGINES.join(", ")}, or leave it out.`, "keys") };
+    }
+    if (isPg) {
+      return { problem: problem("queries a property graph, which this demo can't do yet", "The demo runs SPARQL queries on RDF data: give the data in an RDF format (dataFormat).", "example-query") };
+    }
     return { target: engine };
   }
   // shex.js named kinds of examples with `type:`
   const engine = lower(entry.validationEngine ?? entry.type) ?? defaultEngine(entry, isPg, manifestURL);
-  if (!VALIDATION_ENGINES.includes(engine)) return { unsupported: `is for the validation engine "${entry.validationEngine ?? entry.type}", which this demo doesn't have` };
+  if (!VALIDATION_ENGINES.includes(engine)) {
+    return {
+      problem: problem(
+        `is for the validation engine "${entry.validationEngine ?? entry.type}", which this demo doesn't have`,
+        `Write validationEngine: ${VALIDATION_ENGINES.join(", validationEngine: ")}, or leave it out.`,
+        "keys",
+      ),
+    };
+  }
   return { target: engine };
 }
 
@@ -192,6 +214,9 @@ function isPgData(entry, manifestURL) {
 //   endpoint   the endpoint of its query, if it has one
 //   notes      what may differ from what the manifest expects
 //   unsupported  why it can't be loaded, if it can't
+//   hint       how to change the entry so that it can be loaded
+//   help       the section of help.html about it (its id)
+//   source     the entry, written again in YAML, when it can't be loaded
 //   inputs     { name: { text } or { url } } for each input it has
 //   formats    { name: format } for the inputs whose format is known before
 //              they are read (from the manifest or the file extension)
@@ -202,19 +227,19 @@ export function parseManifest(source, manifestURL) {
     if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
       throw new Error(`entry ${index + 1} of the manifest is not a map of keys and values`);
     }
-    const { target, unsupported: noTarget } = targetOf(entry, isPgData(entry, manifestURL), manifestURL);
+    const { target, problem: noTarget } = targetOf(entry, isPgData(entry, manifestURL), manifestURL);
     const { action, inputs: specs } = TARGETS[target] ?? { action: lower(entry.action) ?? "validate", inputs: [] };
     const inputs = {};
     const formats = {};
     const problems = [];
-    for (const { name, aliases = [], key, formats: known, extensions } of specs) {
+    for (const { name, aliases = [], key, formats: known, names, extensions } of specs) {
       const input = inputOf(entry, [name, ...aliases], manifestURL);
       if (!input) continue;
       inputs[name] = input;
       if (!key) continue;
       if (entry[key] != null) {
         formats[name] = known[lower(entry[key])];
-        if (!formats[name]) problems.push(`its ${key} "${entry[key]}" can't be used with ${TARGETS[target].what}`);
+        if (!formats[name]) problems.push({ key, value: entry[key], names });
       } else if (input.url) {
         formats[name] = extensions?.[extension(input.url)];
       }
@@ -224,6 +249,7 @@ export function parseManifest(source, manifestURL) {
       const names = [].concat(entry.plugins).map((p) => String(p).split("/").pop().replace(/\.js$/, ""));
       notes.push(`Written for shex.js with ${names.join(", ")}: rudof may not run its semantic actions.`);
     }
+    const why = noTarget ?? unsupported(entry, target, inputs, problems);
     return {
       index,
       action,
@@ -235,23 +261,51 @@ export function parseManifest(source, manifestURL) {
       comment: text(entry.comment),
       endpoint: text(entry.endpoint),
       notes,
-      unsupported: noTarget ?? unsupported(entry, target, inputs, problems),
+      unsupported: why?.reason,
+      hint: why?.hint,
+      help: why?.help,
+      source: why ? stringify(entry, { lineWidth: 0 }) : undefined,
       inputs,
       formats,
     };
   });
 }
 
+// What to add for each input an entry doesn't have, and where help.html says it.
+const MISSING = {
+  data: ["Add the data, with data: (text) or dataURL: (a file).", "format"],
+  schema: ["Add the schema, with schema: (text) or schemaURL: (a file).", "format"],
+  queryMap: [
+    "ShEx needs a shape map, with queryMap: or queryMapURL:, such as queryMap: \":alice@:Person\". If the schema is SHACL shapes, write validationEngine: shacl.",
+    "example-shex",
+  ],
+  typeMap: ["PGSchema needs a type map, with typeMap: or typeMapURL:, such as typeMap: \"n1: PersonType\".", "example-pgschema"],
+  query: ["Add the query, with query: (text) or queryURL: (a file).", "example-query"],
+};
+
 // Entries that need something the demo doesn't have.
 function unsupported(entry, target, inputs, problems) {
   if (entry.neighborhood) {
     const source = entry.endpoint ?? entry.base ?? entry.dataBase;
-    return `reads its data from ${source ? `${source} ` : ""}as validation goes, which this demo can't do`;
+    return problem(
+      `reads its data from ${source ? `${source} ` : ""}as validation goes, which this demo can't do`,
+      "The demo reads all the data before it validates: give the data with data: or dataURL:, instead of neighborhood:.",
+      "unsupported",
+    );
   }
-  if (problems.length) return problems.join(", and ");
+  if (problems.length) {
+    const what = TARGETS[target].what;
+    return problem(
+      `has ${problems.map(({ key, value }) => `a ${key} "${value}"`).join(" and ")} that ${what} can't use`,
+      problems.map(({ key, names }) => `The ${key} of ${what} can be ${names}.`).join(" "),
+      "keys",
+    );
+  }
   const missing = TARGETS[target].inputs.filter(({ name, optional }) => !optional && !inputs[name]).map(({ name }) => name);
-  if (missing.length) return `has no ${missing.join(" or ")}`;
-  if (target === "sparql" && !inputs.data && !inputs.endpoint) return "has no data or endpoint to query";
+  if (missing.length) return problem(`has no ${missing.join(" or ")}`, missing.map((name) => MISSING[name][0]).join(" "), MISSING[missing[0]][1]);
+  if (target === "sparql" && !inputs.data && !inputs.endpoint) {
+    return problem("has no data or endpoint to query", "Add the data (data: or dataURL:), or the endpoint: the query runs on.", "example-query");
+  }
   return undefined;
 }
 

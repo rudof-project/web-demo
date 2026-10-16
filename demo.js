@@ -828,8 +828,43 @@ function exampleOption(example) {
   const text = `${STATUS_MARKS[example.status] ?? ""}${example.label}${example.unsupported ? " (not supported)" : ""}`;
   const option = new Option(text, String(example.index));
   option.disabled = Boolean(example.unsupported);
-  option.title = example.unsupported ? `This example ${example.unsupported}.` : (example.dataLabel ?? "");
+  option.title = example.unsupported ? `This example ${example.unsupported}. ${example.hint ?? ""}`.trim() : (example.dataLabel ?? "");
   return option;
+}
+
+// The examples that can't be run, and why: below the list, closed until the
+// user opens it. Each one has the reason, a hint, a link to the help page,
+// and the entry as the demo read it.
+function showProblems(examples) {
+  const problems = examples.filter((e) => e.unsupported);
+  const box = $("manifest-problems");
+  box.hidden = problems.length === 0;
+  if (!problems.length) return;
+  const el = (tag, props = {}, ...children) => {
+    const e = Object.assign(document.createElement(tag), props);
+    e.append(...children);
+    return e;
+  };
+  box.querySelector("summary").textContent =
+    problems.length === 1 ? "Why 1 example can't be run" : `Why ${problems.length} examples can't be run`;
+  box.querySelector("ul").replaceChildren(
+    ...problems.map((example) =>
+      el(
+        "li",
+        { id: `manifest-problem-${example.index + 1}` },
+        el("p", { className: "problem-title" }, el("strong", {}, example.label), ` (entry ${example.index + 1}${example.group ? `, ${example.group}` : ""})`),
+        el("p", { className: "problem-reason" }, `This example ${example.unsupported}.`),
+        el(
+          "p",
+          { className: "problem-hint" },
+          example.hint ?? "",
+          example.help ? " " : "",
+          ...(example.help ? [el("a", { href: `help.html#${example.help}`, target: "_blank", rel: "noopener" }, "Help")] : []),
+        ),
+        el("details", { className: "problem-source" }, el("summary", {}, "The entry in the manifest"), el("pre", {}, example.source)),
+      ),
+    ),
+  );
 }
 
 async function loadManifest(manifestURL) {
@@ -862,6 +897,7 @@ async function loadManifest(manifestURL) {
     return [group];
   });
   select.replaceChildren(new Option(`Choose one of ${count(examples.length, "example")}…`, ""), ...items);
+  showProblems(examples);
   select.disabled = false;
   select.addEventListener("change", () => {
     if (select.value) chooseExample(manifest, examples[Number(select.value)]);

@@ -196,6 +196,28 @@ test("the link keeps the manifest URL as it was given", async ({ page }) => {
   await expect(page.locator("#manifest-home")).toHaveAttribute("href", "/?manifestURL=doc%2Frelative.yaml");
 });
 
+test("says why the examples that can't be run can't be run", async ({ page }) => {
+  await open(page, `?manifestURL=${encodeURIComponent(MANIFEST_URL)}`);
+  const problems = page.locator("#manifest-problems");
+  await expect(problems.locator("summary").first()).toHaveText("Why 1 example can't be run");
+  await expect(problems.locator("ul")).toBeHidden();
+  await problems.locator("summary").first().click();
+  const item = problems.locator("li");
+  await expect(item).toHaveCount(1);
+  await expect(item.locator(".problem-title")).toHaveText("from the query service (entry 3, Wikidata)");
+  await expect(item.locator(".problem-reason")).toContainText("This example reads its data from https://query.wikidata.org/sparql");
+  await expect(item.locator(".problem-hint")).toContainText("give the data with data: or dataURL:");
+  await expect(item.locator(".problem-hint a")).toHaveAttribute("href", "help.html#unsupported");
+  await item.locator(".problem-source summary").click();
+  await expect(item.locator("pre")).toContainText("neighborhood: sparql");
+});
+
+test("there are no reasons when all the examples can be run", async ({ page }) => {
+  await open(page, `?manifestURL=${encodeURIComponent("https://manifests.example/doc/actions.yaml")}`);
+  await expect(select(page)).toBeEnabled();
+  await expect(page.locator("#manifest-problems")).toBeHidden();
+});
+
 test("says when the manifest can't be read", async ({ page }) => {
   await open(page, "?manifestURL=https://manifests.example/missing.yaml");
   await expect(page.locator("#manifest-note")).toHaveText(/Could not load the manifest: .*404/);
