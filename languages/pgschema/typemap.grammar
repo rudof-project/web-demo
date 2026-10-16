@@ -1,0 +1,38 @@
+// The type maps of PGSchema, which say which type each node or edge of a
+// property graph should have, as a Lezer grammar. It follows
+// pgschema/src/parser/map.rustemo of rudof:
+//
+//   n1: PersonType, n2: !StudentType, e1: KnowsType
+//
+// (! says that the node or edge should not have the type).
+
+@top Map { commaSep<Association> }
+
+Association { NodeId ":" Not? TypeName }
+
+NodeId { Identifier }
+
+TypeName { Identifier }
+
+Not { "!" }
+
+commaSep<content> { (content ("," content)*)? }
+
+@skip { space | LineComment | BlockComment }
+
+@tokens {
+  space { @whitespace+ }
+
+  LineComment { "//" ![\n]* }
+
+  BlockComment { "/*" blockCommentRest }
+
+  blockCommentRest { ![*] blockCommentRest | "*" blockCommentAfterStar }
+
+  blockCommentAfterStar { "/" | "*" blockCommentAfterStar | ![/*] blockCommentRest }
+
+  // \w+ in rudof: ids can start with a digit
+  Identifier { (@asciiLetter | @digit | "_")+ }
+
+  "," ":" "!"
+}

@@ -56,23 +56,27 @@ describe("formats and languages", () => {
     ["shexc", "shexc"],
     ["shapemap", "shapemap"],
     ["sparql", "sparql"],
+    ["yarspg", "yarspg"],
+    ["compact", "yarspg"],
+    ["pgschema", "pgschema"],
+    ["typemap", "typemap"],
   ])("%s is written in %s", (format, name) => {
     expect(languageOf(format)).toBe(name);
   });
 
-  it.each(["yarspg", "compact", "plantuml", "pgschema", "typemap", "unknown"])("%s is plain text", (format) => {
+  it.each(["plantuml", "csv", "unknown"])("%s is plain text", (format) => {
     expect(languageOf(format)).toBeNull();
   });
 });
 
 describe("loadLanguage", () => {
-  it.each(["turtle", "rdfxml", "jsonld", "shexc", "shapemap", "sparql"])("loads the language of %s", async (format) => {
+  it.each(["turtle", "rdfxml", "jsonld", "shexc", "shapemap", "sparql", "yarspg", "pgschema", "typemap"])("loads the language of %s", async (format) => {
     const support = await loadLanguage(format);
     expect(support.language.name).toBe(languageOf(format));
   });
 
   it("gives no extension for plain text", async () => {
-    expect(await loadLanguage("yarspg")).toEqual([]);
+    expect(await loadLanguage("plantuml")).toEqual([]);
     expect(await loadLanguage("not a format")).toEqual([]);
   });
 
@@ -197,7 +201,7 @@ describe("editors follow the format of their text", () => {
     await setFormat(editorFor("data"), "rdfxml");
     expect(languageName("data")).toBe("xml");
     expect(editorFor("data").dom.dataset.format).toBe("rdfxml");
-    await setFormat(editorFor("data"), "yarspg");
+    await setFormat(editorFor("data"), "plantuml");
     expect(languageName("data")).toBeNull();
   });
 
@@ -206,7 +210,7 @@ describe("editors follow the format of their text", () => {
     setupEditors();
     await settled();
     expect(languageName("query")).toBe("sparql");
-    expect(languageName("pg")).toBeNull();
+    expect(languageName("pg")).toBe("yarspg");
   });
 
   it("the language of an editor is the one chosen in its select", async () => {

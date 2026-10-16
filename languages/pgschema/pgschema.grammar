@@ -1,0 +1,147 @@
+// PGSchemaC, the compact syntax of the property graph schemas of rudof, as a
+// Lezer grammar (https://lezer.codemirror.net/docs/guide/). It follows
+// pgschema/src/parser/pgs.rustemo of rudof; the names of its nodes are those
+// of that grammar.
+//
+//   CREATE NODE TYPE ( PersonType : Person { name: STRING, OPTIONAL age: INTEGER } ) ;
+//   CREATE EDGE TYPE (:@PersonType) -[ KnowsType : Knows { since: INTEGER } ]-> (:@PersonType) ;
+//   CREATE GRAPH TYPE Social STRICT { PersonType, KnowsType }
+
+@top Pgs { (CreateType (";" CreateType)* ";"?)? }
+
+@precedence {
+  not @right,
+  and @left,
+  or @left,
+  conj @left,
+  disj @left,
+  eachOf @left,
+  oneOf @left
+}
+
+CreateType { CreateNodeType | CreateEdgeType | CreateGraphType }
+
+CreateNodeType { kw<"CREATE"> kw<"NODE"> kw<"TYPE"> NodeType }
+
+CreateEdgeType { kw<"CREATE"> kw<"EDGE"> kw<"TYPE"> EdgeType }
+
+CreateGraphType { kw<"CREATE"> kw<"GRAPH"> kw<"TYPE"> GraphType }
+
+NodeType { "(" TypeName? LabelPropertySpec ")" }
+
+EdgeType { EndpointType OpenArrow TypeName? LabelPropertySpec CloseArrow EndpointType }
+
+GraphType { TypeName GraphTypeMode? GraphTypeImports? "{" commaSep<GraphTypeElement> "}" }
+
+GraphTypeImports { kw<"IMPORTS"> TypeName ("," TypeName)* }
+
+GraphTypeMode { kw<"STRICT"> | kw<"LOOSE"> }
+
+GraphTypeElement { TypeName | NodeType | EdgeType }
+
+TypeName { Identifier }
+
+EndpointType { "(" LabelPropertySpec ")" }
+
+LabelPropertySpec { LabelSpec? PropertySpec? }
+
+LabelSpec { ":" labels }
+
+// Person & Student, Person | Course, (…), […]
+labels {
+  ConjLabel { labels !conj "&" labels } |
+  DisjLabels { labels !disj "|" labels } |
+  "(" labels ")" |
+  "[" labels "]" |
+  SingleLabel |
+  TypeRef
+}
+
+SingleLabel { Identifier }
+
+// @PersonType: the labels and properties of another type
+TypeRef { "@" Identifier }
+
+PropertySpec { "{" properties? "}" }
+
+// name: STRING, age: INTEGER; or (a: STRING || b: STRING)
+properties {
+  EachOf { properties !eachOf "," properties } |
+  OneOf { properties !oneOf "||" properties } |
+  "(" properties ")" |
+  BaseProperty
+}
+
+BaseProperty { kw<"OPTIONAL">? Property }
+
+Property { Key ":" TypeSpec }
+
+Key { Identifier }
+
+// STRING | INTEGER, STRING & ANY
+TypeSpec { SimpleType (("&" | "|") SimpleType)* }
+
+SimpleType {
+  (kw<"STRING"> | kw<"INTEGER"> | kw<"DATE"> | kw<"BOOL">) Card? Check? |
+  kw<"ANY"> Check? |
+  Check
+}
+
+Check { kw<"CHECK"> cond }
+
+cond {
+  Boolean |
+  Comparison { CompareOp singleValue } |
+  Regex { kw<"REGEX"> String } |
+  And { cond !and kw<"AND"> cond } |
+  Or { cond !or kw<"OR"> cond } |
+  Not { kw<"NOT"> !not cond } |
+  "(" cond ")"
+}
+
+// ? + * {min, max}
+Card { "?" | "+" | "*" | "{" Number "," (Number | "*") "}" }
+
+singleValue { String | Number | DateValue | Boolean }
+
+DateValue { kw<"DATE"> String }
+
+Boolean { kw<"TRUE"> | kw<"FALSE"> }
+
+commaSep<content> { (content ("," content)*)? }
+
+kw<term> { @specialize[@name={term}]<Identifier, term> }
+
+@skip { space | LineComment | BlockComment }
+
+@tokens {
+  space { @whitespace+ }
+
+  LineComment { "//" ![\n]* }
+
+  BlockComment { "/*" blockCommentRest }
+
+  blockCommentRest { ![*] blockCommentRest | "*" blockCommentAfterStar }
+
+  blockCommentAfterStar { "/" | "*" blockCommentAfterStar | ![/*] blockCommentRest }
+
+  Identifier { (@asciiLetter | "_") (@asciiLetter | @digit | "_")* }
+
+  Number { @digit+ }
+
+  String { '"' (!["\\\n] | "\\" _)* '"' }
+
+  OpenArrow { "-[" }
+
+  CloseArrow { "]->" }
+
+  CompareOp { ">=" | "<=" | ">" | "<" | "=" }
+
+  @precedence { CloseArrow, "]" }
+
+  @precedence { "||", "|" }
+
+  "(" ")" "{" "}" "[" "]" "," ":" ";" "&" "|" "||" "@" "?" "+" "*"
+}
+
+@detectDelim

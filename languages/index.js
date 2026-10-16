@@ -1,5 +1,10 @@
 // The language of each format of the demo. Languages are loaded the first
 // time they are needed, each from its own file of the build.
+//
+// The RDF syntaxes, ShExC and shape maps are stream parsers (tokens.js,
+// turtle.js, shexc.js). YARS-PG (yars-pg/) and PGSchema (pgschema/) are Lezer
+// grammars (.grammar files), which @lezer/generator compiles when the page
+// is built (see vite.config.js).
 
 import { LanguageSupport, StreamLanguage } from "@codemirror/language";
 
@@ -18,11 +23,12 @@ export const FORMATS = {
   shexc: "shexc",
   shapemap: "shapemap",
   sparql: "sparql",
-  // Property graphs: no language yet. compact is YARS-PG written by rudof.
-  yarspg: null,
-  compact: null,
-  pgschema: null,
-  typemap: null,
+  // Property graphs (YARS-PG; compact is YARS-PG written by rudof), their
+  // schemas (PGSchemaC) and type maps
+  yarspg: "yarspg",
+  compact: "yarspg",
+  pgschema: "pgschema",
+  typemap: "typemap",
 };
 
 const stream = (parser) => new LanguageSupport(StreamLanguage.define(parser));
@@ -34,6 +40,10 @@ const LOADERS = {
   sparql: async () => stream((await import("@codemirror/legacy-modes/mode/sparql")).sparql),
   xml: async () => (await import("@codemirror/lang-xml")).xml(),
   json: async () => (await import("@codemirror/lang-json")).json(),
+  // Lezer grammars, in their own folders
+  yarspg: async () => (await import("./yars-pg/index.js")).yarspg(),
+  pgschema: async () => (await import("./pgschema/index.js")).pgschema(),
+  typemap: async () => (await import("./pgschema/index.js")).typemap(),
 };
 
 export function languageOf(format) {

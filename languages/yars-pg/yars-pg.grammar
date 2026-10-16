@@ -1,0 +1,160 @@
+// YARS-PG, the syntax of property graphs, as a Lezer grammar
+// (https://lezer.codemirror.net/docs/guide/).
+//
+// It joins two grammars, so that both highlight:
+// - the one rudof reads and writes (pgschema/src/parser/pg.rustemo): labels
+//   and keys without quotes, numbers, DATE "…", TRUE and FALSE, lists, and
+//   // and /* */ comments;
+// - YARS-PG 5 (https://github.com/lszeremeta/yarspg, other-notations/YARSpg.ebnf):
+//   metadata, variables, graphs, undirected edges, sets and structs,
+//   meta-properties @<…>, # comments, and the schemas S(…).
+// The names of its nodes are those of the EBNF, in CamelCase.
+
+@top Graph { statement* }
+
+// A list of graphs after a node or an edge, and the arguments of a type, go
+// with what is before them (and do not start the next statement).
+@precedence { attach }
+
+statement {
+  Node |
+  Edge |
+  Metadata |
+  VariableDeclaration |
+  GraphDeclaration |
+  NodeSchema |
+  EdgeSchema |
+  GraphSchema
+}
+
+// Nodes and edges
+
+Node { "(" NodeId Labels? PropList? ")" GraphsList? }
+
+// (a) - (e {label} [props]) -> (b), or - (b) when it is undirected
+Edge {
+  "(" NodeId ")" "-" "(" EdgeId? Labels? PropList? ")" edgeEnd "(" NodeId ")" GraphsList?
+}
+
+edgeEnd { Arrow | "-" }
+
+// Numbers too in rudof, and strings in older versions of YARS-PG
+NodeId { Identifier | Number | String }
+
+EdgeId { Identifier | Number | String }
+
+Labels { "{" commaSep<Label> "}" }
+
+Label { Identifier | String }
+
+// Properties
+
+PropList { "[" commaSep<Prop | Variable> "]" }
+
+Prop { Key ":" value MetaProp? }
+
+Key { Identifier | String }
+
+MetaProp { "@<" commaSep<Key ":" value> ">" }
+
+value {
+  String |
+  Number |
+  Boolean |
+  DateValue |
+  ListValue |
+  SetValue |
+  StructValue
+}
+
+DateValue { Date String }
+
+ListValue { "[" commaSep<value MetaProp?> "]" }
+
+SetValue { "{" value MetaProp? ("," value MetaProp?)* "}" }
+
+StructValue { "{" Key ":" value MetaProp? ("," Key ":" value MetaProp?)* "}" }
+
+// Metadata, variables and graphs
+
+Metadata { "+" PropList }
+
+Variable { "$" VariableName }
+
+VariableName { Identifier }
+
+VariableDeclaration { Variable "=" (Prop | PropSchema) ("," (Prop | PropSchema))* }
+
+GraphDeclaration { "/" GraphId "/" Labels? PropList? }
+
+GraphsList { !attach "/" GraphId ("," GraphId)* "/" }
+
+GraphId { Identifier }
+
+// Schemas: S(…) for nodes and edges, S/…/ for graphs
+
+NodeSchema { Schema "(" NodeId Labels? PropListSchema? ")" GraphsList? }
+
+EdgeSchema {
+  Schema "(" NodeId ")" "-" ("(" Labels? PropListSchema? ")")? edgeEnd "(" NodeId ")" GraphsList?
+}
+
+GraphSchema { Schema "/" GraphId "/" PropListSchema? }
+
+PropListSchema { "[" commaSep<PropSchema | Variable> "]" }
+
+PropSchema { Key ":" ValueSchema }
+
+// A type, maybe with arguments (STRING(20), DECIMAL(5,2), LIST(STRING),
+// STRUCT(a: INTEGER, …)), and its modifiers (NULL, UNIQUE, OPTIONAL, MIN 1…)
+ValueSchema { TypeName TypeArguments? Modifier* MetaPropSchema? }
+
+TypeArguments { !attach "(" commaSep<Number | ValueSchema | PropSchema> ")" }
+
+Modifier { ModifierName Number? }
+
+ModifierName { Identifier }
+
+TypeName { Identifier }
+
+MetaPropSchema { "@<" commaSep<Key ":" ValueSchema> ">" }
+
+commaSep<content> { (content ("," content)*)? }
+
+// The words that are also identifiers elsewhere: the parser tries both.
+Date { @extend<Identifier, "DATE"> }
+
+Schema { @extend<Identifier, "S"> }
+
+Boolean { @extend<Identifier, "TRUE"> | @extend<Identifier, "FALSE"> | @extend<Identifier, "true"> | @extend<Identifier, "false"> }
+
+@skip { space | LineComment | BlockComment }
+
+@tokens {
+  space { @whitespace+ }
+
+  // # in YARS-PG, // in rudof
+  LineComment { ("#" | "//") ![\n]* }
+
+  BlockComment { "/*" blockCommentRest }
+
+  blockCommentRest { ![*] blockCommentRest | "*" blockCommentAfterStar }
+
+  blockCommentAfterStar { "/" | "*" blockCommentAfterStar | ![/*] blockCommentRest }
+
+  Identifier { (@asciiLetter | "_") (@asciiLetter | @digit | "_")* }
+
+  Number { "-"? @digit+ ("." @digit+)? ($[eE] $[+-]? @digit+)? }
+
+  String { '"' (!["\\\n] | "\\" _)* '"' }
+
+  Arrow { "->" }
+
+  @precedence { LineComment, BlockComment, "/" }
+
+  @precedence { Arrow, Number, "-" }
+
+  "(" ")" "{" "}" "[" "]" "," ":" "-" "+" "$" "=" "/" "@<" ">"
+}
+
+@detectDelim

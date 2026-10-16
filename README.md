@@ -37,6 +37,25 @@ set up by [`codemirror-setup.js`](codemirror-setup.js):
   N-Quads and N3), ShExC and shape maps have their own parsers in
   [`languages/`](languages/); RDF/XML, JSON-LD, ShExJ and SPARQL use the
   CodeMirror packages.
+- Property graphs, their schemas and type maps have
+  [Lezer](https://lezer.codemirror.net/) grammars, each language in its own
+  folder:
+  - [`languages/yars-pg/`](languages/yars-pg/): YARS-PG
+    (`yars-pg.grammar`). It reads the syntax of rudof (`pg.rustemo` of
+    rudof's `pgschema` crate) and YARS-PG 5
+    ([`YARSpg.ebnf`](https://github.com/lszeremeta/yarspg/blob/main/other-notations/YARSpg.ebnf)):
+    metadata, variables, graphs, undirected edges, sets, structs,
+    meta-properties and schemas.
+  - [`languages/pgschema/`](languages/pgschema/): PGSchemaC
+    (`pgschema.grammar`, from `pgs.rustemo`) and type maps
+    (`typemap.grammar`, from `map.rustemo`).
+
+  Each folder has the grammar, `highlight.js` (the highlighting tag of each
+  node of the grammar) and `index.js` (the CodeMirror language, with folding
+  and indentation). [`@lezer/generator`](https://www.npmjs.com/package/@lezer/generator)
+  compiles the grammars when the page is built and tested (the `lezer()`
+  plugin of `vite.config.js` and `vitest.config.js`). Text that does not
+  follow the grammar is still shown; the highlighting goes on after it.
 - The editors have line numbers, undo history, search (Ctrl+F), bracket
   matching and closing, and take the colors of the page, light or dark.
   Ctrl+Enter still validates.
