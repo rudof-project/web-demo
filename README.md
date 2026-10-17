@@ -118,8 +118,9 @@ the CSV, which stays the input. The browser remembers the view.
 
 In the SPARQL, ShEx, SHACL and DCTAP tabs, the **Endpoint** field runs the
 query or the validation on a SPARQL endpoint instead of the RDF data of the
-page. Wikidata, DBpedia, UniProt and the other endpoints that rudof knows are
-suggested. Leave it empty to use the data.
+page. Its menu has **None** (the RDF data of the page), the endpoints that
+rudof knows (Wikidata, DBpedia, UniProt, …) and **Other**, to write the URL
+of any other endpoint in the field next to it.
 
 rudof goes to the endpoint: `useEndpoint`, then `runQueryAsync`,
 `validateShexAsync` or `validateShaclAsync`. ShEx asks the endpoint for the
@@ -128,12 +129,15 @@ The page describes the endpoint to rudof (`endpointConfig` in
 [`endpoint.js`](endpoint.js)) with the prefixes of the schema, so the shape
 map can use them: the data of an endpoint has no prefixes.
 
-This needs rudof built with the `endpoints` feature, and its WebAssembly
-needs JSPI (JavaScript Promise Integration): Chrome and Edge 137 or later
-have it, Firefox and Safari don't yet. So the page loads
-`@rudof/rudof@<version>/endpoints/rudof_wasm.js` in browsers with JSPI, and
-the usual `web/` build in the others, or when the package has no
-`endpoints/` build. The status line says "with endpoints" when it has them.
+This needs rudof built with the `endpoints` feature (`@rudof/rudof/endpoints`,
+in the package since rudof 0.3.27), and its WebAssembly needs JSPI
+(JavaScript Promise Integration): Chrome and Edge 137 or later have it,
+Firefox and Safari don't yet. So the page loads
+`@rudof/rudof@<version>/endpoints/web/rudof_wasm.js` in browsers with JSPI,
+and the usual `web/` build in the others, or when it can't be loaded. The
+status line says "with endpoints" when it has them. When rudof with
+endpoints can't be loaded in a browser with JSPI, the hint of the Endpoint
+fields says why (as does the tooltip of the status line).
 Without them, the page sends SPARQL queries to the endpoint itself
 ([`endpoint.js`](endpoint.js), with the SPARQL 1.1 protocol), and the
 validations can't use endpoints.
@@ -146,18 +150,44 @@ The endpoint must allow other sites to query it
 ([CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)), as Wikidata
 does, and the page (https) can't query an `http:` endpoint.
 
-The browser tests run with both builds when they have rudof with endpoints:
-the `endpoints/` folder of the package, or a build of rudof given by
-`RUDOF_ENDPOINTS_DIR`:
+The browser tests run with both builds of rudof: with endpoints (from
+`endpoints/web/` of the package) and without them. To test another build of
+rudof with endpoints, such as one built from the rudof repository, give its
+folder in `RUDOF_ENDPOINTS_DIR`:
 
 ```sh
-# in rudof/bindings/wasm
-RUDOF_WASM_FEATURES="comparison,conversion,dctap,pgschema,rdf-config,endpoints" ./build.sh
-# in this repo
-RUDOF_ENDPOINTS_DIR=<rudof>/bindings/wasm/pkg/web npm run test:e2e
+RUDOF_ENDPOINTS_DIR=<folder with rudof_wasm.js and rudof_wasm_bg.wasm> npm run test:e2e
 ```
 
-Without it, the tests of rudof with endpoints are skipped.
+## Results
+
+The results of ShEx, SHACL, DCTAP and PGSchema validations are shown as a
+table by default (the **Table** result format): a row for each node and
+shape, with its result and its details. For ShEx, SHACL and DCTAP, the table
+is the `details` text of rudof, read back by
+[`box-table.js`](box-table.js). The other formats are as rudof writes them.
+
+Clicking the header of a column of a table of results (validations, SPARQL
+solutions, CSV results) sorts the rows by that column: in ascending order,
+then descending, then in their order again
+([`sortable.js`](sortable.js)). Numbers are sorted as numbers.
+
+### SHACL options
+
+Next to the **Validate** button of the SHACL tab:
+
+- **Recursion**: what rudof does with shapes that refer to themselves, in a
+  cycle. **Cautious** (the default) doesn't accept that a node conforms only
+  because of the cycle, **Brave** accepts it, and **No recursion** refuses a
+  shapes graph with a cycle.
+- **Show**: the **Errors** (the violations and other results), the
+  **Evidences** (why the nodes conform), and whether the evidences are only
+  those **of shapes**, or also those of each constraint. By default, the
+  errors and the evidences of shapes.
+
+They are the `[shacl]` section of the configuration of rudof
+(`recursion_semantics`, `store_errors`, `store_evidences` and
+`evidence_shapes_only`). Without the errors, the verdict doesn't count them.
 
 ## Layout
 
@@ -290,12 +320,12 @@ copies it. Opening the URL puts the inputs and options back in their tab.
 | RDF      | `data`, `data-format`, `result-format` |
 | Property graph | `data`, `result-format` |
 | ShEx     | `schema`, `data`, `shape-map`, `endpoint`, `schema-format`, `data-format`, `result-format`, `schema-result-format` |
-| SHACL    | `shapes`, `data`, `endpoint`, `shapes-format`, `data-format`, `mode`, `result-format`, `schema-result-format` |
+| SHACL    | `shapes`, `data`, `endpoint`, `shapes-format`, `data-format`, `mode`, `recursion`, `errors`, `evidences`, `evidences-shapes`, `result-format`, `schema-result-format` |
 | DCTAP    | `dctap`, `prefixes`, `picklist`, `data`, `endpoint`, `shape-map`, `data-format`, `engine`, `result-format`, `schema-result-format` |
 | PGSchema | `schema`, `data`, `type-map`, `result-format` |
 | SPARQL   | `data`, `data-format`, `query`, `endpoint`, `result-format` |
 
-`manifestURL` and `example` are kept. A URL without a fragment opens the tab
+Checkboxes (such as `errors` of SHACL) are `true` or `false`. `manifestURL` and `example` are kept. A URL without a fragment opens the tab
 of its parameters (ShEx for `shape-map` or `schema`), so links in the style of
 shex.js (`?schema=…&data=…&shape-map=…`) open the ShEx tab. When a URL has an
 `example` and inputs too, the inputs of the URL are used: they are the example

@@ -29,7 +29,7 @@ Person,:age,xsd:integer`;
 const result = (page, prefix) => page.locator(`#${prefix}-result:not([data-kind="running"])`);
 
 test.describe("with rudof with endpoints", () => {
-  test.skip(!hasEndpointsBuild, "no rudof with endpoints: set RUDOF_ENDPOINTS_DIR");
+  test.skip(!hasEndpointsBuild, "no rudof with endpoints in node_modules or RUDOF_ENDPOINTS_DIR");
 
   test("ShEx validates the nodes of the shape map on the endpoint", async ({ page }) => {
     const queries = await sparqlEndpoint(page, ENDPOINT, DATA);
@@ -96,10 +96,44 @@ test.describe("with rudof with endpoints", () => {
     await expect(result(page, "shex").locator(".verdict")).toHaveText("Conforms: 1 node validated on endpoint.example", { timeout: 30_000 });
   });
 
-  test("the known endpoints of rudof are suggested", async ({ page }) => {
+  test("the menu has the endpoints of rudof, and any other one", async ({ page }) => {
+    await sparqlEndpoint(page, ENDPOINT, DATA);
     await open(page, "#validate/shex");
-    await expect(page.locator("#known-endpoints option")).not.toHaveCount(3);
-    await expect(page.locator('#known-endpoints option[value="https://query.wikidata.org/sparql"]')).toHaveCount(1);
+    const choice = page.locator("#shex-endpoint-choice");
+    // None, the endpoints that rudof knows (more than the 3 of the page), and Other
+    await expect(choice.locator("option")).toHaveCount(8);
+    await expect(choice.locator("option").first()).toHaveText("None: the RDF data below");
+    await expect(choice.locator('option[value="https://qlever.dev/api/wikidata"]')).toHaveText("Wikidata qlever (qlever.dev)");
+    await expect(choice.locator("option").last()).toHaveText("Other: write its URL");
+
+    // Choosing one writes its URL
+    await choice.selectOption("https://query.wikidata.org/sparql");
+    await expect(page.locator("#shex-endpoint")).toHaveValue("https://query.wikidata.org/sparql");
+    await expect(page.locator(".field:has(#shex-data)")).toHaveClass(/unused/);
+    expect(new URL(page.url()).searchParams.get("endpoint")).toBe("https://query.wikidata.org/sparql");
+
+    // Other: its URL is written in the field
+    await choice.selectOption("other");
+    await expect(page.locator("#shex-endpoint")).toHaveValue("");
+    await expect(page.locator("#shex-endpoint")).toBeFocused();
+    await page.locator("#shex-endpoint").fill(ENDPOINT);
+    await expect(choice).toHaveValue("other");
+    await setInput(page, "shex-schema", SHEX);
+    await setInput(page, "shex-shapemap", ":alice@:Person");
+    await page.locator("#shex-validate").click();
+    await expect(result(page, "shex").locator(".verdict")).toHaveText("Conforms: 1 node validated on endpoint.example", { timeout: 30_000 });
+
+    // A URL of a known endpoint chooses it, and None empties the field
+    await page.locator("#shex-endpoint").fill("https://dbpedia.org/sparql");
+    await expect(choice).toHaveValue("https://dbpedia.org/sparql");
+    await choice.selectOption("");
+    await expect(page.locator("#shex-endpoint")).toHaveValue("");
+    await expect(page.locator(".field:has(#shex-data)")).not.toHaveClass(/unused/);
+  });
+
+  test("a permalink with an endpoint chooses it in the menu", async ({ page }) => {
+    await open(page, `?shapes=${encodeURIComponent(SHACL)}&endpoint=${encodeURIComponent("https://sparql.uniprot.org/sparql")}#validate/shacl`);
+    await expect(page.locator("#shacl-endpoint-choice")).toHaveValue("https://sparql.uniprot.org/sparql");
   });
 
   test("says when the endpoint answers with an error", async ({ page }) => {
@@ -143,7 +177,11 @@ test.describe("without rudof with endpoints", () => {
   test("the validations can't use endpoints, and say why", async ({ page }) => {
     await open(page, "#validate/shacl");
     await expect(page.locator("#shacl-endpoint")).toBeDisabled();
-    await expect(page.locator("#panel-shacl .endpoint-hint")).toContainText("rudof");
+    await expect(page.locator("#shacl-endpoint-choice")).toBeDisabled();
+    // This browser has JSPI: the page says why rudof with endpoints could not be loaded
+    await expect(page.locator("#panel-shacl .endpoint-hint")).toContainText("rudof with endpoints could not be loaded in this browser");
+    await expect(page.locator("#panel-shacl .endpoint-hint")).toContainText("endpoints/web/rudof_wasm.js");
+    await expect(page.locator("#status")).toHaveAttribute("title", /could not be loaded/);
     // A permalink with an endpoint says it too
     await open(page, `?shapes=${encodeURIComponent(SHACL)}&endpoint=${encodeURIComponent(ENDPOINT)}#validate/shacl`);
     await page.locator("#shacl-validate").click();

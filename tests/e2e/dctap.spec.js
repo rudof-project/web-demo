@@ -17,7 +17,7 @@ test("validates the data with the profile, converted to ShEx", async ({ page }) 
   await open(page, "#validate/dctap");
   await page.locator("#dctap-validate").click();
   await expect(verdict(page, "dctap")).toHaveText("Does not conform: 1 of 3 nodes failed");
-  await expect(page.locator("#dctap-result .output")).toContainText(":bob");
+  await expect(page.locator("#dctap-result .table-output")).toContainText(":bob");
   await page.locator("#dctap-result-format").selectOption("json");
   await expect(page.locator("#dctap-result .output")).toContainText("nonconformant");
 });

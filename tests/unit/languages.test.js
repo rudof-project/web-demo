@@ -34,13 +34,15 @@ const styleOf = (parser, text, token) => tokens(parser, text).find(([t]) => t ==
 describe("formats and languages", () => {
   it("has a language for every format of the page", () => {
     const html = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../index.html"), "utf8");
-    // Not the endpoints suggested for SPARQL, which are URLs
+    // Not the endpoints, which are URLs
     const values = [...html.matchAll(/<option value="([^"]+)"/g)].map((m) => m[1]).filter((v) => v && !/^https?:/.test(v));
     const fixed = [...html.matchAll(/data-language="([^"]+)"/g)].map((m) => m[1]);
     // The selects of the input formats, and the examples of the SPARQL query
     const outputs = ["plantuml", "compact", "details", "json", "csv", "minimal", "table", "native", "sparql", "select", "count", "ask", "construct", "describe", "text",
       // DCTAP: what rudof writes of a profile, the engines it is validated with, and the separators of picklists
-      "internal", "shex", "shacl", " ", "|"];
+      "internal", "shex", "shacl", " ", "|",
+      // The recursion semantics of SHACL
+      "cautious", "brave", "none"];
     for (const format of [...new Set([...values, ...fixed])].filter((f) => !outputs.includes(f))) {
       expect(FORMATS, format).toHaveProperty(format);
     }

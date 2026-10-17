@@ -292,6 +292,12 @@ table.report th, table.report td {
   border-top: 1px solid var(--border);
 }
 table.report th { color: var(--muted); font-weight: 600; border-top: none; }
+/* Headers that sort the table (sortable.js) */
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover, th.sortable:focus-visible { color: var(--text); }
+th.sortable::after { content: " ↕"; opacity: 0.35; font-weight: 400; }
+th.sortable[aria-sort="ascending"]::after { content: " ▲"; opacity: 0.8; }
+th.sortable[aria-sort="descending"]::after { content: " ▼"; opacity: 0.8; }
 table.report th, table.report td.verdict-cell { white-space: nowrap; }
 table.report td.verdict-cell { font-weight: 600; }
 table.report tr.ok td.verdict-cell { color: var(--ok-text); }
@@ -609,3 +615,8 @@ table.csv-result td code { font-size: 12px; white-space: pre-wrap; overflow-wrap
 
 /* Boxes with a display of their own are still hidden by [hidden] */
 .field[hidden], .view-switch[hidden] { display: none; }
+
+/* The results that SHACL shows */
+.shacl-show { display: inline-flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.shacl-show label { display: inline-flex; align-items: center; gap: 0.25rem; font-weight: 400; }
+.shacl-show label:has(input:disabled) { opacity: 0.55; }

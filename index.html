@@ -281,8 +281,9 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
       <!-- ShEx -->
       <section id="panel-shex" role="tabpanel" aria-labelledby="tab-shex" class="panel">
         <div class="toolbar endpoint-row">
-          <label for="shex-endpoint">Endpoint</label>
-          <input id="shex-endpoint" class="endpoint" type="url" list="known-endpoints" spellcheck="false" autocomplete="off"
+          <label for="shex-endpoint-choice">Endpoint</label>
+          <select id="shex-endpoint-choice" class="endpoint-choice"></select>
+          <input id="shex-endpoint" class="endpoint" type="url" spellcheck="false" autocomplete="off" aria-label="URL of the endpoint"
             placeholder="None: validate the RDF data below">
           <span class="hint endpoint-hint">The endpoint must allow other sites to query it (CORS).</span>
         </div>
@@ -348,6 +349,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
           <button class="primary" id="shex-validate" disabled>Validate</button>
           <label class="inline">Result format
             <select id="shex-result-format">
+              <option value="table">Table</option>
               <option value="compact">Compact</option>
               <option value="details">Details</option>
               <option value="json">JSON</option>
@@ -364,6 +366,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
             </div>
           </div>
           <pre class="output" id="shex-output" data-viewer="Validation result" data-format-select="shex-result-format"></pre>
+          <div class="table-output" hidden></div>
           <div class="csv-output" hidden></div>
         </div>
         <div class="toolbar schema-tools">
@@ -396,8 +399,9 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
       <!-- SHACL -->
       <section id="panel-shacl" role="tabpanel" aria-labelledby="tab-shacl" class="panel" hidden>
         <div class="toolbar endpoint-row">
-          <label for="shacl-endpoint">Endpoint</label>
-          <input id="shacl-endpoint" class="endpoint" type="url" list="known-endpoints" spellcheck="false" autocomplete="off"
+          <label for="shacl-endpoint-choice">Endpoint</label>
+          <select id="shacl-endpoint-choice" class="endpoint-choice"></select>
+          <input id="shacl-endpoint" class="endpoint" type="url" spellcheck="false" autocomplete="off" aria-label="URL of the endpoint"
             placeholder="None: validate the RDF data below">
           <span class="hint endpoint-hint">The endpoint must allow other sites to query it (CORS).</span>
         </div>
@@ -461,6 +465,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
           <button class="primary" id="shacl-validate" disabled>Validate</button>
           <label class="inline">Result format
             <select id="shacl-result-format">
+              <option value="table">Table</option>
               <option value="compact">Compact</option>
               <option value="details">Details</option>
               <option value="minimal">Minimal</option>
@@ -478,6 +483,18 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
               <option value="sparql">SPARQL</option>
             </select>
           </label>
+          <label class="inline" title="How rudof validates shapes that refer to themselves">Recursion
+            <select id="shacl-recursion">
+              <option value="cautious">Cautious</option>
+              <option value="brave">Brave</option>
+              <option value="none">No recursion</option>
+            </select>
+          </label>
+          <span class="inline shacl-show" role="group" aria-label="Results to show">Show
+            <label title="The violations, warnings and other errors"><input type="checkbox" id="shacl-errors" checked> Errors</label>
+            <label title="Why the nodes conform"><input type="checkbox" id="shacl-evidences" checked> Evidences</label>
+            <label title="Only the evidences of shapes, not of each constraint"><input type="checkbox" id="shacl-evidences-shapes" checked> of shapes only</label>
+          </span>
           <span class="shortcut">Ctrl + Enter</span>
         </div>
         <div class="result" id="shacl-result" hidden>
@@ -488,6 +505,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
             </div>
           </div>
           <pre class="output" id="shacl-output" data-viewer="Validation result" data-format-select="shacl-result-format"></pre>
+          <div class="table-output" hidden></div>
           <div class="csv-output" hidden></div>
         </div>
         <div class="toolbar schema-tools">
@@ -522,8 +540,9 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
       <!-- DCTAP: tabular application profiles, converted to ShEx -->
       <section id="panel-dctap" role="tabpanel" aria-labelledby="tab-dctap" class="panel" hidden>
         <div class="toolbar endpoint-row">
-          <label for="dctap-endpoint">Endpoint</label>
-          <input id="dctap-endpoint" class="endpoint" type="url" list="known-endpoints" spellcheck="false" autocomplete="off"
+          <label for="dctap-endpoint-choice">Endpoint</label>
+          <select id="dctap-endpoint-choice" class="endpoint-choice"></select>
+          <input id="dctap-endpoint" class="endpoint" type="url" spellcheck="false" autocomplete="off" aria-label="URL of the endpoint"
             placeholder="None: validate the RDF data below">
           <span class="hint endpoint-hint">The endpoint must allow other sites to query it (CORS).</span>
         </div>
@@ -605,6 +624,7 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
           </label>
           <label class="inline">Result format
             <select id="dctap-result-format">
+              <option value="table">Table</option>
               <option value="compact">Compact</option>
               <option value="details">Details</option>
               <option value="json">JSON</option>
@@ -621,6 +641,7 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
             </div>
           </div>
           <pre class="output" id="dctap-output" data-viewer="Validation result" data-format-select="dctap-result-format"></pre>
+          <div class="table-output" hidden></div>
           <div class="csv-output" hidden></div>
         </div>
         <div class="toolbar schema-tools">
@@ -753,8 +774,9 @@ e2: EnrolledInType</textarea>
       <!-- SPARQL -->
       <section id="panel-sparql" role="tabpanel" aria-labelledby="tab-sparql" class="panel">
         <div class="toolbar endpoint-row">
-          <label for="sparql-endpoint">Endpoint</label>
-          <input id="sparql-endpoint" class="endpoint" type="url" list="known-endpoints" spellcheck="false" autocomplete="off"
+          <label for="sparql-endpoint-choice">Endpoint</label>
+          <select id="sparql-endpoint-choice" class="endpoint-choice"></select>
+          <input id="sparql-endpoint" class="endpoint" type="url" spellcheck="false" autocomplete="off" aria-label="URL of the endpoint"
             placeholder="None: the query runs on the RDF data below">
           <span class="hint endpoint-hint">The endpoint must allow other sites to query it (CORS).</span>
         </div>
@@ -833,13 +855,6 @@ ORDER BY ?name</textarea>
         </div>
       </section>
     </section>
-    <!-- The endpoints suggested in the Endpoint fields: rudof's known
-         endpoints, when rudof has them -->
-    <datalist id="known-endpoints">
-      <option value="https://query.wikidata.org/sparql">Wikidata</option>
-      <option value="https://dbpedia.org/sparql">DBpedia</option>
-      <option value="https://sparql.uniprot.org/sparql">UniProt</option>
-    </datalist>
   </main>
 
   <footer>

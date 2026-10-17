@@ -7,6 +7,7 @@ const viewer = (page, prefix) => page.locator(`.cm-viewer[data-viewer-for="${pre
 
 test("validation results are in a viewer, in their format", async ({ page }) => {
   await open(page, "#validate/shex");
+  await page.locator("#shex-result-format").selectOption("compact");
   await page.locator("#shex-validate").click();
   await expect(viewer(page, "shex")).toBeVisible();
   await expect(viewer(page, "shex")).toHaveAttribute("data-format", "compact");
@@ -18,6 +19,7 @@ test("validation results are in a viewer, in their format", async ({ page }) => 
 
 test("tables drawn with characters keep their lines together", async ({ page }) => {
   await open(page, "#validate/shex");
+  await page.locator("#shex-result-format").selectOption("compact");
   await page.locator("#shex-validate").click();
   const lineHeight = await viewer(page, "shex").locator(".cm-scroller").evaluate((e) => parseFloat(getComputedStyle(e).lineHeight));
   expect(lineHeight).toBeLessThan(13 * 1.3);

@@ -4,10 +4,12 @@
 
 import { PANELS, hasState, panelOfParams, stateParams, queryString, inputsOfParams } from "./permalink.js";
 import { setupLayout } from "./layout.js";
-import { queryEndpoint, queryPrefixes, solutionsCsv, endpointError, endpointConfig, PAGE_ENDPOINT } from "./endpoint.js";
+import { queryEndpoint, queryPrefixes, solutionsCsv, endpointError, endpointConfig, PAGE_ENDPOINT, KNOWN_ENDPOINTS } from "./endpoint.js";
 import { dctapConfig, columnClass, parsePrefixes, BASIC_PREFIXES, BASE_CONFIG } from "./dctap.js";
 import { setupTableView } from "./table-view.js";
 import { parseCsv } from "./csv.js";
+import { makeSortable } from "./sortable.js";
+import { parseBoxTable } from "./box-table.js";
 import { LANGUAGES, TARGETS, DEFAULT_TARGET, canConvert, readSchema as readAnySchema, convertSchema, sourceLabel, targetLabel, asSource } from "./schema-convert.js";
 import { devDependencies } from "./package.json";
 
@@ -21,8 +23,8 @@ const RUDOF_MODULE = `https://cdn.jsdelivr.net/npm/@rudof/rudof@${RUDOF_VERSION}
 // the data of SPARQL endpoints (useEndpoint, and the ...Async methods). Its
 // .wasm only loads in browsers with JSPI (WebAssembly.Suspending: Chrome and
 // Edge 137+), so the others load RUDOF_MODULE, and so do all browsers when
-// the package has no endpoints/ build.
-const RUDOF_ENDPOINTS_MODULE = `https://cdn.jsdelivr.net/npm/@rudof/rudof@${RUDOF_VERSION}/endpoints/rudof_wasm.js`;
+// it can't be loaded. It is in the package since rudof 0.3.27.
+const RUDOF_ENDPOINTS_MODULE = `https://cdn.jsdelivr.net/npm/@rudof/rudof@${RUDOF_VERSION}/endpoints/web/rudof_wasm.js`;
 const HAS_JSPI = typeof WebAssembly.Suspending === "function";
 
 // PlantUML, compiled to JavaScript with TeaVM, draws the diagrams. It is
@@ -40,6 +42,10 @@ const last = {};
 // tab, if it doesn't run on the data of the page
 const ENDPOINT_TABS = ["shex", "shacl", "dctap", "sparql"];
 const endpointOf = (prefix) => $(`${prefix}-endpoint`).value.trim();
+// The endpoints of the Endpoint menus, as [name, url], and the item of the
+// menus for any other endpoint
+const OTHER_ENDPOINT = "other";
+let knownEndpoints = KNOWN_ENDPOINTS;
 
 // ---------------------------------------------------------------------------
 // Tabs
@@ -120,10 +126,13 @@ function currentPanel() {
   return { section: tabName(section), panel: tabName(selectedSubtab(section)) };
 }
 
+// The value of an input in permalinks: checkboxes are true or false
+const inputValue = (id) => ($(id).type === "checkbox" ? String($(id).checked) : $(id).value);
+
 function permalinkURL() {
   const { section, panel } = currentPanel();
   const url = new URL(location.href);
-  url.search = queryString(stateParams(panel, (id) => $(id).value, url.searchParams));
+  url.search = queryString(stateParams(panel, inputValue, url.searchParams));
   url.hash = `${section}/${panel}`;
   return url.href;
 }
@@ -150,6 +159,9 @@ function restoreInputs() {
       }
       input.value = value;
       // The editor highlights the text in its format
+      input.dispatchEvent(new Event("change"));
+    } else if (input.type === "checkbox") {
+      input.checked = value === "true";
       input.dispatchEvent(new Event("change"));
     } else {
       input.value = value;
@@ -306,8 +318,10 @@ const convertTable = setupTableView({
 });
 // The formats and targets of the schema of the Schema tab
 changeConvertLanguage();
+fillEndpointChoices();
 restoreInputs();
 showEndpointUse();
+showShaclOptions();
 selectTabFromHash();
 window.addEventListener("hashchange", selectTabFromHash);
 
@@ -375,12 +389,12 @@ function csvTable(text) {
     e.append(...children);
     return e;
   };
-  return el(
+  return makeSortable(el(
     "table",
     { className: "report csv-result" },
     el("thead", {}, el("tr", {}, ...header.map((h) => el("th", {}, h)))),
     el("tbody", {}, ...rows.map((row) => el("tr", {}, ...row.map((cell) => el("td", {}, el("code", {}, cell)))))),
-  );
+  ));
 }
 
 // text: whether the result is text, which may be CSV (not an error or a table)
@@ -512,8 +526,10 @@ function setStatus(kind, text) {
 // Validation
 
 let rudofModule;
-// Whether the loaded rudof can use endpoints (see RUDOF_ENDPOINTS_MODULE)
+// Whether the loaded rudof can use endpoints (see RUDOF_ENDPOINTS_MODULE), and
+// why rudof with endpoints could not be loaded, if it was tried
 let rudofEndpoints = false;
+let endpointsError;
 // Settled when rudof is loaded, or could not be (see Loading)
 let markRudofLoaded;
 const rudofLoaded = new Promise((resolve) => (markRudofLoaded = resolve));
@@ -542,9 +558,14 @@ function endpointName(endpoint) {
   }
 }
 
-const NO_ENDPOINTS = HAS_JSPI
-  ? "The rudof of this page can't validate the data of an endpoint: it was built without endpoints."
-  : "Validating the data of an endpoint needs a browser with JSPI (JavaScript Promise Integration), such as Chrome or Edge 137 or later.";
+// Why the validations can't use endpoints
+function noEndpoints() {
+  if (!HAS_JSPI) {
+    return "Validating the data of an endpoint needs a browser with JSPI (JavaScript Promise Integration), such as Chrome or Edge 137 or later.";
+  }
+  if (endpointsError) return `rudof with endpoints could not be loaded in this browser, so it can't validate the data of an endpoint: ${endpointsError}`;
+  return "The rudof of this page can't validate the data of an endpoint: it was built without endpoints.";
+}
 
 // The data is not used when the tab runs on an endpoint.
 function showEndpointUse() {
@@ -553,10 +574,47 @@ function showEndpointUse() {
     $(`${prefix}-data`).closest(".field").classList.toggle("unused", onEndpoint);
     $(`${prefix}-data-unused`).hidden = !onEndpoint;
   }
+  showEndpointChoices();
+}
+
+// The menu of each Endpoint field: none (the data of the page), the endpoints
+// that rudof knows, or another one, whose URL is written in the field. The
+// field has the URL of the endpoint chosen, and is what the tab uses.
+function fillEndpointChoices() {
+  for (const prefix of ENDPOINT_TABS) {
+    $(`${prefix}-endpoint-choice`).replaceChildren(
+      new Option("None: the RDF data below", ""),
+      ...knownEndpoints.map(([name, url]) => new Option(`${name} (${endpointName(url)})`, url)),
+      new Option("Other: write its URL", OTHER_ENDPOINT),
+    );
+  }
+  showEndpointChoices();
+}
+
+// The menus say the endpoint of their field
+function showEndpointChoices() {
+  for (const prefix of ENDPOINT_TABS) {
+    const choice = $(`${prefix}-endpoint-choice`);
+    const endpoint = endpointOf(prefix);
+    if (!endpoint && choice.value === OTHER_ENDPOINT) continue; // to be written
+    choice.value = !endpoint ? "" : knownEndpoints.some(([, url]) => url === endpoint) ? endpoint : OTHER_ENDPOINT;
+  }
 }
 
 for (const prefix of ENDPOINT_TABS) {
-  $(`${prefix}-endpoint`).addEventListener("input", showEndpointUse);
+  const input = $(`${prefix}-endpoint`);
+  $(`${prefix}-endpoint-choice`).addEventListener("change", (e) => {
+    const choice = e.currentTarget.value;
+    if (choice === OTHER_ENDPOINT) {
+      if (knownEndpoints.some(([, url]) => url === input.value.trim())) input.value = "";
+      input.focus();
+    } else {
+      input.value = choice;
+    }
+    showEndpointUse();
+    updatePermalink();
+  });
+  input.addEventListener("input", showEndpointUse);
   $(`${prefix}-endpoint`).addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !(e.ctrlKey || e.metaKey)) {
       e.preventDefault();
@@ -572,8 +630,9 @@ function setupEndpoints() {
     for (const prefix of ENDPOINT_TABS.filter((p) => p !== "sparql")) {
       const input = $(`${prefix}-endpoint`);
       input.disabled = true;
+      $(`${prefix}-endpoint-choice`).disabled = true;
       input.placeholder = "Not available on this page (see at the right)";
-      input.closest(".endpoint-row").querySelector(".endpoint-hint").textContent = NO_ENDPOINTS;
+      input.closest(".endpoint-row").querySelector(".endpoint-hint").textContent = noEndpoints();
     }
     return;
   }
@@ -586,12 +645,11 @@ function setupEndpoints() {
   } catch (e) {
     console.info(`rudof did not list its endpoints: ${e.message ?? e}`);
   }
-  const list = $("known-endpoints");
-  const urls = new Set([...list.options].map((o) => o.value));
-  for (const [name, url] of known) {
-    if (!urls.has(url)) list.append(new Option(name, url));
-    urls.add(url);
-  }
+  // By their URLs, with the names of rudof (Wikidata_qlever: Wikidata qlever)
+  const byUrl = new Map(knownEndpoints.map(([name, url]) => [url, name]));
+  for (const [name, url] of known) byUrl.set(url, name.replace(/_/g, " "));
+  knownEndpoints = [...byUrl].map(([url, name]) => [name, url]).sort(([a], [b]) => a.localeCompare(b, "en", { sensitivity: "base" }));
+  fillEndpointChoices();
 }
 
 // The session of a tab with its data: the RDF data of the tab, or its
@@ -613,7 +671,7 @@ function dataSession(prefix, { config, prefixes } = {}) {
     rudof.readData($(`${prefix}-data`).value, $(`${prefix}-data-format`).value);
     return { rudof };
   }
-  if (!rudofEndpoints) throw new Error(NO_ENDPOINTS);
+  if (!rudofEndpoints) throw new Error(noEndpoints());
   const byUrl = /^[a-z][\w+.-]*:/i.test(endpoint);
   const toml = byUrl ? `${config ?? BASE_CONFIG}\n${endpointConfig(endpoint, prefixes)}` : config;
   const rudof = new rudofModule.Rudof(toml ? rudofModule.RudofConfig.fromToml(toml) : undefined);
@@ -658,8 +716,41 @@ function shexResult(report, start) {
   };
 }
 
+// The results of a validation as a table that can be sorted: the details
+// that rudof writes as text, with a row of each node and shape. The verdict
+// of each row (Status of ShEx, Severity of SHACL) is marked.
+const CONFORMS = new Set(["OK", "Conforms"]);
+
+function validationTable(text) {
+  const parsed = parseBoxTable(text);
+  if (!parsed) return text; // no results: rudof says so in text
+  const el = (tag, props = {}, ...children) => {
+    const e = Object.assign(document.createElement(tag), props);
+    e.append(...children);
+    return e;
+  };
+  const verdict = parsed.header.findIndex((h) => h === "Status" || h === "Severity");
+  const details = parsed.header.indexOf("Details");
+  const rows = parsed.rows.map((row) =>
+    el(
+      "tr",
+      { className: CONFORMS.has(row[verdict]) ? "ok" : "fail" },
+      ...row.map((cell, i) => {
+        if (i === verdict) return el("td", { className: "verdict-cell" }, cell);
+        if (i === details) return el("td", {}, el("div", { className: "details" }, cell));
+        return el("td", {}, el("code", {}, cell));
+      }),
+    ),
+  );
+  return makeSortable(
+    el("table", { className: "report" }, el("thead", {}, el("tr", {}, ...parsed.header.map((h) => el("th", {}, h)))), el("tbody", {}, ...rows)),
+  );
+}
+
 function serializeShex() {
-  return session("shex").serializeShexValidationResults($("shex-result-format").value);
+  const format = $("shex-result-format").value;
+  if (format === "table") return validationTable(session("shex").serializeShexValidationResults("details"));
+  return session("shex").serializeShexValidationResults(format);
 }
 
 // DCTAP: rudof converts the profile to ShEx, with the prefixes of the profile
@@ -691,7 +782,9 @@ function validateDctap() {
 }
 
 function serializeDctap() {
-  return session("dctap").serializeShexValidationResults($("dctap-result-format").value);
+  const format = $("dctap-result-format").value;
+  if (format === "table") return validationTable(session("dctap").serializeShexValidationResults("details"));
+  return session("dctap").serializeShexValidationResults(format);
 }
 
 // The profile converted: to ShEx (and what rudof makes from ShEx: diagrams,
@@ -719,9 +812,32 @@ function serializeDctapSchema() {
   return rudof.serializeCurrentShex(format);
 }
 
+// The configuration of SHACL validation: the recursion semantics, and the
+// results that rudof keeps: the errors, and the evidences (why nodes
+// conform), of every constraint or of the shapes only.
+function shaclConfig() {
+  const flag = (id) => String($(id).checked);
+  return [
+    BASE_CONFIG,
+    "[shacl]",
+    `recursion_semantics = ${JSON.stringify($("shacl-recursion").value)}`,
+    `store_errors = ${flag("shacl-errors")}`,
+    `store_evidences = ${flag("shacl-evidences")}`,
+    `evidence_shapes_only = ${flag("shacl-evidences-shapes")}`,
+    "",
+  ].join("\n");
+}
+
+// "of shapes only" is about evidences
+function showShaclOptions() {
+  $("shacl-evidences-shapes").disabled = !$("shacl-evidences").checked;
+}
+$("shacl-evidences").addEventListener("change", showShaclOptions);
+for (const id of ["shacl-recursion", "shacl-errors", "shacl-evidences", "shacl-evidences-shapes"]) $(id).addEventListener("change", updatePermalink);
+
 function validateShacl() {
   const start = performance.now();
-  const data = dataSession("shacl", { prefixes: schemaPrefixes($("shacl-shapes").value) });
+  const data = dataSession("shacl", { config: shaclConfig(), prefixes: schemaPrefixes($("shacl-shapes").value) });
   const mode = $("shacl-mode").value;
   data.rudof.readShacl($("shacl-shapes").value, $("shacl-shapes-format").value);
   return validation(data, () => data.rudof.validateShacl(mode), () => data.rudof.validateShaclAsync(mode), (report) => shaclResult(report, start));
@@ -731,17 +847,19 @@ function shaclResult(report, start) {
   const millis = performance.now() - start;
   const violations = report.entries.filter((e) => e.severity === "Violation").length;
   const others = report.entries.length - violations;
+  // Without the errors, rudof doesn't say them
+  const errors = $("shacl-errors").checked ? `: ${count(violations, "violation")}${others ? `, ${count(others, "other result")}` : ""}` : "";
   return {
-    verdict: report.conforms
-      ? "Conforms"
-      : `Does not conform: ${count(violations, "violation")}${others ? `, ${count(others, "other result")}` : ""}`,
+    verdict: report.conforms ? "Conforms" : `Does not conform${errors}`,
     kind: report.conforms ? "ok" : "fail",
     millis,
   };
 }
 
 function serializeShacl() {
-  return session("shacl").serializeShaclValidationResults($("shacl-result-format").value);
+  const format = $("shacl-result-format").value;
+  if (format === "table") return validationTable(session("shacl").serializeShaclValidationResults("details"));
+  return session("shacl").serializeShaclValidationResults(format);
 }
 
 function validatePgschema() {
@@ -781,11 +899,13 @@ function pgschemaTable(report) {
       el("td", {}, el("div", { className: "details" }, e.details)),
     ),
   );
-  return el(
-    "table",
-    { className: "report" },
-    el("thead", {}, el("tr", {}, ...["Id", "Type", "Result", "Details"].map((h) => el("th", {}, h)))),
-    el("tbody", {}, ...rows),
+  return makeSortable(
+    el(
+      "table",
+      { className: "report" },
+      el("thead", {}, el("tr", {}, ...["Id", "Type", "Result", "Details"].map((h) => el("th", {}, h)))),
+      el("tbody", {}, ...rows),
+    ),
   );
 }
 
@@ -991,6 +1111,8 @@ function termCell(term, prefixes) {
     else if (datatype && !plain.includes(datatype)) note = qualify(datatype);
   }
   const code = Object.assign(document.createElement("code"), { textContent: text, title: term });
+  // Sorted by the value, without its note
+  td.dataset.sort = text;
   td.append(code);
   if (note) td.append(" ", Object.assign(document.createElement("span"), { className: "term-note", textContent: note }));
   return td;
@@ -1003,14 +1125,16 @@ function sparqlTable({ variables, rows }, prefixes) {
     e.append(...children);
     return e;
   };
-  return el(
-    "table",
-    { className: "report solutions" },
-    el("thead", {}, el("tr", {}, ...variables.map((v) => el("th", {}, v)))),
+  return makeSortable(
     el(
-      "tbody",
-      {},
-      ...rows.map((row) => el("tr", {}, ...row.map((value) => termCell(value, prefixes)))),
+      "table",
+      { className: "report solutions" },
+      el("thead", {}, el("tr", {}, ...variables.map((v) => el("th", {}, v)))),
+      el(
+        "tbody",
+        {},
+        ...rows.map((row) => el("tr", {}, ...row.map((value) => termCell(value, prefixes)))),
+      ),
     ),
   );
 }
@@ -1386,7 +1510,8 @@ try {
     try {
       rudofModule = await loadRudof(url);
     } catch (e) {
-      console.info(`rudof with endpoints could not be loaded from ${url}: ${e.message ?? e}`);
+      endpointsError = `${e.name ?? "Error"}: ${e.message ?? e}`;
+      console.warn(`rudof with endpoints could not be loaded from ${url}:`, e);
     }
   }
   if (!rudofModule) {
@@ -1397,7 +1522,7 @@ try {
   // The version reported by the loaded module, not the one requested
   const version = new rudofModule.Rudof().getVersion();
   setStatus("ready", `rudof ${version} ready${rudofEndpoints ? ", with endpoints" : ""}`);
-  $("status").title = `@rudof/rudof from ${url}`;
+  $("status").title = `@rudof/rudof from ${url}` + (endpointsError ? `\n(rudof with endpoints could not be loaded: ${endpointsError})` : "");
   for (const b of document.querySelectorAll('button[id$="-validate"]')) b.disabled = false;
   setupEndpoints();
 } catch (e) {

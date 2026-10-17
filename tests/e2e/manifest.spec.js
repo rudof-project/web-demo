@@ -152,7 +152,7 @@ test.describe("without rudof with endpoints", () => {
 });
 
 test("with rudof with endpoints, an example can validate the data of an endpoint", async ({ page }) => {
-  test.skip(!hasEndpointsBuild, "no rudof with endpoints: set RUDOF_ENDPOINTS_DIR");
+  test.skip(!hasEndpointsBuild, "no rudof with endpoints in node_modules or RUDOF_ENDPOINTS_DIR");
   await open(page, `?manifestURL=${encodeURIComponent(MANIFEST_URL)}`);
   await expect(select(page).locator('optgroup[label="Wikidata"] option')).toBeEnabled();
   await expect(page.locator("#manifest-problems")).toBeHidden();

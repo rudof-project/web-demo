@@ -47,7 +47,7 @@ const verdict = (page) => page.locator("#sparql-result .verdict");
 for (const endpoints of [true, false]) {
   test.describe(endpoints ? "through rudof" : "sent by the page", () => {
     test.use({ rudofEndpoints: endpoints });
-    test.skip(endpoints && !hasEndpointsBuild, "no rudof with endpoints: set RUDOF_ENDPOINTS_DIR");
+    test.skip(endpoints && !hasEndpointsBuild, "no rudof with endpoints in node_modules or RUDOF_ENDPOINTS_DIR");
 
     test("the status says which rudof the page loaded", async ({ page }) => {
       await open(page);
