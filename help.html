@@ -7,7 +7,7 @@
   <title>Help: manifests of examples — rudof online demo</title>
   <meta name="description" content="How to run the examples of a manifest in the rudof online demo, and the format of manifest files.">
   <link rel="icon" href="./assets/logo-Bi_PJdUG.svg" type="image/svg+xml">
-  <link rel="stylesheet" crossorigin href="./assets/demo-D-ZurJKt.css">
+  <link rel="stylesheet" crossorigin href="./assets/demo-BfnRC8yV.css">
 </head>
 
 <body>
@@ -251,6 +251,24 @@
     SELECT ?occupation WHERE { wd:Q80 wdt:P106 ?occupation }
   comment: The occupations of Tim Berners-Lee, in Wikidata</code></pre>
 
+      <h3 id="example-endpoint">Validate the data of an endpoint</h3>
+      <p>A validation with ShEx, SHACL or DCTAP can run on the data of a SPARQL endpoint, given by
+        <code>endpoint</code>, instead of <code>data</code>: rudof asks the endpoint for the data of each node it
+        validates. The shape map can use the prefixes of the schema (for DCTAP, its <code>prefixes</code>).</p>
+      <pre class="manifest-example"><code>- endpoint: https://query.wikidata.org/sparql
+  schema: |
+    PREFIX wd: &lt;http://www.wikidata.org/entity/&gt;
+    PREFIX wdt: &lt;http://www.wikidata.org/prop/direct/&gt;
+    PREFIX : &lt;http://example.org/&gt;
+    :Human { wdt:P31 [ wd:Q5 ] }
+  queryMap: "wd:Q80@:Human"
+  status: conformant
+  comment: Tim Berners-Lee is a human, in Wikidata</code></pre>
+      <p class="note">For this, the demo loads rudof built with endpoints, which needs a browser with JSPI
+        (JavaScript Promise Integration): Chrome or Edge 137 or later. In other browsers, these examples can't be run;
+        queries on endpoints can, as the demo sends them itself. As for queries, the endpoint must allow other sites to
+        query it (CORS).</p>
+
       <h3 id="example-schema">Show a schema</h3>
       <p><code>action: schema</code> puts the schema in the Schema tab, to convert it to other formats, to other
         languages, to a UML diagram or to a SPARQL query. The language of the schema is its
@@ -328,7 +346,7 @@
             <tr>
               <td><code>data</code>, <code>dataURL</code></td>
               <td>The data: RDF, or a property graph in YARS-PG</td>
-              <td>All the actions. Optional for a query with an <code>endpoint</code></td>
+              <td>All the actions. Optional with an <code>endpoint</code></td>
             </tr>
             <tr>
               <td><code>schema</code>, <code>schemaURL</code></td>
@@ -354,8 +372,9 @@
             </tr>
             <tr>
               <td><code>endpoint</code></td>
-              <td>The URL of a SPARQL endpoint: the query runs on it, instead of the data</td>
-              <td><code>query</code></td>
+              <td>The URL of a SPARQL endpoint: the query or the validation runs on it, instead of the data
+                (<a href="#example-endpoint">see above</a>)</td>
+              <td><code>query</code>, and <code>validate</code> with ShEx, SHACL or DCTAP</td>
             </tr>
             <tr>
               <td><code>prefixes</code>, <code>prefixesURL</code></td>
@@ -473,8 +492,9 @@
         <li>formats that their tab can't read (for example TriX, or a <code>shex</code> schema for SHACL);</li>
         <li>unknown actions, validation engines or query engines;</li>
         <li>queries on property graphs;</li>
-        <li>validations that read their data from an endpoint as they go (<code>neighborhood</code> in the manifests
-          of shex.js): rudof can't do this in the browser yet.</li>
+        <li>validations on an <code>endpoint</code>, in browsers without JSPI, such as Firefox and Safari
+          (<a href="#example-endpoint">see above</a>), and validations that read their data as they go
+          (<code>neighborhood</code> in the manifests of shex.js) without an <code>endpoint</code>.</li>
       </ul>
     </section>
 
