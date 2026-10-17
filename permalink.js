@@ -32,6 +32,7 @@ export const PANELS = {
       schema: "shex-schema",
       data: "shex-data",
       "shape-map": "shex-shapemap",
+      endpoint: "shex-endpoint",
       "schema-format": "shex-schema-format",
       "data-format": "shex-data-format",
       "result-format": "shex-result-format",
@@ -43,6 +44,7 @@ export const PANELS = {
     params: {
       shapes: "shacl-shapes",
       data: "shacl-data",
+      endpoint: "shacl-endpoint",
       "shapes-format": "shacl-shapes-format",
       "data-format": "shacl-data-format",
       mode: "shacl-mode",
@@ -57,6 +59,7 @@ export const PANELS = {
       prefixes: "dctap-prefixes",
       picklist: "dctap-picklist",
       data: "dctap-data",
+      endpoint: "dctap-endpoint",
       "shape-map": "dctap-shapemap",
       "data-format": "dctap-data-format",
       engine: "dctap-engine",

@@ -116,24 +116,48 @@ the CSV, which stays the input. The browser remembers the view.
 
 ## SPARQL endpoints
 
-In the Query tab, the **Endpoint** field runs the query on a SPARQL endpoint
-(Wikidata, DBpedia and UniProt are suggested) instead of the RDF data of the
-page. Leave it empty to query the data.
+In the SPARQL, ShEx, SHACL and DCTAP tabs, the **Endpoint** field runs the
+query or the validation on a SPARQL endpoint instead of the RDF data of the
+page. Wikidata, DBpedia, UniProt and the other endpoints that rudof knows are
+suggested. Leave it empty to use the data.
 
-rudof compiled to WebAssembly can't reach endpoints: its HTTP client waits
-for each answer, which a browser page can't do. So
-[`endpoint.js`](endpoint.js) sends the query itself, with the SPARQL 1.1
-protocol (GET, or POST for long queries), and gives the results in the form
-of the results of rudof. SELECT results show in the table (with the prefixes
-of the query), as JSON (as the endpoint gave them) or as CSV. The graphs of
-CONSTRUCT and DESCRIBE are read with rudof, so they can be written in every
-RDF format.
+rudof goes to the endpoint: `useEndpoint`, then `runQueryAsync`,
+`validateShexAsync` or `validateShaclAsync`. ShEx asks the endpoint for the
+data of each node of the shape map, and SHACL for the data of its targets.
+The page describes the endpoint to rudof (`endpointConfig` in
+[`endpoint.js`](endpoint.js)) with the prefixes of the schema, so the shape
+map can use them: the data of an endpoint has no prefixes.
+
+This needs rudof built with the `endpoints` feature, and its WebAssembly
+needs JSPI (JavaScript Promise Integration): Chrome and Edge 137 or later
+have it, Firefox and Safari don't yet. So the page loads
+`@rudof/rudof@<version>/endpoints/rudof_wasm.js` in browsers with JSPI, and
+the usual `web/` build in the others, or when the package has no
+`endpoints/` build. The status line says "with endpoints" when it has them.
+Without them, the page sends SPARQL queries to the endpoint itself
+([`endpoint.js`](endpoint.js), with the SPARQL 1.1 protocol), and the
+validations can't use endpoints.
+
+SELECT results show in the table (with the prefixes of the query), as JSON
+or as CSV. The graphs of CONSTRUCT and DESCRIBE can be written in every RDF
+format.
 
 The endpoint must allow other sites to query it
 ([CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)), as Wikidata
-does, and the page (https) can't query an `http:` endpoint. Validation on
-endpoints is not possible yet: the validators of rudof read the data as they
-go, and that needs a change in rudof.
+does, and the page (https) can't query an `http:` endpoint.
+
+The browser tests run with both builds when they have rudof with endpoints:
+the `endpoints/` folder of the package, or a build of rudof given by
+`RUDOF_ENDPOINTS_DIR`:
+
+```sh
+# in rudof/bindings/wasm
+RUDOF_WASM_FEATURES="comparison,conversion,dctap,pgschema,rdf-config,endpoints" ./build.sh
+# in this repo
+RUDOF_ENDPOINTS_DIR=<rudof>/bindings/wasm/pkg/web npm run test:e2e
+```
+
+Without it, the tests of rudof with endpoints are skipped.
 
 ## Layout
 
@@ -199,7 +223,7 @@ ShEx validation, as in the manifests of shex.js:
 | `query`, `queryURL` | the query, for `action: query` | |
 | `queryFormat` | `sparql` | `sparql` |
 | `queryEngine` | `sparql` | `sparql` |
-| `endpoint` | the SPARQL endpoint the query runs on, instead of the data (then the data is optional) | |
+| `endpoint` | the SPARQL endpoint the query or the validation (ShEx, SHACL, DCTAP) runs on, instead of the data (then the data is optional). Validations need a browser with JSPI | |
 | `typeMap`, `typeMapURL` | the type map of PGSchema (or `queryMap`) | |
 | `schemaLanguage` (or `schemaEngine`) | `shex`, `shacl`, `pgschema` or `dctap`: the language of the schema. DCTAP profiles go to the DCTAP tab, which validates them with ShEx. With `action: schema`, the language of the Schema tab | `dctap` for CSV schemas (`schemaFormat: csv` or `.csv` files) |
 | `prefixes`, `prefixesURL` | the prefixes of a DCTAP profile, as Turtle declarations (`PREFIX`, `BASE`) | |
@@ -230,9 +254,10 @@ example is validated as loaded, the verdict says whether the result is the
 one of its `status`. Examples that the demo can't run are listed but can't be
 loaded; **Why … examples can't be run**, below the list, says why, with a
 hint to change each entry and the entry as the demo read it. They are
-those that read their data from a SPARQL endpoint or Wikidata as they are
-validated (`neighborhood:`), queries on property graphs, and formats that
-the tab can't read (such as TriX).
+validations on an `endpoint` in browsers without JSPI, validations that read
+their data as they go (`neighborhood:` of shex.js) without an `endpoint`,
+queries on property graphs, and formats that the tab can't read (such as
+TriX).
 `&example=<n>` loads the n-th example (from 1) when the page opens; the URL
 gets it when an example is chosen, so it can be shared. Choosing an example
 also puts its inputs in the URL (see [Permalinks](#permalinks)); the
@@ -264,9 +289,9 @@ copies it. Opening the URL puts the inputs and options back in their tab.
 | Convert (Schema) | `schema-language`, `schema-format`, `schema`, `prefixes`, `picklist`, `to`, `to-format` |
 | RDF      | `data`, `data-format`, `result-format` |
 | Property graph | `data`, `result-format` |
-| ShEx     | `schema`, `data`, `shape-map`, `schema-format`, `data-format`, `result-format`, `schema-result-format` |
-| SHACL    | `shapes`, `data`, `shapes-format`, `data-format`, `mode`, `result-format`, `schema-result-format` |
-| DCTAP    | `dctap`, `prefixes`, `picklist`, `data`, `shape-map`, `data-format`, `engine`, `result-format`, `schema-result-format` |
+| ShEx     | `schema`, `data`, `shape-map`, `endpoint`, `schema-format`, `data-format`, `result-format`, `schema-result-format` |
+| SHACL    | `shapes`, `data`, `endpoint`, `shapes-format`, `data-format`, `mode`, `result-format`, `schema-result-format` |
+| DCTAP    | `dctap`, `prefixes`, `picklist`, `data`, `endpoint`, `shape-map`, `data-format`, `engine`, `result-format`, `schema-result-format` |
 | PGSchema | `schema`, `data`, `type-map`, `result-format` |
 | SPARQL   | `data`, `data-format`, `query`, `endpoint`, `result-format` |
 

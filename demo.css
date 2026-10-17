@@ -466,9 +466,9 @@ body.has-maximized { overflow: hidden; }
 .maximized .diagram-image { flex: 1; max-height: none; }
 .layout-choice { font-size: 0.9em; }
 
-/* SPARQL on an endpoint (endpoint.js) */
+/* Validations and queries on an endpoint */
 .endpoint-row label { font-weight: 600; }
-#sparql-endpoint {
+.endpoint-row input.endpoint {
   flex: 1 1 18rem;
   max-width: 34rem;
   font: 13px var(--mono);
@@ -478,7 +478,8 @@ body.has-maximized { overflow: hidden; }
   background: var(--surface);
   color: var(--text);
 }
-#sparql-endpoint:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.endpoint-row input.endpoint:disabled { opacity: 0.6; }
+.endpoint-row input.endpoint:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .field.unused > .cm-editor { opacity: 0.5; }
 .result[data-kind="running"] .result-head { color: var(--muted); font-weight: 400; }
 

@@ -385,13 +385,14 @@ describe("why an example can't be run", () => {
 
     expect(one("- data: ''\n  action: convert\n")).toMatchObject({ hint: "Write action: data, action: validate, action: query, action: schema, or leave it out to validate.", help: "key-action" });
     expect(one("- query: 'ASK {}'\n  action: query\n")).toMatchObject({ help: "example-query" });
-    expect(examples[2]).toMatchObject({ help: "unsupported", hint: expect.stringMatching(/neighborhood/) });
+    expect(examples[2]).toMatchObject({ help: "example-endpoint", hint: expect.stringMatching(/Chrome or Edge 137/) });
+    expect(one("- schema: ''\n  neighborhood: sparql\n  queryMap: ''\n")).toMatchObject({ help: "unsupported", hint: expect.stringMatching(/neighborhood/) });
   });
 
   it("points only to sections of the help page that exist", async () => {
     const { readFileSync } = await import("node:fs");
     const help = readFileSync(new URL("../../help.html", import.meta.url), "utf8");
-    for (const id of ["key-action", "keys", "unsupported", "format", "example-shex", "example-pgschema", "example-query"]) {
+    for (const id of ["key-action", "keys", "unsupported", "format", "example-shex", "example-pgschema", "example-query", "example-endpoint"]) {
       expect(help, id).toContain(`id="${id}"`);
     }
   });
@@ -404,6 +405,50 @@ describe("why an example can't be run", () => {
 
   it("gives no hint to the examples that can be run", () => {
     expect(examples[0]).toMatchObject({ unsupported: undefined, hint: undefined, help: undefined });
+  });
+});
+
+describe("validations on an endpoint", () => {
+  const one = (yaml, options) => parseManifest(yaml, MANIFEST_URL, options)[0];
+  const ENDPOINT = "https://query.wikidata.org/sparql";
+  const SHEX = `- schema: "PREFIX wd: <http://www.wikidata.org/entity/>\\nstart = {}"\n  endpoint: ${ENDPOINT}\n  queryMap: "wd:Q80@START"\n`;
+
+  it("need no data, and fill the endpoint of the tab", async () => {
+    const example = one(SHEX, { endpoints: true });
+    expect(example).toMatchObject({ target: "shex", endpoint: ENDPOINT, unsupported: undefined });
+    const inputs = Object.fromEntries((await loadExample(example)).map((i) => [i.name, i]));
+    expect(inputs.endpoint).toMatchObject({ textarea: "shex-endpoint", text: ENDPOINT });
+    expect(inputs.data).toMatchObject({ textarea: "shex-data", text: "" });
+  });
+
+  it("clear the endpoint of validations on data", async () => {
+    const example = one("- schema: ''\n  data: ''\n  queryMap: ''\n", { endpoints: true });
+    const inputs = Object.fromEntries((await loadExample(example)).map((i) => [i.name, i]));
+    expect(inputs.endpoint).toMatchObject({ textarea: "shex-endpoint", text: "" });
+  });
+
+  it("go to the tab of their engine", () => {
+    expect(one(`- shapes: ''\n  endpoint: ${ENDPOINT}\n`, { endpoints: true })).toMatchObject({ target: "shacl", unsupported: undefined });
+    const dctap = one(`- schemaURL: p.csv\n  endpoint: ${ENDPOINT}\n  queryMap: ''\n`, { endpoints: true });
+    expect(dctap).toMatchObject({ target: "dctap", unsupported: undefined });
+  });
+
+  it("read the neighborhoods of nodes of shex.js from the endpoint", () => {
+    // as examples[2], from the manifests of shex.js
+    expect(parseManifest(MANIFEST, MANIFEST_URL, { endpoints: true })[2]).toMatchObject({ target: "shex", unsupported: undefined });
+  });
+
+  it("can't be run without rudof with endpoints", () => {
+    expect(one(SHEX)).toMatchObject({
+      unsupported: `validates the data of ${ENDPOINT}, which needs a browser with JSPI (JavaScript Promise Integration)`,
+      help: "example-endpoint",
+    });
+    // Queries can: the page sends them itself
+    expect(one(`- query: 'ASK {}'\n  endpoint: ${ENDPOINT}\n  action: query\n`).unsupported).toBeUndefined();
+  });
+
+  it("still need a shape map for ShEx", () => {
+    expect(one(`- schema: ''\n  endpoint: ${ENDPOINT}\n`, { endpoints: true }).unsupported).toBe("has no queryMap");
   });
 });
 

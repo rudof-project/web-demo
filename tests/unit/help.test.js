@@ -18,7 +18,7 @@ const MANIFEST_URL = "https://example.org/manifest.yaml";
 // The examples, with the id of the heading they are under
 const examples = [...help.querySelectorAll("pre.manifest-example")].map((pre) => ({
   heading: [...help.querySelectorAll("h3")].filter((h) => h.compareDocumentPosition(pre) & 4).at(-1).id,
-  entries: parseManifest(pre.textContent, MANIFEST_URL),
+  entries: parseManifest(pre.textContent, MANIFEST_URL, { endpoints: true }),
 }));
 
 // Validates the inputs of an example with rudof: whether they conform.
@@ -89,8 +89,9 @@ describe("the examples of the help page", () => {
     await loadExample(example, async () => "");
   });
 
-  // The validations with their inputs in the manifest
-  const inline = ([, e]) => Object.values(e.inputs).every((input) => input.text != null);
+  // The validations with their inputs in the manifest (not on endpoints,
+  // which the tests don't reach)
+  const inline = ([, e]) => !e.inputs.endpoint && Object.values(e.inputs).every((input) => input.text != null);
   it.each(entries.filter(([, e]) => e.action === "validate" && e.status).filter(inline))("%s: the validation gives its status", async (_, example) => {
     const inputs = await loadExample(example);
     expect(conforms(example, inputs)).toBe(example.status === "conformant");

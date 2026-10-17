@@ -1,7 +1,7 @@
 // The examples of a manifest: ?manifestURL=… lists them, and choosing one
 // loads it into the editors of the tab of its action, and runs it.
 
-import { test, expect, open } from "./fixtures.js";
+import { test, expect, open, hasEndpointsBuild } from "./fixtures.js";
 
 const MANIFEST_URL = "https://manifests.example/doc/manifest.yaml";
 
@@ -117,14 +117,47 @@ test("without a manifest, there is no list of examples", async ({ page }) => {
   await expect(page.locator("#manifest")).toBeHidden();
 });
 
-test("lists the examples of the manifest, grouped by schema", async ({ page }) => {
+// The Wikidata example reads the data of an endpoint as it validates
+// (neighborhood: sparql), which only rudof with endpoints can do.
+test.describe("without rudof with endpoints", () => {
+  test.use({ rudofEndpoints: false });
+
+  test("lists the examples of the manifest, grouped by schema", async ({ page }) => {
+    await open(page, `?manifestURL=${encodeURIComponent(MANIFEST_URL)}`);
+    await expect(page.locator("#manifest")).toBeVisible();
+    await expect(page.locator("#manifest-link")).toHaveAttribute("href", MANIFEST_URL);
+    await expect(select(page)).toBeEnabled();
+    await expect(select(page).locator("optgroup")).toHaveCount(2);
+    await expect(select(page).locator('optgroup[label="person"] option')).toHaveText(["✓ Alice has a name.", "✗ Bob"]);
+    await expect(select(page).locator('optgroup[label="Wikidata"] option')).toBeDisabled();
+  });
+
+  test("says why the examples that can't be run can't be run", async ({ page }) => {
+    await open(page, `?manifestURL=${encodeURIComponent(MANIFEST_URL)}`);
+    const problems = page.locator("#manifest-problems");
+    await expect(problems.locator("summary").first()).toHaveText("Why 1 example can't be run");
+    await expect(problems.locator("ul")).toBeHidden();
+    await problems.locator("summary").first().click();
+    const item = problems.locator("li");
+    await expect(item).toHaveCount(1);
+    await expect(item.locator(".problem-title")).toHaveText("from the query service (entry 3, Wikidata)");
+    await expect(item.locator(".problem-reason")).toHaveText(
+      "This example validates the data of https://query.wikidata.org/sparql, which needs a browser with JSPI (JavaScript Promise Integration).",
+    );
+    await expect(item.locator(".problem-hint")).toContainText("give the data with data: or dataURL:");
+    await expect(item.locator(".problem-hint a")).toHaveAttribute("href", "help.html#example-endpoint");
+    await item.locator(".problem-source summary").click();
+    await expect(item.locator("pre")).toContainText("neighborhood: sparql");
+  });
+});
+
+test("with rudof with endpoints, an example can validate the data of an endpoint", async ({ page }) => {
+  test.skip(!hasEndpointsBuild, "no rudof with endpoints: set RUDOF_ENDPOINTS_DIR");
   await open(page, `?manifestURL=${encodeURIComponent(MANIFEST_URL)}`);
-  await expect(page.locator("#manifest")).toBeVisible();
-  await expect(page.locator("#manifest-link")).toHaveAttribute("href", MANIFEST_URL);
-  await expect(select(page)).toBeEnabled();
-  await expect(select(page).locator("optgroup")).toHaveCount(2);
-  await expect(select(page).locator('optgroup[label="person"] option')).toHaveText(["✓ Alice has a name.", "✗ Bob"]);
-  await expect(select(page).locator('optgroup[label="Wikidata"] option')).toBeDisabled();
+  await expect(select(page).locator('optgroup[label="Wikidata"] option')).toBeEnabled();
+  await expect(page.locator("#manifest-problems")).toBeHidden();
+  await select(page).selectOption({ label: "from the query service" });
+  await expect(page.locator("#shex-endpoint")).toHaveValue("https://query.wikidata.org/sparql");
 });
 
 test("loads the chosen example into the editors, and validates it", async ({ page }) => {
@@ -235,22 +268,6 @@ test("the link keeps the manifest URL as it was given", async ({ page }) => {
   await page.route("**/doc/relative.yaml", (route) => route.fulfill({ body: FILES["https://manifests.example/doc/manifest.yaml"] }));
   await open(page, "?manifestURL=doc/relative.yaml");
   await expect(page.locator("#manifest-home")).toHaveAttribute("href", "/?manifestURL=doc%2Frelative.yaml");
-});
-
-test("says why the examples that can't be run can't be run", async ({ page }) => {
-  await open(page, `?manifestURL=${encodeURIComponent(MANIFEST_URL)}`);
-  const problems = page.locator("#manifest-problems");
-  await expect(problems.locator("summary").first()).toHaveText("Why 1 example can't be run");
-  await expect(problems.locator("ul")).toBeHidden();
-  await problems.locator("summary").first().click();
-  const item = problems.locator("li");
-  await expect(item).toHaveCount(1);
-  await expect(item.locator(".problem-title")).toHaveText("from the query service (entry 3, Wikidata)");
-  await expect(item.locator(".problem-reason")).toContainText("This example reads its data from https://query.wikidata.org/sparql");
-  await expect(item.locator(".problem-hint")).toContainText("give the data with data: or dataURL:");
-  await expect(item.locator(".problem-hint a")).toHaveAttribute("href", "help.html#unsupported");
-  await item.locator(".problem-source summary").click();
-  await expect(item.locator("pre")).toContainText("neighborhood: sparql");
 });
 
 test("there are no reasons when all the examples can be run", async ({ page }) => {

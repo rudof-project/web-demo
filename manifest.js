@@ -27,7 +27,8 @@
 //     query: | ...                # or queryURL: ..., for action: query
 //     queryFormat: sparql
 //     queryEngine: sparql
-//     endpoint: https://...       # the SPARQL endpoint the query runs on,
+//     endpoint: https://...       # the SPARQL endpoint the query or the
+//                                 # validation (ShEx, SHACL, DCTAP) runs on,
 //                                 # instead of the data
 //     typeMap: n1: PersonType     # or typeMapURL: ..., for PGSchema
 //     schemaLanguage: dctap       # the language of the schema: shex, shacl,
@@ -43,6 +44,8 @@
 // which the DCTAP tab converts to ShEx to validate. With action: schema, the
 // schema goes to the Schema tab, in its language: the schemaLanguage, or else
 // the one that would validate it (DCTAP for CSV).
+// Validations on an endpoint need rudof with endpoints, which only some
+// browsers can load: parseManifest says which ones the page can run.
 // help.html documents all of it for the users of the demo.
 
 import { parse, stringify } from "yaml";
@@ -83,6 +86,8 @@ const shexOf = (text) => (/^\s*\{/.test(text) ? "shexj" : "shexc");
 const RDF_NAMES = "turtle, ntriples, rdfxml, jsonld, trig, n3, nquads";
 
 const rdfData = (textarea, formatSelect) => ({ name: "data", key: "dataFormat", textarea, formatSelect, formats: RDF_FORMATS, names: RDF_NAMES, extensions: RDF_EXTENSIONS, inline: rdfOf });
+// The endpoint that a validation or a query runs on, instead of the data
+const endpointInput = (textarea) => ({ name: "endpoint", textarea, optional: true });
 const pgData = (textarea) => ({ name: "data", key: "dataFormat", textarea, formats: PG_FORMATS, names: "yars-pg", extensions: PG_EXTENSIONS });
 
 // The schema of the Schema tab, in a language. The tab reads ShExR in fewer
@@ -117,6 +122,7 @@ export const TARGETS = {
       { name: "schema", key: "schemaFormat", textarea: "shex-schema", formatSelect: "shex-schema-format", formats: SHEX_FORMATS, names: `shex, shexj, json, or an RDF format for ShExR (${RDF_NAMES})`, extensions: SHEX_EXTENSIONS, inline: shexOf },
       rdfData("shex-data", "shex-data-format"),
       { name: "queryMap", textarea: "shex-shapemap" },
+      endpointInput("shex-endpoint"),
     ],
   },
   shacl: {
@@ -126,6 +132,7 @@ export const TARGETS = {
     inputs: [
       { name: "schema", aliases: ["shapes"], key: "schemaFormat", textarea: "shacl-shapes", formatSelect: "shacl-shapes-format", formats: SHACL_FORMATS, names: `an RDF format (${RDF_NAMES})`, extensions: SHACL_EXTENSIONS, inline: rdfOf },
       rdfData("shacl-data", "shacl-data-format"),
+      endpointInput("shacl-endpoint"),
     ],
   },
   // DCTAP profiles, converted to ShEx to validate
@@ -139,6 +146,7 @@ export const TARGETS = {
       { name: "queryMap", textarea: "dctap-shapemap" },
       { name: "prefixes", textarea: "dctap-prefixes", optional: true },
       { name: "picklistSeparator", textarea: "dctap-picklist", optional: true, default: " ", values: PICKLIST_SEPARATORS },
+      endpointInput("dctap-endpoint"),
     ],
   },
   pgschema: {
@@ -159,7 +167,7 @@ export const TARGETS = {
     inputs: [
       { ...rdfData("sparql-data", "sparql-data-format"), optional: true },
       { name: "query", key: "queryFormat", textarea: "sparql-query", formats: QUERY_FORMATS, names: "sparql" },
-      { name: "endpoint", textarea: "sparql-endpoint", optional: true },
+      endpointInput("sparql-endpoint"),
     ],
   },
   // action: schema, in the Schema tab
@@ -315,7 +323,10 @@ function isPgData(entry, manifestURL) {
 //   inputs     { name: { text } or { url } } for each input it has
 //   formats    { name: format } for the inputs whose format is known before
 //              they are read (from the manifest or the file extension)
-export function parseManifest(source, manifestURL) {
+//
+// `endpoints` says whether the page can validate the data of endpoints (with
+// rudof built with endpoints): without it, those examples can't be run.
+export function parseManifest(source, manifestURL, { endpoints = false } = {}) {
   const entries = parse(source);
   if (!Array.isArray(entries)) throw new Error("a manifest is a YAML list of examples");
   return entries.map((entry, index) => {
@@ -351,7 +362,7 @@ export function parseManifest(source, manifestURL) {
       const names = [].concat(entry.plugins).map((p) => String(p).split("/").pop().replace(/\.js$/, ""));
       notes.push(`Written for shex.js with ${names.join(", ")}: rudof may not run its semantic actions.`);
     }
-    const why = noTarget ?? unsupported(entry, target, inputs, problems);
+    const why = noTarget ?? unsupported(entry, target, inputs, problems, endpoints);
     return {
       index,
       action,
@@ -386,8 +397,11 @@ const MISSING = {
 };
 
 // Entries that need something the demo doesn't have.
-function unsupported(entry, target, inputs, problems) {
-  if (entry.neighborhood) {
+function unsupported(entry, target, inputs, problems, endpoints) {
+  const action = TARGETS[target].action;
+  // shex.js reads the neighborhood of each node from an endpoint as it
+  // validates (neighborhood: sparql): rudof does it too, with endpoint:
+  if (entry.neighborhood && !(action === "validate" && inputs.endpoint)) {
     const source = entry.endpoint ?? entry.base ?? entry.dataBase;
     return problem(
       `reads its data from ${source ? `${source} ` : ""}as validation goes, which this demo can't do`,
@@ -403,7 +417,16 @@ function unsupported(entry, target, inputs, problems) {
       "keys",
     );
   }
-  const missing = TARGETS[target].inputs.filter(({ name, optional }) => !optional && !inputs[name]).map(({ name }) => name);
+  if (action === "validate" && inputs.endpoint && !endpoints) {
+    return problem(
+      `validates the data of ${inputs.endpoint.text ?? "an endpoint"}, which needs a browser with JSPI (JavaScript Promise Integration)`,
+      "Open the example in Chrome or Edge 137 or later, or give the data with data: or dataURL:, instead of endpoint:.",
+      "example-endpoint",
+    );
+  }
+  // The data is in the endpoint
+  const given = (name) => inputs[name] || (name === "data" && inputs.endpoint);
+  const missing = TARGETS[target].inputs.filter(({ name, optional }) => !optional && !given(name)).map(({ name }) => name);
   if (missing.length) return problem(`has no ${missing.join(" or ")}`, missing.map((name) => MISSING[name][0]).join(" "), MISSING[missing[0]][1]);
   if (target === "sparql" && !inputs.data && !inputs.endpoint) {
     return problem("has no data or endpoint to query", "Add the data (data: or dataURL:), or the endpoint: the query runs on.", "example-query");

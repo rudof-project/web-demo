@@ -1,7 +1,8 @@
-// SPARQL queries on remote endpoints, with the SPARQL 1.1 protocol. rudof
-// compiled to WebAssembly can't reach endpoints (its HTTP client blocks,
-// which a browser can't do), so the page sends the query itself, and gives
-// the results in the form of the results of rudof:
+// SPARQL queries on remote endpoints, with the SPARQL 1.1 protocol, for the
+// browsers where rudof can't reach endpoints: rudof built with endpoints needs
+// JSPI, which only some browsers have (see RUDOF_ENDPOINTS_MODULE in demo.js).
+// There, the page sends the query itself, and gives the results in the form
+// of the results of rudof:
 //
 //   { kind: "select", variables: ["?x", …], rows: [["<iri>" | "\"v\"@en" | …]] }
 //   { kind: "ask", boolean }
@@ -10,6 +11,27 @@
 // Select and ask results also keep the SPARQL JSON results of the endpoint
 // (json). The endpoint must allow other sites to query it (CORS), as
 // Wikidata does.
+
+// The name of the endpoint that the page describes to rudof (endpointConfig)
+export const PAGE_ENDPOINT = "page";
+
+// The configuration of rudof (TOML) that describes an endpoint with its
+// prefixes, so that the shape maps of validations on the endpoint can use the
+// prefixes of the schema (the data of an endpoint has no prefixes). Appended
+// to a configuration with its [rdf] section, such as BASE_CONFIG of dctap.js.
+export function endpointConfig(endpoint, prefixes = {}) {
+  const url = endpointURL(endpoint).href;
+  const toml = JSON.stringify;
+  return [
+    `[rdf.endpoints.${PAGE_ENDPOINT}]`,
+    `name = ${toml(PAGE_ENDPOINT)}`,
+    `query_url = ${toml(url)}`,
+    "",
+    `[rdf.endpoints.${PAGE_ENDPOINT}.prefixmap]`,
+    ...Object.entries(prefixes).map(([alias, iri]) => `${toml(alias)} = ${toml(iri)}`),
+    "",
+  ].join("\n");
+}
 
 export const KNOWN_ENDPOINTS = [
   ["Wikidata", "https://query.wikidata.org/sparql"],
@@ -122,6 +144,30 @@ export function queryPrefixes(query) {
   return [...query.matchAll(/^\s*PREFIX\s+([\w-]*):\s*<([^>]*)>/gim)].map((m) => [m[1], m[2]]);
 }
 
+const unreachable = (host) =>
+  `Could not reach ${host}. Is the endpoint online, and does it allow other sites to query it (CORS)? ` +
+  "A page served with https can't query an http endpoint.";
+
+const answered = (host, status, detail) => `${host} answered ${status}`.trim() + (detail ? `:\n${detail}` : "");
+
+// An error of rudof with an endpoint, said as queryEndpoint says it: rudof
+// says "HTTP request failed: TypeError: Failed to fetch" for any network
+// error, and gives the whole URL of the request when the endpoint answers
+// with an error.
+export function endpointError(endpoint, error) {
+  const message = String(error?.message ?? error);
+  let host = endpoint;
+  try {
+    host = new URL(endpoint).host;
+  } catch {
+    // a name of an endpoint that rudof knows
+  }
+  if (/Failed to fetch|NetworkError|Load failed/.test(message)) return new Error(unreachable(host), { cause: error });
+  const status = message.match(/failed with status (\d+)(?:: ([\s\S]*))?$/);
+  if (status) return new Error(answered(host, status[1], (status[2] ?? "").trim().slice(0, 2000)), { cause: error });
+  return error;
+}
+
 const mediaType = (response) => (response.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
 
 // Runs a query on an endpoint.
@@ -133,15 +179,11 @@ export async function queryEndpoint(endpoint, query, fetchFn = fetch) {
     response = await fetchFn(url, init);
   } catch (e) {
     // fetch says only "Failed to fetch", whatever the reason
-    throw new Error(
-      `Could not reach ${host}. Is the endpoint online, and does it allow other sites to query it (CORS)? ` +
-        "A page served with https can't query an http endpoint.",
-      { cause: e },
-    );
+    throw new Error(unreachable(host), { cause: e });
   }
   if (!response.ok) {
     const detail = (await response.text().catch(() => "")).trim().slice(0, 2000);
-    throw new Error(`${host} answered ${response.status} ${response.statusText}`.trim() + (detail ? `:\n${detail}` : ""));
+    throw new Error(answered(host, `${response.status} ${response.statusText}`, detail));
   }
   const type = mediaType(response);
   if (type.includes("json") && type !== "application/ld+json") return resultsOfJson(await response.json());

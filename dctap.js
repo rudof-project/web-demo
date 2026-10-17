@@ -74,14 +74,18 @@ const toml = (value) => JSON.stringify(value);
 // The configuration of rudof (TOML) for a profile with these declarations:
 // the base IRI of names without prefix, the prefixes (with the basic ones of
 // rudof), and the separator of the values of picklists.
+// The base of the sections of the configuration of rudof that read IRIs:
+// rudof only takes its base from the current directory when it is not set,
+// which it can't do in WebAssembly.
+export const BASE_CONFIG = ["rdf", "shex", "service"].map((section) => `[${section}]\nbase_iri = ${toml(RUDOF_BASE)}\n`).join("\n");
+
 export function dctapConfig(declarations, { picklistSeparator = " " } = {}) {
   const { base, prefixes, errors } = parsePrefixes(declarations);
   if (errors.length) throw new Error(`The prefixes of the DCTAP profile can't be read: ${errors.join("; ")}`);
   const all = { ...BASIC_PREFIXES, ...prefixes };
   const separator = { picklist_delimiter: picklistSeparator };
   const lines = [
-    // rudof only takes its base from the current directory when it is not set
-    ...["rdf", "shex", "service"].flatMap((section) => [`[${section}]`, `base_iri = ${toml(RUDOF_BASE)}`, ""]),
+    BASE_CONFIG,
     "[tap]",
     ...Object.entries(separator).map(([key, value]) => `${key} = ${toml(value)}`),
     "",

@@ -4,8 +4,8 @@
 
 import { PANELS, hasState, panelOfParams, stateParams, queryString, inputsOfParams } from "./permalink.js";
 import { setupLayout } from "./layout.js";
-import { queryEndpoint, queryPrefixes, solutionsCsv } from "./endpoint.js";
-import { dctapConfig, columnClass } from "./dctap.js";
+import { queryEndpoint, queryPrefixes, solutionsCsv, endpointError, endpointConfig, PAGE_ENDPOINT } from "./endpoint.js";
+import { dctapConfig, columnClass, parsePrefixes, BASIC_PREFIXES, BASE_CONFIG } from "./dctap.js";
 import { setupTableView } from "./table-view.js";
 import { parseCsv } from "./csv.js";
 import { LANGUAGES, TARGETS, DEFAULT_TARGET, canConvert, readSchema as readAnySchema, convertSchema, sourceLabel, targetLabel, asSource } from "./schema-convert.js";
@@ -17,6 +17,13 @@ import { devDependencies } from "./package.json";
 // release for days. update-rudof.yml updates it when rudof is released on npm.
 const RUDOF_VERSION = devDependencies["@rudof/rudof"];
 const RUDOF_MODULE = `https://cdn.jsdelivr.net/npm/@rudof/rudof@${RUDOF_VERSION}/web/rudof_wasm.js`;
+// The same rudof, built with the `endpoints` feature: it validates and queries
+// the data of SPARQL endpoints (useEndpoint, and the ...Async methods). Its
+// .wasm only loads in browsers with JSPI (WebAssembly.Suspending: Chrome and
+// Edge 137+), so the others load RUDOF_MODULE, and so do all browsers when
+// the package has no endpoints/ build.
+const RUDOF_ENDPOINTS_MODULE = `https://cdn.jsdelivr.net/npm/@rudof/rudof@${RUDOF_VERSION}/endpoints/rudof_wasm.js`;
+const HAS_JSPI = typeof WebAssembly.Suspending === "function";
 
 // PlantUML, compiled to JavaScript with TeaVM, draws the diagrams. It is
 // loaded the first time a diagram is shown.
@@ -28,6 +35,11 @@ const $ = (id) => document.getElementById(id);
 // The last successful validation of each tab, so that changing the result
 // format serializes it again without validating again.
 const last = {};
+
+// The tabs that can run on an endpoint (see Endpoints), and the endpoint of a
+// tab, if it doesn't run on the data of the page
+const ENDPOINT_TABS = ["shex", "shacl", "dctap", "sparql"];
+const endpointOf = (prefix) => $(`${prefix}-endpoint`).value.trim();
 
 // ---------------------------------------------------------------------------
 // Tabs
@@ -500,6 +512,11 @@ function setStatus(kind, text) {
 // Validation
 
 let rudofModule;
+// Whether the loaded rudof can use endpoints (see RUDOF_ENDPOINTS_MODULE)
+let rudofEndpoints = false;
+// Settled when rudof is loaded, or could not be (see Loading)
+let markRudofLoaded;
+const rudofLoaded = new Promise((resolve) => (markRudofLoaded = resolve));
 const sessions = {};
 
 function session(name) {
@@ -507,14 +524,126 @@ function session(name) {
   return sessions[name];
 }
 
+// ---------------------------------------------------------------------------
+// Endpoints
+//
+// The ShEx, SHACL, DCTAP and SPARQL tabs can run on the data of a SPARQL
+// endpoint instead of the RDF data of the tab: rudof (built with endpoints)
+// sends the queries, with useEndpoint and the ...Async methods. Without such
+// a rudof, the SPARQL tab sends the query itself (endpoint.js), and the
+// validations can't run on endpoints.
+
+// How the results name an endpoint: by its host, or by its name in rudof
+function endpointName(endpoint) {
+  try {
+    return new URL(endpoint).host;
+  } catch {
+    return endpoint;
+  }
+}
+
+const NO_ENDPOINTS = HAS_JSPI
+  ? "The rudof of this page can't validate the data of an endpoint: it was built without endpoints."
+  : "Validating the data of an endpoint needs a browser with JSPI (JavaScript Promise Integration), such as Chrome or Edge 137 or later.";
+
+// The data is not used when the tab runs on an endpoint.
+function showEndpointUse() {
+  for (const prefix of ENDPOINT_TABS) {
+    const onEndpoint = Boolean(endpointOf(prefix));
+    $(`${prefix}-data`).closest(".field").classList.toggle("unused", onEndpoint);
+    $(`${prefix}-data-unused`).hidden = !onEndpoint;
+  }
+}
+
+for (const prefix of ENDPOINT_TABS) {
+  $(`${prefix}-endpoint`).addEventListener("input", showEndpointUse);
+  $(`${prefix}-endpoint`).addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !(e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      run(prefix);
+    }
+  });
+}
+
+// When rudof is loaded: the endpoints it knows are suggested, or the
+// validations say why they can't use endpoints.
+function setupEndpoints() {
+  if (!rudofEndpoints) {
+    for (const prefix of ENDPOINT_TABS.filter((p) => p !== "sparql")) {
+      const input = $(`${prefix}-endpoint`);
+      input.disabled = true;
+      input.placeholder = "Not available on this page (see at the right)";
+      input.closest(".endpoint-row").querySelector(".endpoint-hint").textContent = NO_ENDPOINTS;
+    }
+    return;
+  }
+  let known = [];
+  try {
+    // rudof lists them only when it has data
+    const rudof = new rudofModule.Rudof();
+    rudof.readData("", "turtle");
+    known = rudof.listEndpoints();
+  } catch (e) {
+    console.info(`rudof did not list its endpoints: ${e.message ?? e}`);
+  }
+  const list = $("known-endpoints");
+  const urls = new Set([...list.options].map((o) => o.value));
+  for (const [name, url] of known) {
+    if (!urls.has(url)) list.append(new Option(name, url));
+    urls.add(url);
+  }
+}
+
+// The session of a tab with its data: the RDF data of the tab, or its
+// endpoint. On an endpoint, it is a new session, which becomes the session of
+// the tab when its result is shown: a session that waits for an endpoint can't
+// do anything else, and the endpoint may answer after the tab is run again.
+//
+// `config` is the configuration of rudof (TOML) for the tab, if it has one,
+// and `prefixes` the prefixes of its schema: rudof knows an endpoint given by
+// its URL by the name PAGE_ENDPOINT, with these prefixes, which its shape
+// maps can use. An endpoint can also be the name of one that rudof knows
+// (such as wikidata), with the prefixes that rudof gives it.
+function dataSession(prefix, { config, prefixes } = {}) {
+  const endpoint = endpointOf(prefix);
+  if (!endpoint) {
+    const rudof = session(prefix);
+    rudof.resetAll();
+    if (config) rudof.updateConfig(rudofModule.RudofConfig.fromToml(config));
+    rudof.readData($(`${prefix}-data`).value, $(`${prefix}-data-format`).value);
+    return { rudof };
+  }
+  if (!rudofEndpoints) throw new Error(NO_ENDPOINTS);
+  const byUrl = /^[a-z][\w+.-]*:/i.test(endpoint);
+  const toml = byUrl ? `${config ?? BASE_CONFIG}\n${endpointConfig(endpoint, prefixes)}` : config;
+  const rudof = new rudofModule.Rudof(toml ? rudofModule.RudofConfig.fromToml(toml) : undefined);
+  rudof.useEndpoint(byUrl ? PAGE_ENDPOINT : endpoint);
+  return { rudof, endpoint };
+}
+
+// The prefixes declared in a schema (PREFIX or @prefix lines: ShExC, ShExR and
+// SHACL in Turtle), for the shape maps of validations on endpoints
+const schemaPrefixes = (text) => parsePrefixes(text).prefixes;
+
+// The result of a validation: `validate` on the data of the page, or
+// `validateAsync` on an endpoint, with `result` to make the result of its report.
+function validation({ rudof, endpoint }, validate, validateAsync, result) {
+  if (!endpoint) return result(validate());
+  return validateAsync().then(
+    (report) => {
+      const r = result(report);
+      return { ...r, verdict: `${r.verdict} on ${endpointName(endpoint)}`, session: rudof };
+    },
+    (e) => Promise.reject(endpointError(endpoint, e)),
+  );
+}
+
 function validateShex() {
-  const rudof = session("shex");
   const start = performance.now();
-  rudof.resetAll();
-  rudof.readData($("shex-data").value, $("shex-data-format").value);
-  rudof.readShex($("shex-schema").value, $("shex-schema-format").value);
-  rudof.readShapemap($("shex-shapemap").value);
-  return shexResult(rudof.validateShex(), start);
+  const data = dataSession("shex", { prefixes: schemaPrefixes($("shex-schema").value) });
+  data.rudof.readShex($("shex-schema").value, $("shex-schema-format").value);
+  data.rudof.readShapemap($("shex-shapemap").value);
+  return validation(data, () => data.rudof.validateShex(), () => data.rudof.validateShexAsync(), (report) => shexResult(report, start));
 }
 
 function shexResult(report, start) {
@@ -553,12 +682,12 @@ function validateDctap() {
   const engine = $("dctap-engine").value;
   if (engine !== "shex") throw new Error(`rudof can't convert DCTAP to ${engine.toUpperCase()} yet, so this demo can only validate it with ShEx`);
   const start = performance.now();
-  const rudof = dctapSession("dctap");
-  const shexj = dctapToShex(rudof);
-  rudof.readData($("dctap-data").value, $("dctap-data-format").value);
-  rudof.readShex(shexj, "shexj");
-  rudof.readShapemap($("dctap-shapemap").value);
-  return shexResult(rudof.validateShex(), start);
+  const declarations = $("dctap-prefixes").value;
+  const config = dctapConfig(declarations, { picklistSeparator: $("dctap-picklist").value });
+  const data = dataSession("dctap", { config, prefixes: { ...BASIC_PREFIXES, ...schemaPrefixes(declarations) } });
+  data.rudof.readShex(dctapToShex(data.rudof), "shexj");
+  data.rudof.readShapemap($("dctap-shapemap").value);
+  return validation(data, () => data.rudof.validateShex(), () => data.rudof.validateShexAsync(), (report) => shexResult(report, start));
 }
 
 function serializeDctap() {
@@ -591,12 +720,14 @@ function serializeDctapSchema() {
 }
 
 function validateShacl() {
-  const rudof = session("shacl");
   const start = performance.now();
-  rudof.resetAll();
-  rudof.readData($("shacl-data").value, $("shacl-data-format").value);
-  rudof.readShacl($("shacl-shapes").value, $("shacl-shapes-format").value);
-  const report = rudof.validateShacl($("shacl-mode").value);
+  const data = dataSession("shacl", { prefixes: schemaPrefixes($("shacl-shapes").value) });
+  const mode = $("shacl-mode").value;
+  data.rudof.readShacl($("shacl-shapes").value, $("shacl-shapes-format").value);
+  return validation(data, () => data.rudof.validateShacl(mode), () => data.rudof.validateShaclAsync(mode), (report) => shaclResult(report, start));
+}
+
+function shaclResult(report, start) {
   const millis = performance.now() - start;
   const violations = report.entries.filter((e) => e.severity === "Violation").length;
   const others = report.entries.length - violations;
@@ -780,50 +911,35 @@ function setSparqlFormats(kind) {
   }
 }
 
-// The endpoint of the query, if it is not run on the data of the page.
-function sparqlEndpoint() {
-  return $("sparql-endpoint").value.trim();
-}
-
-// The data is not used when the query runs on an endpoint.
-function showEndpointUse() {
-  const onEndpoint = Boolean(sparqlEndpoint());
-  $("sparql-data").closest(".field").classList.toggle("unused", onEndpoint);
-  $("sparql-data-unused").hidden = !onEndpoint;
-}
-
-$("sparql-endpoint").addEventListener("input", showEndpointUse);
-$("sparql-endpoint").addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !(e.ctrlKey || e.metaKey)) {
-    e.preventDefault();
-    run("sparql");
-  }
-});
-
 function sparqlVerdict(results) {
   if (results.kind === "select") return count(results.rows.length, "result");
   if (results.kind === "ask") return `ASK: ${results.boolean}`;
   return count(results.graph.split("\n").filter((l) => l.trim()).length, "triple");
 }
 
+// A query on the data of the page, or on an endpoint through rudof. The
+// prefixes of the results are those of the data, or of the query.
 function runSparql() {
-  const endpoint = sparqlEndpoint();
-  if (endpoint) return runSparqlOnEndpoint(endpoint);
-  const rudof = session("sparql");
+  const endpoint = endpointOf("sparql");
+  if (endpoint && !rudofEndpoints) return runSparqlOnEndpoint(endpoint);
   const start = performance.now();
-  rudof.resetAll();
-  rudof.readData($("sparql-data").value, $("sparql-data-format").value);
-  rudof.readQuery($("sparql-query").value);
-  const results = rudof.runQuery();
-  const millis = performance.now() - start;
-  const prefixes = dataPrefixes(rudof);
-  setSparqlFormats(results.kind);
-  return { verdict: sparqlVerdict(results), kind: "ok", millis, results, prefixes };
+  const query = $("sparql-query").value;
+  const data = dataSession("sparql");
+  data.rudof.readQuery(query);
+  const result = (results) => {
+    const millis = performance.now() - start;
+    setSparqlFormats(results.kind);
+    if (!endpoint) return { verdict: sparqlVerdict(results), kind: "ok", millis, results, prefixes: dataPrefixes(data.rudof) };
+    const verdict = `${sparqlVerdict(results)} from ${endpointName(endpoint)}`;
+    return { verdict, kind: "ok", millis, results, prefixes: queryPrefixes(query), session: data.rudof };
+  };
+  if (!endpoint) return result(data.rudof.runQuery());
+  return data.rudof.runQueryAsync().then(result, (e) => Promise.reject(endpointError(endpoint, e)));
 }
 
-// A query run on an endpoint (see endpoint.js). Its graphs are read with
-// rudof, and written in N-Triples, as rudof gives the graphs of local queries.
-// The prefixes of the results are those of the query.
+// A query that the page sends to an endpoint itself (see endpoint.js), when
+// rudof can't. Its graphs are read with rudof, and written in N-Triples, as
+// rudof gives the graphs of local queries.
 async function runSparqlOnEndpoint(endpoint) {
   const query = $("sparql-query").value;
   const start = performance.now();
@@ -1031,6 +1147,11 @@ async function run(prefix) {
       result = await result;
       if (running[prefix] !== token) return;
     }
+    // The session that ran on an endpoint has the results now
+    if (result.session) {
+      sessions[prefix] = result.session;
+      delete result.session;
+    }
     last[prefix] = result;
     last[prefix].verdict += expectation(prefix, last[prefix].kind);
     const output = serialize();
@@ -1150,7 +1271,10 @@ async function loadManifest(manifestURL) {
     const url = new URL(manifestURL, location.href).href;
     link.href = url;
     manifest = await import("./manifest.js");
-    examples = manifest.parseManifest(await manifest.defaultFetchText(url), url);
+    const text = await manifest.defaultFetchText(url);
+    // Which rudof is loaded says whether examples can validate endpoints
+    await rudofLoaded;
+    examples = manifest.parseManifest(text, url, { endpoints: rudofEndpoints });
   } catch (e) {
     select.options[0].text = "No examples";
     manifestNote([`Could not load the manifest: ${e.message ?? e}`], "error");
@@ -1249,14 +1373,36 @@ if (params.has("manifestURL")) loadManifest(params.get("manifestURL"));
 // ---------------------------------------------------------------------------
 // Loading
 
+// A module of rudof, initialized
+async function loadRudof(url) {
+  const module = await import(/* @vite-ignore */ url);
+  await module.default();
+  return module;
+}
+
 try {
-  rudofModule = await import(/* @vite-ignore */ RUDOF_MODULE);
-  await rudofModule.default();
+  let url = RUDOF_ENDPOINTS_MODULE;
+  if (HAS_JSPI) {
+    try {
+      rudofModule = await loadRudof(url);
+    } catch (e) {
+      console.info(`rudof with endpoints could not be loaded from ${url}: ${e.message ?? e}`);
+    }
+  }
+  if (!rudofModule) {
+    url = RUDOF_MODULE;
+    rudofModule = await loadRudof(url);
+  }
+  rudofEndpoints = typeof rudofModule.Rudof.prototype.useEndpoint === "function";
   // The version reported by the loaded module, not the one requested
-  setStatus("ready", `rudof ${new rudofModule.Rudof().getVersion()} ready`);
-  $("status").title = `@rudof/rudof from ${RUDOF_MODULE}`;
+  const version = new rudofModule.Rudof().getVersion();
+  setStatus("ready", `rudof ${version} ready${rudofEndpoints ? ", with endpoints" : ""}`);
+  $("status").title = `@rudof/rudof from ${url}`;
   for (const b of document.querySelectorAll('button[id$="-validate"]')) b.disabled = false;
+  setupEndpoints();
 } catch (e) {
   console.error(e);
   setStatus("error", `Could not load rudof: ${e.message ?? e}`);
+} finally {
+  markRudofLoaded();
 }

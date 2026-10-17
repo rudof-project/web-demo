@@ -2,7 +2,12 @@
 // the form of the results of rudof.
 
 import { describe, it, expect, vi } from "vitest";
-import { ACCEPT, endpointURL, queryRequest, termOf, resultsOfJson, solutionsCsv, queryPrefixes, queryEndpoint } from "../../endpoint.js";
+import { Rudof, RudofConfig } from "@rudof/rudof";
+import {
+  ACCEPT, endpointURL, queryRequest, termOf, resultsOfJson, solutionsCsv, queryPrefixes, queryEndpoint,
+  endpointError, endpointConfig, PAGE_ENDPOINT,
+} from "../../endpoint.js";
+import { BASE_CONFIG } from "../../dctap.js";
 
 const ENDPOINT = "https://query.wikidata.org/sparql";
 const XSD = "http://www.w3.org/2001/XMLSchema#";
@@ -119,5 +124,50 @@ describe("queryEndpoint", () => {
       throw new TypeError("Failed to fetch");
     };
     await expect(queryEndpoint(ENDPOINT, "ASK {}", fetch)).rejects.toThrow(/Could not reach query\.wikidata\.org.*CORS/);
+  });
+});
+
+describe("endpointError", () => {
+  it("says that an endpoint can't be reached, as queryEndpoint says it", () => {
+    const e = endpointError(ENDPOINT, new Error("Query error: Failed to execute select query: HTTP request failed: TypeError: Failed to fetch"));
+    expect(e.message).toMatch(/^Could not reach query\.wikidata\.org\. .*CORS/);
+  });
+
+  it("says what the endpoint answered, without the URL of the request", () => {
+    const e = endpointError(ENDPOINT, new Error(`Query error: HTTP request to ${ENDPOINT}?query=ASK failed with status 400: Parse error\nat line 1`));
+    expect(e.message).toBe("query.wikidata.org answered 400:\nParse error\nat line 1");
+  });
+
+  it("keeps the other errors, and names endpoints by their name", () => {
+    const other = new Error("ShEx error: something else");
+    expect(endpointError(ENDPOINT, other)).toBe(other);
+    expect(endpointError("wikidata", new Error("Failed to fetch")).message).toMatch(/^Could not reach wikidata\./);
+  });
+});
+
+describe("endpointConfig", () => {
+  const PREFIXES = { "": "http://example.org/", wd: "http://www.wikidata.org/entity/" };
+
+  it("describes the endpoint to rudof, with the prefixes", () => {
+    expect(endpointConfig(ENDPOINT, PREFIXES)).toBe(
+      [
+        `[rdf.endpoints.${PAGE_ENDPOINT}]`,
+        `name = "${PAGE_ENDPOINT}"`,
+        `query_url = "${ENDPOINT}"`,
+        "",
+        `[rdf.endpoints.${PAGE_ENDPOINT}.prefixmap]`,
+        '"" = "http://example.org/"',
+        '"wd" = "http://www.wikidata.org/entity/"',
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("is a configuration that rudof reads, after BASE_CONFIG", () => {
+    expect(() => new Rudof(RudofConfig.fromToml(`${BASE_CONFIG}\n${endpointConfig(ENDPOINT, PREFIXES)}`))).not.toThrow();
+  });
+
+  it("refuses what is not the URL of an endpoint", () => {
+    expect(() => endpointConfig("ftp://example.org/")).toThrow(/not an http or https URL/);
   });
 });

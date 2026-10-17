@@ -33,7 +33,7 @@
       <strong>ShEx</strong>, <strong>SHACL</strong>, <strong>DCTAP</strong> or <strong>PGSchema</strong>,
       and query RDF data with <strong>SPARQL</strong>.
       Everything runs in your browser: rudof is compiled to WebAssembly, and
-      nothing you type is sent anywhere.
+      nothing you type is sent anywhere, except the queries to the SPARQL endpoint you give.
       <span id="status" class="status loading" role="status">Loading rudof…</span>
     </p>
 
@@ -280,10 +280,17 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
 
       <!-- ShEx -->
       <section id="panel-shex" role="tabpanel" aria-labelledby="tab-shex" class="panel">
+        <div class="toolbar endpoint-row">
+          <label for="shex-endpoint">Endpoint</label>
+          <input id="shex-endpoint" class="endpoint" type="url" list="known-endpoints" spellcheck="false" autocomplete="off"
+            placeholder="None: validate the RDF data below">
+          <span class="hint endpoint-hint">The endpoint must allow other sites to query it (CORS).</span>
+        </div>
         <div class="inputs two">
           <div class="field">
             <div class="field-head">
               <label for="shex-data">RDF data</label>
+              <span class="hint" id="shex-data-unused" hidden>Not used: the validation runs on the endpoint</span>
               <select id="shex-data-format" aria-label="RDF data format">
                 <option value="turtle">Turtle</option>
                 <option value="ntriples">N-Triples</option>
@@ -388,10 +395,17 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
 
       <!-- SHACL -->
       <section id="panel-shacl" role="tabpanel" aria-labelledby="tab-shacl" class="panel" hidden>
+        <div class="toolbar endpoint-row">
+          <label for="shacl-endpoint">Endpoint</label>
+          <input id="shacl-endpoint" class="endpoint" type="url" list="known-endpoints" spellcheck="false" autocomplete="off"
+            placeholder="None: validate the RDF data below">
+          <span class="hint endpoint-hint">The endpoint must allow other sites to query it (CORS).</span>
+        </div>
         <div class="inputs two">
           <div class="field">
             <div class="field-head">
               <label for="shacl-data">RDF data</label>
+              <span class="hint" id="shacl-data-unused" hidden>Not used: the validation runs on the endpoint</span>
               <select id="shacl-data-format" aria-label="RDF data format">
                 <option value="turtle">Turtle</option>
                 <option value="ntriples">N-Triples</option>
@@ -507,10 +521,17 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
 
       <!-- DCTAP: tabular application profiles, converted to ShEx -->
       <section id="panel-dctap" role="tabpanel" aria-labelledby="tab-dctap" class="panel" hidden>
+        <div class="toolbar endpoint-row">
+          <label for="dctap-endpoint">Endpoint</label>
+          <input id="dctap-endpoint" class="endpoint" type="url" list="known-endpoints" spellcheck="false" autocomplete="off"
+            placeholder="None: validate the RDF data below">
+          <span class="hint endpoint-hint">The endpoint must allow other sites to query it (CORS).</span>
+        </div>
         <div class="inputs two">
           <div class="field">
             <div class="field-head">
               <label for="dctap-data">RDF data</label>
+              <span class="hint" id="dctap-data-unused" hidden>Not used: the validation runs on the endpoint</span>
               <select id="dctap-data-format" aria-label="RDF data format">
                 <option value="turtle">Turtle</option>
                 <option value="ntriples">N-Triples</option>
@@ -733,14 +754,9 @@ e2: EnrolledInType</textarea>
       <section id="panel-sparql" role="tabpanel" aria-labelledby="tab-sparql" class="panel">
         <div class="toolbar endpoint-row">
           <label for="sparql-endpoint">Endpoint</label>
-          <input id="sparql-endpoint" type="url" list="sparql-endpoints" spellcheck="false" autocomplete="off"
+          <input id="sparql-endpoint" class="endpoint" type="url" list="known-endpoints" spellcheck="false" autocomplete="off"
             placeholder="None: the query runs on the RDF data below">
-          <datalist id="sparql-endpoints">
-            <option value="https://query.wikidata.org/sparql">Wikidata</option>
-            <option value="https://dbpedia.org/sparql">DBpedia</option>
-            <option value="https://sparql.uniprot.org/sparql">UniProt</option>
-          </datalist>
-          <span class="hint">The endpoint must allow other sites to query it (CORS).</span>
+          <span class="hint endpoint-hint">The endpoint must allow other sites to query it (CORS).</span>
         </div>
         <div class="inputs two">
           <div class="field">
@@ -817,6 +833,13 @@ ORDER BY ?name</textarea>
         </div>
       </section>
     </section>
+    <!-- The endpoints suggested in the Endpoint fields: rudof's known
+         endpoints, when rudof has them -->
+    <datalist id="known-endpoints">
+      <option value="https://query.wikidata.org/sparql">Wikidata</option>
+      <option value="https://dbpedia.org/sparql">DBpedia</option>
+      <option value="https://sparql.uniprot.org/sparql">UniProt</option>
+    </datalist>
   </main>
 
   <footer>
