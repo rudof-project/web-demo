@@ -68,7 +68,7 @@ test.describe("CSV results", () => {
     await page.locator("#sparql-result-format").selectOption("csv");
     await toggle(page, "sparql").getByRole("button", { name: "Table" }).click();
     const table = page.locator("#sparql-result .csv-output table");
-    await expect(table.locator("th")).toHaveText(["?name", "?age"]);
+    await expect(table.locator("th .th-label")).toHaveText(["?name", "?age"]);
     await expect(table.locator("tbody tr").first().locator("td").first()).toHaveText('"Alice"');
     await expect(table.locator("tbody tr")).toHaveCount(3);
     await expect(viewer(page, "sparql")).toBeHidden();

@@ -20,6 +20,10 @@
       <span class="subtitle">online demo</span>
     </div>
     <nav class="links">
+      <button type="button" class="settings-open" id="settings-open" aria-haspopup="dialog" aria-label="Settings" title="Settings of rudof" disabled>
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M19.14 12.94c.04-.31.06-.62.06-.94s-.02-.63-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.62l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54A.48.48 0 0 0 13.93 2h-3.86a.48.48 0 0 0-.48.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.71 8.47a.48.48 0 0 0 .12.62l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.49.49 0 0 0-.12.62l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.25.41.48.41h3.86c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.48.48 0 0 0-.12-.62l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
+        <span class="settings-badge" id="settings-badge" hidden></span>
+      </button>
       <a href="help.html" title="How to run the examples of a manifest, and the format of manifests">Help</a>
       <a href="../index.html">Manual</a>
       <a href="https://www.npmjs.com/package/@rudof/rudof">npm</a>
@@ -287,6 +291,10 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
             placeholder="None: validate the RDF data below">
           <span class="hint endpoint-hint">The endpoint must allow other sites to query it (CORS).</span>
         </div>
+        <details class="endpoint-prefixes" id="shex-endpoint-prefixes" hidden>
+          <summary></summary>
+          <pre></pre>
+        </details>
         <div class="inputs two">
           <div class="field">
             <div class="field-head">
@@ -405,6 +413,10 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
             placeholder="None: validate the RDF data below">
           <span class="hint endpoint-hint">The endpoint must allow other sites to query it (CORS).</span>
         </div>
+        <details class="endpoint-prefixes" id="shacl-endpoint-prefixes" hidden>
+          <summary></summary>
+          <pre></pre>
+        </details>
         <div class="inputs two">
           <div class="field">
             <div class="field-head">
@@ -546,6 +558,10 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
             placeholder="None: validate the RDF data below">
           <span class="hint endpoint-hint">The endpoint must allow other sites to query it (CORS).</span>
         </div>
+        <details class="endpoint-prefixes" id="dctap-endpoint-prefixes" hidden>
+          <summary></summary>
+          <pre></pre>
+        </details>
         <div class="inputs two">
           <div class="field">
             <div class="field-head">
@@ -780,6 +796,10 @@ e2: EnrolledInType</textarea>
             placeholder="None: the query runs on the RDF data below">
           <span class="hint endpoint-hint">The endpoint must allow other sites to query it (CORS).</span>
         </div>
+        <details class="endpoint-prefixes" id="sparql-endpoint-prefixes" hidden>
+          <summary></summary>
+          <pre></pre>
+        </details>
         <div class="inputs two">
           <div class="field">
             <div class="field-head">
@@ -856,6 +876,40 @@ ORDER BY ?name</textarea>
       </section>
     </section>
   </main>
+
+  <!-- The settings of rudof (settings.js, settings-dialog.js) -->
+  <dialog id="settings" class="settings-dialog" aria-labelledby="settings-title">
+    <form method="dialog">
+      <div class="settings-head">
+        <h2 id="settings-title">Settings of rudof</h2>
+        <button value="cancel" class="settings-close" aria-label="Close" formnovalidate>×</button>
+      </div>
+      <p class="hint">They apply to all the operations of the page, and this browser keeps them. The recursion and
+        the results of SHACL are next to its <strong>Validate</strong> button, and the separator of picklists of
+        DCTAP next to its profile.</p>
+      <div class="settings-fields"></div>
+      <fieldset class="settings-section settings-more">
+        <legend>More settings (TOML)</legend>
+        <textarea class="settings-toml medium" id="settings-toml" data-editor data-language="toml" spellcheck="false" rows="6" aria-label="More settings (TOML)" aria-describedby="settings-toml-hint"
+          placeholder="[rdf.endpoints.MyEndpoint]&#10;name = &quot;MyEndpoint&quot;&#10;query_url = &quot;https://example.org/sparql&quot;&#10;&#10;[rdf.endpoints.MyEndpoint.prefixmap]&#10;ex = &quot;http://example.org/&quot;"></textarea>
+        <small class="hint" id="settings-toml-hint">Any other setting of the
+          <a href="https://github.com/rudof-project/rudof/blob/master/docs/src/references/config.md" target="_blank" rel="noopener">configuration of rudof</a>,
+          over the ones above. The endpoints of <code>[rdf.endpoints.&lt;name&gt;]</code> are added to the Endpoint menus,
+          with their prefixes.</small>
+      </fieldset>
+      <details class="settings-section">
+        <summary>The configuration that rudof gets</summary>
+        <pre class="settings-preview"></pre>
+      </details>
+      <p class="settings-error error" role="alert" hidden></p>
+      <div class="settings-actions">
+        <button type="button" class="secondary settings-reset">Reset to defaults</button>
+        <span class="spacer"></span>
+        <button value="cancel" class="secondary" formnovalidate>Cancel</button>
+        <button value="save" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
 
   <footer>
     Using the <a href="https://www.npmjs.com/package/@rudof/rudof"><code>@rudof/rudof</code></a>

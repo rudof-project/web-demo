@@ -59,6 +59,13 @@ set up by [`codemirror-setup.js`](codemirror-setup.js):
 - The editors have line numbers, undo history, search (Ctrl+F), bracket
   matching and closing, and take the colors of the page, light or dark.
   Ctrl+Enter still validates.
+- The editors of Turtle (TriG, N3), ShExC and SPARQL complete prefixes
+  ([`prefix-completion.js`](prefix-completion.js)): after `PREFIX` (or
+  `@prefix`), the declarations of the prefixes known; in the text, their
+  aliases (`wd:`), and choosing one that the text doesn't declare also adds
+  its declaration, with the others, in the style of the text. The prefixes
+  known are those of the text, those of the endpoint of the tab, and common
+  ones ([`prefixes.js`](prefixes.js)). Ctrl+Space shows them.
 - The results of conversions (RDF data, property graphs, and ShEx and SHACL
   schemas), of validations and of queries are shown in read-only editors,
   highlighted in the format chosen for the result. Results in CSV have a
@@ -129,6 +136,13 @@ The page describes the endpoint to rudof (`endpointConfig` in
 [`endpoint.js`](endpoint.js)) with the prefixes of the schema, so the shape
 map can use them: the data of an endpoint has no prefixes.
 
+Under the field, **Prefixes of …** lists the prefixes that rudof declares
+for the endpoint (in `rudof_rdf/endpoints/<name>.toml` of its repository,
+which the page reads from jsDelivr for the version of rudof it loads: the
+npm package doesn't have them), or that the settings give it. The editors
+of the tab offer them, and the validations on the endpoint can use them in
+their shape maps, with the prefixes of the schema.
+
 This needs rudof built with the `endpoints` feature (`@rudof/rudof/endpoints`,
 in the package since rudof 0.3.27), and its WebAssembly needs JSPI
 (JavaScript Promise Integration): Chrome and Edge 137 or later have it,
@@ -159,6 +173,36 @@ folder in `RUDOF_ENDPOINTS_DIR`:
 RUDOF_ENDPOINTS_DIR=<folder with rudof_wasm.js and rudof_wasm_bg.wasm> npm run test:e2e
 ```
 
+## Settings
+
+The gear of the header opens the settings of rudof
+([`settings.js`](settings.js), [`settings-dialog.js`](settings-dialog.js)):
+the [configuration of rudof](https://github.com/rudof-project/rudof/blob/master/docs/src/references/config.md)
+that applies to every operation of the page. The dialog has the settings
+that change what rudof does in the browser, by sections:
+
+| Section | Settings |
+|---------|----------|
+| General | the base IRI, the indentation of JSON and JSON-LD results |
+| ShEx validation | the maximum number of steps, the negation requirement |
+| UML diagrams | direction, lines, shadows, labels for IRIs, colors |
+| SPARQL queries (from ShEx) | the variable of the focus node |
+| SHACL to ShEx | target classes as `rdf:type`, blank-node shapes embedded |
+| DCTAP | delimiter, quote, flexible rows, delimiter of value shapes, base of datatypes |
+
+**More settings (TOML)** takes any other setting, over those of the form,
+such as endpoints (`[rdf.endpoints.<name>]` with `name`, `query_url` and a
+`[prefixmap]`), which are added to the Endpoint menus with their prefixes.
+**The configuration that rudof gets** shows the result. Settings that rudof
+can't read are not saved, and the dialog says why. The browser keeps the
+settings that differ from the defaults (not the permalinks), and the gear
+shows how many there are; **Reset to defaults** forgets them.
+
+The configuration of each operation (the base IRI of the page, the prefixes
+of a DCTAP profile, the options of SHACL, the description of an endpoint)
+gets the settings over it (`configWithSettings`), merged as TOML tables with
+[smol-toml](https://www.npmjs.com/package/smol-toml).
+
 ## Results
 
 The results of ShEx, SHACL, DCTAP and PGSchema validations are shown as a
@@ -167,10 +211,17 @@ shape, with its result and its details. For ShEx, SHACL and DCTAP, the table
 is the `details` text of rudof, read back by
 [`box-table.js`](box-table.js). The other formats are as rudof writes them.
 
-Clicking the header of a column of a table of results (validations, SPARQL
-solutions, CSV results) sorts the rows by that column: in ascending order,
-then descending, then in their order again
-([`sortable.js`](sortable.js)). Numbers are sorted as numbers.
+The tables of results (validations, SPARQL solutions, CSV results) work as
+in a spreadsheet ([`table-tools.js`](table-tools.js)):
+
+- Clicking the name of a column sorts the rows by it: in ascending order,
+  then descending, then in their order again. Numbers are sorted as numbers.
+- The ▾ button next to the name opens the filter of the column: its values
+  (in the rows that the other filters show) with how many rows have each
+  one, a search box, **(Select all)**, the sort orders and **Clear filter**.
+  The filters of all the columns apply together, the button of a filtered
+  column is marked, and a line under the table says how many rows it
+  shows.
 
 ### SHACL options
 

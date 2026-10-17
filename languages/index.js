@@ -35,6 +35,8 @@ export const FORMATS = {
   compact: "yarspg",
   pgschema: "pgschema",
   typemap: "typemap",
+  // The settings of rudof (rudof.toml)
+  toml: "toml",
 };
 
 const stream = (parser) => new LanguageSupport(StreamLanguage.define(parser));
@@ -46,6 +48,7 @@ const LOADERS = {
   sparql: async () => stream((await import("@codemirror/legacy-modes/mode/sparql")).sparql),
   xml: async () => (await import("@codemirror/lang-xml")).xml(),
   json: async () => (await import("@codemirror/lang-json")).json(),
+  toml: async () => stream((await import("@codemirror/legacy-modes/mode/toml")).toml),
   // Lezer grammars, in their own folders
   dctap: async () => stream((await import("./dctap/index.js")).dctap),
   csv: async () => stream((await import("./csv.js")).csv),

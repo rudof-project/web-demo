@@ -19,6 +19,7 @@ import {
   highlightActiveLineGutter,
   highlightSpecialChars,
   drawSelection,
+  placeholder,
 } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { HighlightStyle, syntaxHighlighting, bracketMatching, indentOnInput, indentUnit } from "@codemirror/language";
@@ -26,6 +27,7 @@ import { search, searchKeymap, highlightSelectionMatches } from "@codemirror/sea
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { tags as t } from "@lezer/highlight";
 import { loadLanguage } from "./languages/index.js";
+import { prefixCompletion } from "./prefix-completion.js";
 
 // The colors and font are those of the page (demo.css), so the editors follow
 // its light and dark schemes.
@@ -61,6 +63,10 @@ const theme = EditorView.theme({
   ".cm-textfield": { border: "1px solid var(--border)", borderRadius: "4px", background: "var(--surface)", color: "var(--text)" },
   ".cm-button": { backgroundImage: "none", background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)" },
   ".cm-searchMatch": { background: "var(--cm-search-match)" },
+  ".cm-tooltip": { background: "var(--bg)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: "6px" },
+  ".cm-tooltip-autocomplete > ul > li[aria-selected]": { background: "var(--accent)", color: "var(--accent-text)" },
+  ".cm-completionDetail": { color: "var(--muted)", marginLeft: "0.8em", fontStyle: "normal" },
+  ".cm-tooltip-autocomplete > ul > li[aria-selected] .cm-completionDetail": { color: "inherit" },
 });
 
 const highlighting = HighlightStyle.define([
@@ -106,6 +112,8 @@ export function editorSetup() {
     indentOnInput(),
     bracketMatching(),
     closeBrackets(),
+    // Prefixes, in the formats that have them (prefix-completion.js)
+    prefixCompletion(),
     highlightActiveLine(),
     highlightSelectionMatches(),
     search({ top: true }),
@@ -207,6 +215,8 @@ export function createEditor(textarea, { format, extensions = [] } = {}) {
         language.of([]),
         textareaSync(textarea),
         label ? EditorView.contentAttributes.of({ "aria-label": label }) : [],
+        // What the textarea shows when it is empty
+        textarea.placeholder ? placeholder(textarea.placeholder) : [],
         // The height of the textarea (classes short and medium). CodeMirror
         // writes the classes of its element, so they are given to it.
         textarea.classList.length ? EditorView.editorAttributes.of({ class: [...textarea.classList].join(" ") }) : [],

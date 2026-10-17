@@ -66,7 +66,7 @@ for (const endpoints of [true, false]) {
       expect(queries[0].accept).toMatch(/application\/sparql-results\+json/);
 
       const table = page.locator("#sparql-result table.solutions");
-      await expect(table.locator("th")).toHaveText(["?person", "?name", "?age"]);
+      await expect(table.locator("th .th-label")).toHaveText(["?person", "?name", "?age"]);
       // Prefixed with the prefixes of the query
       await expect(table.locator("tbody tr").first().locator("td")).toHaveText(["ex:alice", "Alice @en", "23"]);
 

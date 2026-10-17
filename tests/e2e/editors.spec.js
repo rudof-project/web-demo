@@ -9,6 +9,8 @@ const INPUTS = [
   "rdf-data", "pg-data", "convert-schema", "convert-prefixes", "shex-data", "shex-schema", "shex-shapemap", "shacl-data", "shacl-shapes",
   "dctap-data", "dctap-schema", "dctap-shapemap", "dctap-prefixes",
   "pgschema-data", "pgschema-schema", "pgschema-typemap", "sparql-data", "sparql-query",
+  // The settings of rudof, in their dialog
+  "settings-toml",
 ];
 
 test.describe("the page", () => {

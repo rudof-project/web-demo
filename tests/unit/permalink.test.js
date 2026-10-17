@@ -24,9 +24,10 @@ describe("PANELS", () => {
     }
   });
 
-  it("has every input of the page", () => {
+  it("has every input of the tabs", () => {
     const ids = Object.values(PANELS).flatMap((p) => Object.values(p.params));
-    for (const textarea of document.querySelectorAll("textarea")) expect(ids).toContain(textarea.id);
+    // Not the settings, which the browser keeps
+    for (const textarea of document.querySelectorAll("main textarea")) expect(ids).toContain(textarea.id);
   });
 
   it("uses the names of shex.js for ShEx", () => {

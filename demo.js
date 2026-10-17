@@ -8,7 +8,11 @@ import { queryEndpoint, queryPrefixes, solutionsCsv, endpointError, endpointConf
 import { dctapConfig, columnClass, parsePrefixes, BASIC_PREFIXES, BASE_CONFIG } from "./dctap.js";
 import { setupTableView } from "./table-view.js";
 import { parseCsv } from "./csv.js";
-import { makeSortable } from "./sortable.js";
+import { makeTableTools } from "./table-tools.js";
+import { COMMON_PREFIXES, endpointFileURL, prefixesOfEndpointToml } from "./prefixes.js";
+import { setPrefixSource } from "./prefix-completion.js";
+import { loadSettings, saveSettings, configWithSettings, settingsEndpoints } from "./settings.js";
+import { setupSettingsDialog } from "./settings-dialog.js";
 import { parseBoxTable } from "./box-table.js";
 import { LANGUAGES, TARGETS, DEFAULT_TARGET, canConvert, readSchema as readAnySchema, convertSchema, sourceLabel, targetLabel, asSource } from "./schema-convert.js";
 import { devDependencies } from "./package.json";
@@ -46,6 +50,27 @@ const endpointOf = (prefix) => $(`${prefix}-endpoint`).value.trim();
 // menus for any other endpoint
 const OTHER_ENDPOINT = "other";
 let knownEndpoints = KNOWN_ENDPOINTS;
+// The settings of rudof that the user changed (settings.js), which the
+// browser keeps
+function localStorageOrNone() {
+  try {
+    return localStorage;
+  } catch {
+    return undefined;
+  }
+}
+let settings = loadSettings(localStorageOrNone());
+
+// The endpoints of the menus: those that rudof knows (the page knows some
+// before rudof is loaded), and those of the settings, with their prefixes
+let rudofKnownEndpoints = KNOWN_ENDPOINTS;
+const settingsEndpointPrefixes = new Map();
+
+// The names of the endpoints in rudof, by their URLs, and their prefixes
+// (readEndpointPrefixes): being read, and read, as [alias, iri]
+const endpointNames = new Map(KNOWN_ENDPOINTS.map(([name, url]) => [url, name]));
+const endpointPrefixReads = new Map();
+const endpointPrefixes = new Map();
 
 // ---------------------------------------------------------------------------
 // Tabs
@@ -202,10 +227,9 @@ function setOptions(select, options, preferred) {
 function convertSource() {
   const language = $("convert-language").value;
   const text = $("convert-schema").value;
-  const config =
-    language === "dctap"
-      ? rudofModule.RudofConfig.fromToml(dctapConfig($("convert-prefixes").value, { picklistSeparator: $("convert-picklist").value }))
-      : undefined;
+  const config = rudofConfig(
+    language === "dctap" ? dctapConfig($("convert-prefixes").value, { picklistSeparator: $("convert-picklist").value }) : BASE_CONFIG,
+  );
   return { language, format: $("convert-format").value, text, config };
 }
 
@@ -318,7 +342,7 @@ const convertTable = setupTableView({
 });
 // The formats and targets of the schema of the Schema tab
 changeConvertLanguage();
-fillEndpointChoices();
+refreshKnownEndpoints();
 restoreInputs();
 showEndpointUse();
 showShaclOptions();
@@ -389,7 +413,7 @@ function csvTable(text) {
     e.append(...children);
     return e;
   };
-  return makeSortable(el(
+  return makeTableTools(el(
     "table",
     { className: "report csv-result" },
     el("thead", {}, el("tr", {}, ...header.map((h) => el("th", {}, h)))),
@@ -535,8 +559,28 @@ let markRudofLoaded;
 const rudofLoaded = new Promise((resolve) => (markRudofLoaded = resolve));
 const sessions = {};
 
+// The settings of rudof (settings.js) apply to every session: the
+// configuration of an operation (TOML) with the settings over it. Each
+// session has the configuration of the settings it was last given (stamp).
+let settingsStamp = 0;
+const configStamps = new WeakMap();
+
+// The configuration of rudof for an operation, with the settings
+function rudofConfig(toml = BASE_CONFIG) {
+  return rudofModule.RudofConfig.fromToml(configWithSettings(toml, settings));
+}
+
+// Gives a session the configuration of an operation, with the settings
+function configure(rudof, toml) {
+  rudof.updateConfig(rudofConfig(toml));
+  configStamps.set(rudof, settingsStamp);
+  return rudof;
+}
+
+// A session of the page, with the settings
 function session(name) {
   sessions[name] ??= new rudofModule.Rudof();
+  if (configStamps.get(sessions[name]) !== settingsStamp) configure(sessions[name]);
   return sessions[name];
 }
 
@@ -573,9 +617,53 @@ function showEndpointUse() {
     const onEndpoint = Boolean(endpointOf(prefix));
     $(`${prefix}-data`).closest(".field").classList.toggle("unused", onEndpoint);
     $(`${prefix}-data-unused`).hidden = !onEndpoint;
+    showEndpointPrefixes(prefix);
   }
   showEndpointChoices();
 }
+
+// The prefixes that rudof declares for the endpoints it knows (see
+// prefixes.js), read once. Endpoints that rudof doesn't know have none.
+function readEndpointPrefixes(url) {
+  if (settingsEndpointPrefixes.has(url)) return Promise.resolve(settingsEndpointPrefixes.get(url));
+  const name = endpointNames.get(url);
+  if (!name) return Promise.resolve([]);
+  if (!endpointPrefixReads.has(url)) {
+    const read = fetch(endpointFileURL(RUDOF_VERSION, name))
+          .then((response) => (response.ok ? response.text() : ""))
+          .then((text) => (text ? prefixesOfEndpointToml(text) : []))
+          .catch((e) => {
+            console.info(`The prefixes of ${name} could not be read: ${e.message ?? e}`);
+            return [];
+          });
+    endpointPrefixReads.set(url, read.then((prefixes) => (endpointPrefixes.set(url, prefixes), prefixes)));
+  }
+  return endpointPrefixReads.get(url);
+}
+
+// Under the Endpoint field: the prefixes that the endpoint declares, as
+// SPARQL declarations, to read or copy (the editors offer them too).
+async function showEndpointPrefixes(prefix) {
+  const box = $(`${prefix}-endpoint-prefixes`);
+  const endpoint = endpointOf(prefix);
+  const prefixes = endpoint ? await readEndpointPrefixes(endpoint) : [];
+  if (endpointOf(prefix) !== endpoint) return; // changed meanwhile
+  box.hidden = prefixes.length === 0;
+  const name = knownEndpoints.find(([, url]) => url === endpoint)?.[0] ?? endpointName(endpoint);
+  box.querySelector("summary").textContent = `Prefixes of ${name} (${prefixes.length})`;
+  box.querySelector("pre").textContent = prefixes.map(([alias, iri]) => `PREFIX ${alias}: <${iri}>`).join("\n");
+}
+
+// The prefixes that the editors offer: those of the endpoint of their tab,
+// then common ones (prefix-completion.js adds those of their text)
+setPrefixSource((view) => {
+  const tab = (view.dom.dataset.editorFor ?? "").split("-")[0];
+  const endpoint = ENDPOINT_TABS.includes(tab) ? endpointOf(tab) : "";
+  return [
+    ...prefixesOfEndpoint(endpoint).map(([alias, iri]) => [alias, iri, "endpoint"]),
+    ...COMMON_PREFIXES.map(([alias, iri]) => [alias, iri, "common"]),
+  ];
+});
 
 // The menu of each Endpoint field: none (the data of the page), the endpoints
 // that rudof knows, or another one, whose URL is written in the field. The
@@ -634,6 +722,7 @@ function setupEndpoints() {
       input.placeholder = "Not available on this page (see at the right)";
       input.closest(".endpoint-row").querySelector(".endpoint-hint").textContent = noEndpoints();
     }
+    refreshKnownEndpoints();
     return;
   }
   let known = [];
@@ -645,12 +734,38 @@ function setupEndpoints() {
   } catch (e) {
     console.info(`rudof did not list its endpoints: ${e.message ?? e}`);
   }
-  // By their URLs, with the names of rudof (Wikidata_qlever: Wikidata qlever)
-  const byUrl = new Map(knownEndpoints.map(([name, url]) => [url, name]));
-  for (const [name, url] of known) byUrl.set(url, name.replace(/_/g, " "));
+  const byUrl = new Map(rudofKnownEndpoints.map(([name, url]) => [url, name]));
+  for (const [name, url] of known) {
+    byUrl.set(url, name);
+    endpointNames.set(url, name);
+  }
+  rudofKnownEndpoints = [...byUrl].map(([url, name]) => [name, url]);
+  refreshKnownEndpoints();
+}
+
+// The endpoints of the menus, by name (Wikidata_qlever: Wikidata qlever),
+// and the prefixes of those of the settings
+function refreshKnownEndpoints() {
+  const byUrl = new Map(rudofKnownEndpoints.map(([name, url]) => [url, name.replace(/_/g, " ")]));
+  settingsEndpointPrefixes.clear();
+  let fromSettings = [];
+  try {
+    fromSettings = settingsEndpoints(settings);
+  } catch (e) {
+    console.warn(`The endpoints of the settings can't be read: ${e.message ?? e}`);
+  }
+  for (const [name, url, prefixes] of fromSettings) {
+    byUrl.set(url, name);
+    settingsEndpointPrefixes.set(url, prefixes);
+  }
   knownEndpoints = [...byUrl].map(([url, name]) => [name, url]).sort(([a], [b]) => a.localeCompare(b, "en", { sensitivity: "base" }));
   fillEndpointChoices();
+  // The prefixes of the endpoints chosen, which rudof or the settings name now
+  for (const prefix of ENDPOINT_TABS) showEndpointPrefixes(prefix);
 }
+
+// The prefixes of an endpoint, when they are known
+const prefixesOfEndpoint = (url) => settingsEndpointPrefixes.get(url) ?? endpointPrefixes.get(url) ?? [];
 
 // The session of a tab with its data: the RDF data of the tab, or its
 // endpoint. On an endpoint, it is a new session, which becomes the session of
@@ -667,14 +782,17 @@ function dataSession(prefix, { config, prefixes } = {}) {
   if (!endpoint) {
     const rudof = session(prefix);
     rudof.resetAll();
-    if (config) rudof.updateConfig(rudofModule.RudofConfig.fromToml(config));
+    configure(rudof, config);
     rudof.readData($(`${prefix}-data`).value, $(`${prefix}-data-format`).value);
     return { rudof };
   }
   if (!rudofEndpoints) throw new Error(noEndpoints());
   const byUrl = /^[a-z][\w+.-]*:/i.test(endpoint);
-  const toml = byUrl ? `${config ?? BASE_CONFIG}\n${endpointConfig(endpoint, prefixes)}` : config;
-  const rudof = new rudofModule.Rudof(toml ? rudofModule.RudofConfig.fromToml(toml) : undefined);
+  // The prefixes of the endpoint, and those of the schema, which win
+  const all = { ...Object.fromEntries(prefixesOfEndpoint(endpoint)), ...prefixes };
+  const toml = byUrl ? `${config ?? BASE_CONFIG}\n${endpointConfig(endpoint, all)}` : config;
+  const rudof = new rudofModule.Rudof(rudofConfig(toml));
+  configStamps.set(rudof, settingsStamp);
   rudof.useEndpoint(byUrl ? PAGE_ENDPOINT : endpoint);
   return { rudof, endpoint };
 }
@@ -742,7 +860,7 @@ function validationTable(text) {
       }),
     ),
   );
-  return makeSortable(
+  return makeTableTools(
     el("table", { className: "report" }, el("thead", {}, el("tr", {}, ...parsed.header.map((h) => el("th", {}, h)))), el("tbody", {}, ...rows)),
   );
 }
@@ -759,9 +877,7 @@ function serializeShex() {
 function dctapSession(name) {
   const rudof = session(name);
   rudof.resetAll();
-  const toml = dctapConfig($("dctap-prefixes").value, { picklistSeparator: $("dctap-picklist").value });
-  rudof.updateConfig(rudofModule.RudofConfig.fromToml(toml));
-  return rudof;
+  return configure(rudof, dctapConfig($("dctap-prefixes").value, { picklistSeparator: $("dctap-picklist").value }));
 }
 
 // The ShEx schema (ShExJ) of the profile
@@ -899,7 +1015,7 @@ function pgschemaTable(report) {
       el("td", {}, el("div", { className: "details" }, e.details)),
     ),
   );
-  return makeSortable(
+  return makeTableTools(
     el(
       "table",
       { className: "report" },
@@ -1125,7 +1241,7 @@ function sparqlTable({ variables, rows }, prefixes) {
     e.append(...children);
     return e;
   };
-  return makeSortable(
+  return makeTableTools(
     el(
       "table",
       { className: "report solutions" },
@@ -1497,6 +1613,27 @@ if (params.has("manifestURL")) loadManifest(params.get("manifestURL"));
 // ---------------------------------------------------------------------------
 // Loading
 
+// The dialog of the settings, once rudof can check them. Saving them gives
+// the sessions the new configuration, and the endpoints of the settings to
+// the menus.
+function setupSettings() {
+  setupSettingsDialog({
+    dialog: $("settings"),
+    opener: $("settings-open"),
+    badge: $("settings-badge"),
+    getSettings: () => settings,
+    preview: (s) => configWithSettings(BASE_CONFIG, s),
+    check: (s) => rudofModule.RudofConfig.fromToml(configWithSettings(BASE_CONFIG, s)),
+    onSave: (s) => {
+      settings = s;
+      settingsStamp += 1;
+      saveSettings(localStorageOrNone(), s);
+      refreshKnownEndpoints();
+    },
+  });
+  $("settings-open").disabled = false;
+}
+
 // A module of rudof, initialized
 async function loadRudof(url) {
   const module = await import(/* @vite-ignore */ url);
@@ -1525,6 +1662,7 @@ try {
   $("status").title = `@rudof/rudof from ${url}` + (endpointsError ? `\n(rudof with endpoints could not be loaded: ${endpointsError})` : "");
   for (const b of document.querySelectorAll('button[id$="-validate"]')) b.disabled = false;
   setupEndpoints();
+  setupSettings();
 } catch (e) {
   console.error(e);
   setStatus("error", `Could not load rudof: ${e.message ?? e}`);

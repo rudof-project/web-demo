@@ -8,6 +8,10 @@
 // bindings/wasm/pkg/endpoints/web of rudof). Without it, the page gets 404 for
 // it and loads web/, as it does when it can't load rudof with endpoints.
 // Tests can ask for web/ with test.use({ rudofEndpoints: false }).
+//
+// The descriptions of the endpoints that rudof knows (rudof_rdf/endpoints of
+// its repository, which the page reads from jsDelivr) are copies of some of
+// them, in rudof-endpoints/; the others are not found.
 
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
@@ -21,6 +25,8 @@ const RUDOF_WEB = join(RUDOF_PACKAGE, "web");
 const RUDOF_ENDPOINTS = [process.env.RUDOF_ENDPOINTS_DIR, join(RUDOF_PACKAGE, "endpoints", "web")].find(
   (dir) => dir && existsSync(join(dir, "rudof_wasm.js")),
 );
+
+const RUDOF_ENDPOINT_FILES = join(dirname(new URL(import.meta.url).pathname), "rudof-endpoints");
 
 // Whether the tests have rudof with endpoints
 export const hasEndpointsBuild = Boolean(RUDOF_ENDPOINTS);
@@ -43,6 +49,11 @@ export const test = base.extend({
       const file = new URL(route.request().url()).pathname.split("/endpoints/web/")[1];
       const body = await readFile(join(RUDOF_ENDPOINTS, file));
       await route.fulfill({ body, contentType: TYPES[file.split(".").pop()] ?? "application/octet-stream" });
+    });
+    await page.route("https://cdn.jsdelivr.net/gh/rudof-project/rudof@*/rudof_rdf/endpoints/*", async (route) => {
+      const file = join(RUDOF_ENDPOINT_FILES, new URL(route.request().url()).pathname.split("/").pop());
+      if (!existsSync(file)) return route.fulfill({ status: 404, body: "Not found" });
+      await route.fulfill({ body: await readFile(file), contentType: "text/plain" });
     });
     const errors = [];
     page.on("pageerror", (e) => errors.push(e));
