@@ -13,6 +13,7 @@ import { COMMON_PREFIXES, endpointFileURL, prefixesOfEndpointToml } from "./pref
 import { setPrefixSource } from "./prefix-completion.js";
 import { loadSettings, saveSettings, configWithSettings, settingsEndpoints } from "./settings.js";
 import { setupSettingsDialog } from "./settings-dialog.js";
+import { DATA_TABS, setupExtraData, addData, extraData, clearExtraData } from "./extra-data.js";
 import { parseBoxTable } from "./box-table.js";
 import { LANGUAGES, TARGETS, DEFAULT_TARGET, canConvert, readSchema as readAnySchema, convertSchema, sourceLabel, targetLabel, asSource } from "./schema-convert.js";
 import { devDependencies } from "./package.json";
@@ -46,6 +47,8 @@ const last = {};
 // tab, if it doesn't run on the data of the page
 const ENDPOINT_TABS = ["shex", "shacl", "dctap", "sparql"];
 const endpointOf = (prefix) => $(`${prefix}-endpoint`).value.trim();
+// Whether a tab uses its RDF data with its endpoint
+const withData = (prefix) => Boolean($(`${prefix}-endpoint-data`)?.checked);
 // The endpoints of the Endpoint menus, as [name, url], and the item of the
 // menus for any other endpoint
 const OTHER_ENDPOINT = "other";
@@ -157,7 +160,12 @@ const inputValue = (id) => ($(id).type === "checkbox" ? String($(id).checked) : 
 function permalinkURL() {
   const { section, panel } = currentPanel();
   const url = new URL(location.href);
-  url.search = queryString(stateParams(panel, inputValue, url.searchParams));
+  const pairs = stateParams(panel, inputValue, url.searchParams);
+  // The RDF data added to the tab: data-2, data-2-format…
+  if (DATA_TABS.includes(panel)) {
+    extraData(panel).forEach(({ text, format }, i) => pairs.push([`data-${i + 2}`, text], [`data-${i + 2}-format`, format]));
+  }
+  url.search = queryString(pairs);
   url.hash = `${section}/${panel}`;
   return url.href;
 }
@@ -191,6 +199,12 @@ function restoreInputs() {
     } else {
       input.value = value;
     }
+  }
+  // The RDF data added to the tab, in their order
+  if (DATA_TABS.includes(panel)) {
+    clearExtraData(panel);
+    const numbers = [...params.keys()].map((name) => name.match(/^data-(\d+)$/)?.[1]).filter(Boolean).map(Number).sort((a, b) => a - b);
+    for (const n of numbers) addData(document, panel, { text: params.get(`data-${n}`), format: params.get(`data-${n}-format`) ?? undefined, onChange: updatePermalink });
   }
 }
 
@@ -343,6 +357,7 @@ const convertTable = setupTableView({
 // The formats and targets of the schema of the Schema tab
 changeConvertLanguage();
 refreshKnownEndpoints();
+setupExtraData(document, { onChange: updatePermalink });
 restoreInputs();
 showEndpointUse();
 showShaclOptions();
@@ -615,8 +630,11 @@ function noEndpoints() {
 function showEndpointUse() {
   for (const prefix of ENDPOINT_TABS) {
     const onEndpoint = Boolean(endpointOf(prefix));
-    $(`${prefix}-data`).closest(".field").classList.toggle("unused", onEndpoint);
-    $(`${prefix}-data-unused`).hidden = !onEndpoint;
+    const unused = onEndpoint && !withData(prefix);
+    $(`${prefix}-data`).closest(".field").classList.toggle("unused", unused);
+    $(`${prefix}-data-unused`).hidden = !unused;
+    // "With the RDF data" is for endpoints
+    $(`${prefix}-endpoint-data`).closest("label").hidden = !onEndpoint;
     showEndpointPrefixes(prefix);
   }
   showEndpointChoices();
@@ -703,6 +721,10 @@ for (const prefix of ENDPOINT_TABS) {
     updatePermalink();
   });
   input.addEventListener("input", showEndpointUse);
+  $(`${prefix}-endpoint-data`).addEventListener("change", () => {
+    showEndpointUse();
+    updatePermalink();
+  });
   $(`${prefix}-endpoint`).addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !(e.ctrlKey || e.metaKey)) {
       e.preventDefault();
@@ -767,6 +789,14 @@ function refreshKnownEndpoints() {
 // The prefixes of an endpoint, when they are known
 const prefixesOfEndpoint = (url) => settingsEndpointPrefixes.get(url) ?? endpointPrefixes.get(url) ?? [];
 
+// Reads the RDF data of a tab in a session: its data, and the data added to
+// it (extra-data.js), merged. With merge, merged with the data the session
+// has (the data of an endpoint).
+function readTabData(rudof, prefix, merge = false) {
+  rudof.readData($(`${prefix}-data`).value, $(`${prefix}-data-format`).value, undefined, undefined, merge);
+  for (const { text, format } of extraData(prefix)) rudof.readData(text, format, undefined, undefined, true);
+}
+
 // The session of a tab with its data: the RDF data of the tab, or its
 // endpoint. On an endpoint, it is a new session, which becomes the session of
 // the tab when its result is shown: a session that waits for an endpoint can't
@@ -783,7 +813,7 @@ function dataSession(prefix, { config, prefixes } = {}) {
     const rudof = session(prefix);
     rudof.resetAll();
     configure(rudof, config);
-    rudof.readData($(`${prefix}-data`).value, $(`${prefix}-data-format`).value);
+    readTabData(rudof, prefix);
     return { rudof };
   }
   if (!rudofEndpoints) throw new Error(noEndpoints());
@@ -794,6 +824,8 @@ function dataSession(prefix, { config, prefixes } = {}) {
   const rudof = new rudofModule.Rudof(rudofConfig(toml));
   configStamps.set(rudof, settingsStamp);
   rudof.useEndpoint(byUrl ? PAGE_ENDPOINT : endpoint);
+  // The RDF data of the tab too, merged with the data of the endpoint
+  if (withData(prefix)) readTabData(rudof, prefix, true);
   return { rudof, endpoint };
 }
 
@@ -1035,14 +1067,16 @@ const label = (id) => $(id).selectedOptions[0].text;
 
 function rdfVerdict(triples) {
   const to = label("rdf-result-format").replace(" (PlantUML)", "");
-  return `${count(triples, "triple")}, ${label("rdf-data-format")} → ${to}`;
+  const more = extraData("rdf").length;
+  const from = more ? `${label("rdf-data-format")} and ${count(more, "more RDF data", "more RDF data")}` : label("rdf-data-format");
+  return `${count(triples, "triple")}, ${from} → ${to}`;
 }
 
 function convertRdf() {
   const rudof = session("rdf");
   const start = performance.now();
   rudof.resetAll();
-  rudof.readData($("rdf-data").value, $("rdf-data-format").value);
+  readTabData(rudof, "rdf");
   // Counted in N-Triples, one triple per line.
   const triples = rudof.serializeData("ntriples").split("\n").filter((l) => l.trim()).length;
   const millis = performance.now() - start;
@@ -1157,7 +1191,12 @@ function sparqlVerdict(results) {
 // prefixes of the results are those of the data, or of the query.
 function runSparql() {
   const endpoint = endpointOf("sparql");
-  if (endpoint && !rudofEndpoints) return runSparqlOnEndpoint(endpoint);
+  if (endpoint && !rudofEndpoints) {
+    if (withData("sparql")) {
+      throw new Error(`Querying an endpoint with the RDF data of the page needs rudof with endpoints. ${noEndpoints()} The page can query the endpoint alone, without the RDF data.`);
+    }
+    return runSparqlOnEndpoint(endpoint);
+  }
   const start = performance.now();
   const query = $("sparql-query").value;
   const data = dataSession("sparql");
@@ -1361,6 +1400,8 @@ for (const prefix of CONVERTERS) {
     setTimeout(() => (button.textContent = "Copy"), 1500);
   });
   $(`${prefix}-use-as-input`).addEventListener("click", () => {
+    // The result has the RDF data added to the tab already
+    if (prefix === "rdf") clearExtraData("rdf");
     $(`${prefix}-data`).value = output();
     if (prefix === "rdf") {
       $("rdf-data-format").value = $("rdf-result-format").value;
@@ -1580,6 +1621,10 @@ async function chooseExample(manifest, example) {
   } else {
     box.hidden = true;
   }
+  // The data of the example replaces the RDF data added to the tab
+  if (DATA_TABS.includes(validator)) clearExtraData(validator);
+  const endpointData = $(`${validator}-endpoint-data`);
+  if (endpointData) endpointData.checked = false;
   loadedExample = { example, validator, texts: inputs.map(({ textarea }) => [textarea, $(textarea).value]) };
 
   const url = new URL(location.href);
@@ -1659,6 +1704,8 @@ try {
   // The version reported by the loaded module, not the one requested
   const version = new rudofModule.Rudof().getVersion();
   setStatus("ready", `rudof ${version} ready${rudofEndpoints ? ", with endpoints" : ""}`);
+  // About says the version of rudof that the page uses
+  $("about-rudof-version").textContent = `${version}${rudofEndpoints ? ", with endpoints" : ""}`;
   $("status").title = `@rudof/rudof from ${url}` + (endpointsError ? `\n(rudof with endpoints could not be loaded: ${endpointsError})` : "");
   for (const b of document.querySelectorAll('button[id$="-validate"]')) b.disabled = false;
   setupEndpoints();

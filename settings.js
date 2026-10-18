@@ -12,9 +12,29 @@
 // over it (configWithSettings).
 
 import { parse, stringify } from "smol-toml";
+import { COMMON_PREFIXES } from "./prefixes.js";
 
 const COLORS = ["black", "white", "gray", "red", "green", "blue", "yellow", "cyan", "light_blue", "light_green", "light_coral"];
 const colorOptions = COLORS.map((c) => [c, c.replace("_", " ")]);
+
+// Tables that rudof reads whole: a setting of one of them writes all of it,
+// with rudof's defaults for the others (those of rudof 0.3.27)
+export const GROUPS = {
+  "shex2uml.class_skin": { background_color: "light_blue", border_color: "black", arrow_color: "black" },
+  "rdf.visualization.uri_style": { line_color: "blue", line_thickness: 1, background_color: "white", round_corner: 25 },
+  "rdf.visualization.bnode_style": { line_color: "blue", line_thickness: 1, background_color: "gray", round_corner: 25 },
+  "rdf.visualization.literal_style": { line_color: "black", line_thickness: 1, background_color: "cyan", round_corner: 0 },
+};
+
+// A color of a table of GROUPS
+const groupColor = (group, key, label) => ({
+  key: `${group}.${key}`,
+  label,
+  type: "select",
+  default: GROUPS[group][key],
+  options: colorOptions,
+  group,
+});
 
 // Each setting: its key in the configuration (a path of keys), its label,
 // its type (boolean, number, text, iri, char, select), its default, and help.
@@ -40,10 +60,27 @@ export const SETTINGS = [
       { key: "shex2uml.line_type", label: "Lines", type: "select", default: "default", options: [["default", "Default"], ["orthogonal", "Orthogonal"], ["polyline", "Polyline"]] },
       { key: "shex2uml.shadowing", label: "Shadows", type: "boolean", default: true },
       { key: "shex2uml.replace_iri", label: "Replace IRIs by their labels", type: "boolean", default: false },
-      // rudof needs the three colors of class_skin together
-      { key: "shex2uml.class_skin.background_color", label: "Background of shapes", type: "select", default: "light_blue", options: colorOptions, group: "shex2uml.class_skin" },
-      { key: "shex2uml.class_skin.border_color", label: "Border of shapes", type: "select", default: "black", options: colorOptions, group: "shex2uml.class_skin" },
-      { key: "shex2uml.class_skin.arrow_color", label: "Arrows", type: "select", default: "black", options: colorOptions, group: "shex2uml.class_skin" },
+      {
+        key: "shex2uml.annotation_label",
+        label: "Properties of the labels",
+        type: "iris",
+        default: [],
+        help: "The annotations of shapes and properties that are their labels: IRIs or prefixed names (rdfs:label when empty).",
+      },
+      groupColor("shex2uml.class_skin", "background_color", "Background of shapes"),
+      groupColor("shex2uml.class_skin", "border_color", "Border of shapes"),
+      groupColor("shex2uml.class_skin", "arrow_color", "Arrows"),
+    ],
+  },
+  {
+    title: "RDF diagrams",
+    settings: [
+      groupColor("rdf.visualization.uri_style", "background_color", "Background of IRIs"),
+      groupColor("rdf.visualization.uri_style", "line_color", "Border of IRIs"),
+      groupColor("rdf.visualization.bnode_style", "background_color", "Background of blank nodes"),
+      groupColor("rdf.visualization.bnode_style", "line_color", "Border of blank nodes"),
+      groupColor("rdf.visualization.literal_style", "background_color", "Background of literals"),
+      groupColor("rdf.visualization.literal_style", "line_color", "Border of literals"),
     ],
   },
   {
@@ -106,6 +143,7 @@ export function settingValue(setting, text) {
     return n;
   }
   if (setting.type === "char" && [...value].length !== 1) throw new Error(`${setting.label}: write one character`);
+  if (setting.type === "iris") return iris(setting, value);
   if (setting.type === "iri" && value.trim()) {
     try {
       new URL(value.trim());
@@ -117,11 +155,36 @@ export function settingValue(setting, text) {
   return value;
 }
 
+// IRIs, or prefixed names of the common prefixes, separated by spaces or
+// commas: their IRIs
+const PREFIXES = new Map(COMMON_PREFIXES);
+
+function iris(setting, text) {
+  return text
+    .split(/[\s,]+/)
+    .filter(Boolean)
+    .map((name) => {
+      const wrong = () => new Error(`${setting.label}: "${name}" is not an IRI, nor a prefixed name of a common prefix`);
+      const prefixed = name.match(/^([A-Za-z][\w.-]*):(.*)$/);
+      let iri = name.replace(/^<(.*)>$/, "$1");
+      if (iri === name && prefixed && PREFIXES.has(prefixed[1])) iri = PREFIXES.get(prefixed[1]) + prefixed[2];
+      else if (iri === name && !/^(https?:\/\/|urn:)/i.test(name)) throw wrong();
+      try {
+        new URL(iri);
+      } catch {
+        throw wrong();
+      }
+      return iri;
+    });
+}
+
 // The settings that differ from their defaults: { values: { key: value }, toml }
 export const emptySettings = () => ({ values: {}, toml: "" });
 
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
 export function changedValues(values) {
-  return Object.fromEntries(Object.entries(values).filter(([key, value]) => byKey.has(key) && value !== byKey.get(key).default));
+  return Object.fromEntries(Object.entries(values).filter(([key, value]) => byKey.has(key) && !same(value, byKey.get(key).default)));
 }
 
 // The configuration of the settings, as an object of TOML tables: the
@@ -137,11 +200,13 @@ export function settingsConfig({ values = {}, toml = "" } = {}) {
     if (value === "") continue; // empty: rudof's default
     setPath(config, key, value);
   }
-  // The colors of shapes go together
-  for (const group of new Set(ALL_SETTINGS.filter((s) => s.group).map((s) => s.group))) {
+  // The tables that rudof reads whole
+  for (const [group, defaults] of Object.entries(GROUPS)) {
     const members = ALL_SETTINGS.filter((s) => s.group === group);
     if (!members.some((s) => s.key in changed)) continue;
-    for (const s of members) setPath(config, s.key, changed[s.key] ?? s.default);
+    const table = { ...defaults };
+    for (const s of members) table[s.key.slice(group.length + 1)] = changed[s.key] ?? s.default;
+    setPath(config, group, table);
   }
   return toml.trim() ? mergeConfig(config, parse(toml)) : config;
 }

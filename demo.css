@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --bg: #ffffff;
   --surface: #f6f7f9;
   --border: #d8dce2;
@@ -30,8 +30,41 @@
   --cm-search-match: rgba(255, 196, 0, 0.4);
 }
 
+/* The dark theme: chosen (data-theme="dark", see header.js), or the one of
+   the system when no theme is chosen. Both rules have the same colors. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #15181c;
+  --surface: #1d2126;
+  --border: #353b43;
+  --text: #e3e6ea;
+  --muted: #9aa3ae;
+  --accent: #4c8dff;
+  --accent-text: #0b0d10;
+  --ok-bg: #16311f;
+  --ok-text: #7fd699;
+  --fail-bg: #3a1a17;
+  --fail-text: #ff9a8f;
+  --warn-bg: #3a2c12;
+  --warn-text: #f0c070;
+  --cm-keyword: #d2a8ff;
+  --cm-string: #7ee2a8;
+  --cm-number: #ffb86b;
+  --cm-comment: #8b949e;
+  --cm-variable: #79c0ff;
+  --cm-iri: #6cb6ff;
+  --cm-prefix: #ffa657;
+  --cm-property: #a5d6a7;
+  --cm-tag: #79c0ff;
+  --cm-active-line: rgba(76, 141, 255, 0.08);
+  --cm-selection: rgba(76, 141, 255, 0.3);
+  --cm-selection-match: rgba(76, 141, 255, 0.16);
+  --cm-search-match: rgba(255, 196, 0, 0.3);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --bg: #15181c;
     --surface: #1d2126;
     --border: #353b43;
@@ -743,3 +776,58 @@ table.csv-result td code { font-size: 12px; white-space: pre-wrap; overflow-wrap
 .settings-error { margin: 0; color: var(--fail-text); white-space: pre-wrap; }
 .settings-actions { display: flex; gap: 0.5rem; align-items: center; }
 .settings-actions .spacer { flex: 1; }
+
+/* The menus of the header (header.js): Examples, About and the theme */
+.menu { position: relative; }
+.menu > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: var(--accent);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.menu > summary::-webkit-details-marker { display: none; }
+.menu:not(.menu-icon) > summary::after { content: "▾"; font-size: 0.8em; opacity: 0.8; }
+.menu > summary:hover { text-decoration: underline; }
+.menu-icon > summary { padding: 0.15rem; border-radius: 6px; }
+.menu-icon > summary:hover { background: var(--surface); text-decoration: none; }
+.menu-panel {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 15rem;
+  padding: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+}
+.menu-panel a, .menu-panel label { display: block; padding: 0.35rem 0.6rem; border-radius: 6px; color: var(--text); text-decoration: none; }
+.menu-panel a:hover, .menu-panel label:hover { background: var(--surface); text-decoration: none; }
+.menu-versions a { display: inline; padding: 0; }
+.menu-panel a small { display: block; color: var(--muted); font-size: 0.85em; }
+.menu-panel label { cursor: pointer; }
+.menu-versions { margin: 0.3rem 0 0; padding: 0.45rem 0.6rem 0.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.9em; }
+/* The icon of the theme: the sun in the light theme, the moon in the dark one */
+.menu-icon .icon-dark { display: none; }
+:root[data-theme="dark"] .menu-icon .icon-light { display: none; }
+:root[data-theme="dark"] .menu-icon .icon-dark { display: inline; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .menu-icon .icon-light { display: none; }
+  :root:not([data-theme="light"]) .menu-icon .icon-dark { display: inline; }
+}
+
+/* More RDF data, merged with the data of the tab (extra-data.js) */
+.extra-data { display: flex; flex-direction: column; margin-top: 0.6rem; }
+.extra-data .remove-data { margin-left: auto; }
+.extra-data .remove-data + select { margin-left: 0.4rem; }
+.field > .add-data { align-self: flex-start; margin-top: 0.4rem; }
+.field.unused .extra-data > .cm-editor { opacity: 0.5; }
+.endpoint-with-data { display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; }
+.endpoint-with-data[hidden] { display: none; }

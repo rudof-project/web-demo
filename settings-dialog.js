@@ -30,6 +30,7 @@ function field(doc, setting) {
     if (setting.type === "number") input.inputMode = "numeric";
     if (setting.type === "char") input.maxLength = 2;
     if (setting.type === "iri") input.placeholder = "http://example.org/";
+    if (setting.type === "iris") input.placeholder = "rdfs:label";
     if (setting.key === "shex_validator.max_steps") input.placeholder = "No limit";
   }
   const label = el(doc, "label", { className: "setting", htmlFor: id }, el(doc, "span", {}, setting.label), input);
@@ -46,6 +47,7 @@ function readField(doc, setting) {
 function writeField(doc, setting, value) {
   const input = doc.getElementById(fieldId(setting.key));
   if (setting.type === "boolean") input.checked = Boolean(value);
+  else if (Array.isArray(value)) input.value = value.join(" ");
   else input.value = value === "" || value == null ? "" : String(value);
 }
 

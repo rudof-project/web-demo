@@ -143,6 +143,12 @@ npm package doesn't have them), or that the settings give it. The editors
 of the tab offer them, and the validations on the endpoint can use them in
 their shape maps, with the prefixes of the schema.
 
+**With the RDF data**, next to the field, also uses the RDF data of the tab:
+rudof merges it with the data of the endpoint (`useEndpoint`, then
+`readData` with `merge`), so a validation or a query sees both. SPARQL
+`SERVICE` to an endpoint is not available: rudof says that the service is
+not supported.
+
 This needs rudof built with the `endpoints` feature (`@rudof/rudof/endpoints`,
 in the package since rudof 0.3.27), and its WebAssembly needs JSPI
 (JavaScript Promise Integration): Chrome and Edge 137 or later have it,
@@ -173,6 +179,23 @@ folder in `RUDOF_ENDPOINTS_DIR`:
 RUDOF_ENDPOINTS_DIR=<folder with rudof_wasm.js and rudof_wasm_bg.wasm> npm run test:e2e
 ```
 
+## Header and theme
+
+The header of the demo and of the help page ([`header.js`](header.js)) has
+**Examples** (the examples of the
+[ISWC 2026 tutorial](./?manifestURL=https%3A%2F%2Fraw.githubusercontent.com%2Fvalidatingrdf%2FTutorial%2Frefs%2Fheads%2Fmaster%2FISWC_2026%2Fmanifest.yml),
+and how to write a manifest of your own), **Help**, and **About** (the
+manual of rudof, rudof and this demo on GitHub, the npm package, and the
+versions: the rudof that the page loads, and the commit of the demo, which
+the build takes from `GITHUB_SHA` or from git). Examples and About are
+`<details>` menus, which open without JavaScript too.
+
+Next to them, the theme (the sun or the moon): **As the system**,
+**Light** or **Dark**. The browser keeps it, and an inline script in the
+`<head>` of the pages applies it before they are drawn. The dark colors are
+those of `:root[data-theme="dark"]` in [`demo.css`](demo.css), and of the
+system when no theme is chosen; a unit test checks that both are the same.
+
 ## Settings
 
 The gear of the header opens the settings of rudof
@@ -185,7 +208,8 @@ that change what rudof does in the browser, by sections:
 |---------|----------|
 | General | the base IRI, the indentation of JSON and JSON-LD results |
 | ShEx validation | the maximum number of steps, the negation requirement |
-| UML diagrams | direction, lines, shadows, labels for IRIs, colors |
+| UML diagrams | direction, lines, shadows, labels for IRIs and the properties of the labels, colors |
+| RDF diagrams | the colors of IRIs, blank nodes and literals (RDF data converted to a diagram) |
 | SPARQL queries (from ShEx) | the variable of the focus node |
 | SHACL to ShEx | target classes as `rdf:type`, blank-node shapes embedded |
 | DCTAP | delimiter, quote, flexible rows, delimiter of value shapes, base of datatypes |
@@ -202,6 +226,16 @@ The configuration of each operation (the base IRI of the page, the prefixes
 of a DCTAP profile, the options of SHACL, the description of an endpoint)
 gets the settings over it (`configWithSettings`), merged as TOML tables with
 [smol-toml](https://www.npmjs.com/package/smol-toml).
+
+## More RDF data
+
+Under the RDF data of the RDF, ShEx, SHACL, DCTAP and SPARQL tabs, **+ Add
+RDF data** adds another editor of RDF data, with its own format
+([`extra-data.js`](extra-data.js)). rudof merges all of them (`readData` with
+`merge`) before it converts, validates or queries them, also with the data
+of an endpoint. **Remove** removes one. Permalinks have them as `data-2`,
+`data-2-format`, `data-3`… An example of a manifest, and **Use as input**
+of the RDF tab, replace them.
 
 ## Results
 
@@ -370,13 +404,13 @@ copies it. Opening the URL puts the inputs and options back in their tab.
 | Convert (Schema) | `schema-language`, `schema-format`, `schema`, `prefixes`, `picklist`, `to`, `to-format` |
 | RDF      | `data`, `data-format`, `result-format` |
 | Property graph | `data`, `result-format` |
-| ShEx     | `schema`, `data`, `shape-map`, `endpoint`, `schema-format`, `data-format`, `result-format`, `schema-result-format` |
-| SHACL    | `shapes`, `data`, `endpoint`, `shapes-format`, `data-format`, `mode`, `recursion`, `errors`, `evidences`, `evidences-shapes`, `result-format`, `schema-result-format` |
-| DCTAP    | `dctap`, `prefixes`, `picklist`, `data`, `endpoint`, `shape-map`, `data-format`, `engine`, `result-format`, `schema-result-format` |
+| ShEx     | `schema`, `data`, `shape-map`, `endpoint`, `endpoint-data`, `schema-format`, `data-format`, `result-format`, `schema-result-format` |
+| SHACL    | `shapes`, `data`, `endpoint`, `endpoint-data`, `shapes-format`, `data-format`, `mode`, `recursion`, `errors`, `evidences`, `evidences-shapes`, `result-format`, `schema-result-format` |
+| DCTAP    | `dctap`, `prefixes`, `picklist`, `data`, `endpoint`, `endpoint-data`, `shape-map`, `data-format`, `engine`, `result-format`, `schema-result-format` |
 | PGSchema | `schema`, `data`, `type-map`, `result-format` |
-| SPARQL   | `data`, `data-format`, `query`, `endpoint`, `result-format` |
+| SPARQL   | `data`, `data-format`, `query`, `endpoint`, `endpoint-data`, `result-format` |
 
-Checkboxes (such as `errors` of SHACL) are `true` or `false`. `manifestURL` and `example` are kept. A URL without a fragment opens the tab
+The RDF data added to a tab are `data-2`, `data-2-format`… (see [More RDF data](#more-rdf-data)). Checkboxes (such as `errors` of SHACL) are `true` or `false`. `manifestURL` and `example` are kept. A URL without a fragment opens the tab
 of its parameters (ShEx for `shape-map` or `schema`), so links in the style of
 shex.js (`?schema=…&data=…&shape-map=…`) open the ShEx tab. When a URL has an
 `example` and inputs too, the inputs of the URL are used: they are the example

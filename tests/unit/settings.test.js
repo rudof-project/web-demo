@@ -40,7 +40,7 @@ describe("SETTINGS", () => {
     for (const section of SETTINGS) expect(section.title).toBeTruthy();
     for (const s of ALL_SETTINGS) {
       expect(s.label, s.key).toBeTruthy();
-      expect(["boolean", "number", "text", "iri", "char", "select"]).toContain(s.type);
+      expect(["boolean", "number", "text", "iri", "iris", "char", "select"]).toContain(s.type);
       if (s.type === "select") expect(s.options.map(([v]) => v)).toContain(s.default);
     }
   });
@@ -48,7 +48,7 @@ describe("SETTINGS", () => {
   it("are all read by rudof, with values that are not the defaults", () => {
     const values = {};
     for (const s of ALL_SETTINGS) {
-      values[s.key] = s.type === "boolean" ? !s.default : s.type === "select" ? s.options.at(-1)[0] : s.type === "number" ? 10 : s.type === "char" ? ";" : s.type === "iri" ? "http://example.org/" : "x";
+      values[s.key] = s.type === "boolean" ? !s.default : s.type === "select" ? s.options.at(-1)[0] : s.type === "number" ? 10 : s.type === "char" ? ";" : s.type === "iri" ? "http://example.org/" : s.type === "iris" ? ["http://example.org/label"] : "x";
     }
     const toml = configWithSettings(BASE_CONFIG, { values, toml: "" });
     expect(() => new Rudof(RudofConfig.fromToml(toml))).not.toThrow();
@@ -65,6 +65,14 @@ describe("settingValue", () => {
     expect(() => settingValue(setting("base_iri"), "not an iri")).toThrow(/not an IRI/);
     expect(settingValue(setting("base_iri"), " http://example.org/ ")).toBe("http://example.org/");
     expect(settingValue(setting("rdf.pretty_json"), false)).toBe(false);
+    // IRIs, or prefixed names of common prefixes
+    expect(settingValue(setting("shex2uml.annotation_label"), "rdfs:label, <http://example.org/name>  skos:prefLabel")).toEqual([
+      "http://www.w3.org/2000/01/rdf-schema#label",
+      "http://example.org/name",
+      "http://www.w3.org/2004/02/skos/core#prefLabel",
+    ]);
+    expect(settingValue(setting("shex2uml.annotation_label"), " ")).toEqual([]);
+    expect(() => settingValue(setting("shex2uml.annotation_label"), "unknown:label")).toThrow(/not an IRI/);
   });
 });
 
@@ -89,6 +97,21 @@ describe("settingsConfig", () => {
       border_color: "red",
       arrow_color: "black",
     });
+  });
+
+  it("writes the styles of RDF diagrams whole, with the defaults of rudof", () => {
+    const config = settingsConfig({ values: { "rdf.visualization.literal_style.background_color": "light_green" }, toml: "" });
+    expect(config.rdf.visualization).toEqual({ literal_style: { line_color: "black", line_thickness: 1, background_color: "light_green", round_corner: 0 } });
+    const rudof = new Rudof(RudofConfig.fromToml(configWithSettings(BASE_CONFIG, { values: { "rdf.visualization.literal_style.background_color": "light_green" }, toml: "" })));
+    rudof.readData('<http://example.org/a> <http://example.org/b> "c" .', "turtle");
+    expect(rudof.serializeData("plantuml")).toMatch(/\.literal \{\n\s*BackGroundColor LightGreen\n\s*LineThickness 1\n/);
+  });
+
+  it("labels shapes with the properties of the labels", () => {
+    const values = { "shex2uml.replace_iri": true, "shex2uml.annotation_label": ["http://www.w3.org/2004/02/skos/core#prefLabel"] };
+    const rudof = new Rudof(RudofConfig.fromToml(configWithSettings(BASE_CONFIG, { values, toml: "" })));
+    rudof.readShex('prefix : <http://example.org/>\nprefix skos: <http://www.w3.org/2004/02/skos/core#>\n:P { :name . } // skos:prefLabel "A person"');
+    expect(rudof.serializeCurrentShex("plantuml")).toContain('class "A person"');
   });
 
   it("puts the TOML over the fields", () => {

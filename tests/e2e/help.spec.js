@@ -10,6 +10,7 @@ test("the Help link of the header opens the help page, which links back", async 
   await expect(page.locator("#example-shacl")).toBeVisible();
   // The styles of the demo are there
   await expect(page.locator("pre.manifest-example").first()).toHaveCSS("border-top-style", "solid");
-  await page.locator("header .links").getByRole("link", { name: "Demo" }).click();
+  // "online demo", next to the logo, goes back to the demo
+  await page.locator("header .brand").getByRole("link", { name: "online demo" }).click();
   await expect(page.locator("#status")).toHaveClass(/ready/, { timeout: 30_000 });
 });

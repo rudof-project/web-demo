@@ -55,7 +55,15 @@ describe("the help page", () => {
   });
 
   it("links back to the demo", () => {
-    expect(help.querySelector('header .links a[href="./"]')).not.toBeNull();
+    expect(help.querySelector('header .brand a.subtitle[href="./"]')).not.toBeNull();
+  });
+
+  it("has the header of the demo: Examples, Help and About", () => {
+    const items = (doc) => [...doc.querySelectorAll("header .links > a, header .links > details:not(.menu-icon) > summary")].map((e) => e.textContent.trim());
+    expect(items(demo)).toEqual(["Examples", "Help", "About"]);
+    expect(items(help)).toEqual(["Examples", "Help", "About"]);
+    // The same menus in both pages
+    expect(help.querySelector("header .links details").innerHTML).toBe(demo.querySelector("header .links details").innerHTML);
   });
 
   it("links only to parts of it that exist", () => {

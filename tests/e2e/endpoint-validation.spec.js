@@ -48,6 +48,31 @@ test.describe("with rudof with endpoints", () => {
     await expect(page.locator("#shex-result .output")).toContainText("http://example.org/bob");
   });
 
+  test("ShEx and SPARQL use the RDF data of the tab with the endpoint", async ({ page }) => {
+    await sparqlEndpoint(page, ENDPOINT, DATA);
+    await open(page, "#validate/shex");
+    await expect(page.locator("#shex-endpoint-data")).toBeHidden();
+    await page.locator("#shex-endpoint").fill(ENDPOINT);
+    // Bob's age is wrong in the endpoint: the data of the tab can't fix it,
+    // but it gives Carol, who the endpoint doesn't have
+    await page.locator("#shex-endpoint-data").check();
+    await expect(page.locator(".field:has(#shex-data)")).not.toHaveClass(/unused/);
+    await setInput(page, "shex-schema", SHEX);
+    await setInput(page, "shex-data", 'prefix : <http://example.org/>\n:carol :name "Carol" ; :age 30 .');
+    await setInput(page, "shex-shapemap", ":alice@:Person, :carol@:Person");
+    await page.locator("#shex-validate").click();
+    await expect(result(page, "shex").locator(".verdict")).toHaveText("Conforms: 2 nodes validated on endpoint.example", { timeout: 30_000 });
+    expect(new URL(page.url()).searchParams.get("endpoint-data")).toBe("true");
+
+    await open(page, "#query/sparql");
+    await page.locator("#sparql-endpoint").fill(ENDPOINT);
+    await page.locator("#sparql-endpoint-data").check();
+    await setInput(page, "sparql-data", 'prefix : <http://example.org/>\n:carol :name "Carol" .');
+    await setInput(page, "sparql-query", "SELECT ?name WHERE { ?p <http://example.org/name> ?name }");
+    await page.locator("#sparql-validate").click();
+    await expect(page.locator("#sparql-result .verdict")).toHaveText("2 results from endpoint.example", { timeout: 30_000 });
+  });
+
   test("SHACL validates the targets of the shapes on the endpoint", async ({ page }) => {
     await sparqlEndpoint(page, ENDPOINT, DATA);
     await open(page, "#validate/shacl");
