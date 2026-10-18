@@ -186,8 +186,9 @@ The header of the demo and of the help page ([`header.js`](header.js)) has
 [ISWC 2026 tutorial](./?manifestURL=https%3A%2F%2Fraw.githubusercontent.com%2Fvalidatingrdf%2FTutorial%2Frefs%2Fheads%2Fmaster%2FISWC_2026%2Fmanifest.yml),
 and how to write a manifest of your own), **Help**, and **About** (the
 manual of rudof, rudof and this demo on GitHub, the npm package, and the
-versions: the rudof that the page loads, and the commit of the demo, which
-the build takes from `GITHUB_SHA` or from git). Examples and About are
+versions: the rudof that the page loads, and the version of the demo, in
+[`VERSION`](VERSION), with its commit, which the build takes from
+`GITHUB_SHA` or from git). Examples and About are
 `<details>` menus, which open without JavaScript too.
 
 Next to them, the theme (the sun or the moon): **As the system**,

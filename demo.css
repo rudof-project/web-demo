@@ -813,7 +813,18 @@ table.csv-result td code { font-size: 12px; white-space: pre-wrap; overflow-wrap
 .menu-versions a { display: inline; padding: 0; }
 .menu-panel a small { display: block; color: var(--muted); font-size: 0.85em; }
 .menu-panel label { cursor: pointer; }
-.menu-versions { margin: 0.3rem 0 0; padding: 0.45rem 0.6rem 0.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.9em; }
+.menu-versions {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.15rem 0.8rem;
+  margin: 0.3rem 0 0;
+  padding: 0.5rem 0.6rem 0.2rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.9em;
+}
+.menu-versions dt { color: var(--muted); }
+.menu-versions dd { margin: 0; color: var(--text); white-space: nowrap; }
+.menu-versions #about-demo-commit { color: var(--muted); }
 /* The icon of the theme: the sun in the light theme, the moon in the dark one */
 .menu-icon .icon-dark { display: none; }
 :root[data-theme="dark"] .menu-icon .icon-light { display: none; }

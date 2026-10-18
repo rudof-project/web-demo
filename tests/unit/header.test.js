@@ -78,6 +78,9 @@ describe("the menus", () => {
     const hrefs = [...menu("About").querySelectorAll("a")].map((a) => a.getAttribute("href"));
     expect(hrefs).toEqual(expect.arrayContaining(["../index.html", "https://github.com/rudof-project/rudof", "https://github.com/rudof-project/web-demo"]));
     expect(doc.getElementById("about-rudof-version").textContent).toBe(devDependencies["@rudof/rudof"]);
+    // The version of the demo is the one of the VERSION file
+    expect(doc.getElementById("about-demo-version").textContent).toBe(read("VERSION").trim());
+    expect(read("VERSION").trim()).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
   it("are open one at a time, and close with a click out of them", () => {

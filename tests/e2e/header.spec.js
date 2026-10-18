@@ -30,6 +30,8 @@ test("About has the links of rudof and the demo, and their versions", async ({ p
   await expect(about.getByRole("link", { name: "rudof manual" })).toBeVisible();
   await expect(about.getByRole("link", { name: "Source code of this demo" })).toHaveAttribute("href", "https://github.com/rudof-project/web-demo");
   await expect(about.locator("#about-rudof-version")).toHaveText(/^0\.\d+\.\d+, with endpoints$/);
+  await expect(about.locator("#about-demo-version")).toHaveText("0.0.1");
+  await expect(about.locator(".menu-versions dt")).toHaveText(["rudof", "This demo"]);
   // Escape closes it
   await page.keyboard.press("Escape");
   await expect(about).not.toHaveAttribute("open");

@@ -6,6 +6,10 @@
 // browser before the page is drawn; this module changes it.
 
 import { devDependencies } from "./package.json";
+// The version of the demo: the VERSION file
+import VERSION from "./VERSION?raw";
+
+export const DEMO_VERSION = VERSION.trim();
 
 export const THEME_KEY = "rudof-demo-theme";
 export const THEMES = ["system", "light", "dark"];
@@ -76,12 +80,15 @@ export function setupHeader(doc = document, storage = safeStorage()) {
   const rudof = doc.getElementById("about-rudof-version");
   if (rudof && !rudof.textContent.trim()) rudof.textContent = devDependencies["@rudof/rudof"];
   const demo = doc.getElementById("about-demo-version");
-  if (demo && COMMIT) {
+  if (demo) demo.textContent = DEMO_VERSION;
+  const commit = doc.getElementById("about-demo-commit");
+  if (commit && COMMIT) {
     const link = Object.assign(doc.createElement("a"), {
       href: `https://github.com/rudof-project/web-demo/commit/${COMMIT}`,
       textContent: COMMIT,
+      title: "The commit of the demo",
     });
-    demo.replaceChildren("commit ", link);
+    commit.replaceChildren("(", link, ")");
   }
 }
 
