@@ -8,10 +8,18 @@
   <meta name="description"
     content="Convert, validate (ShEx, SHACL, DCTAP, PGSchema) and query (SPARQL) RDF data and property graphs in your browser, with rudof compiled to WebAssembly.">
   <link rel="icon" href="./assets/logo-Bi_PJdUG.svg" type="image/svg+xml">
-  <script type="module" crossorigin src="./assets/main-B5b-Gmwa.js"></script>
+  <!-- The theme kept in the browser (header.js), before the page is drawn -->
+  <script>
+    try {
+      const theme = localStorage.getItem("rudof-demo-theme");
+      if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+    } catch {}
+  </script>
+  <script type="module" crossorigin src="./assets/main-CxFbidBp.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/header-ByFK_jm9.js">
   <link rel="modulepreload" crossorigin href="./assets/dist-CjNGdU0X.js">
   <link rel="modulepreload" crossorigin href="./assets/dctap-DBredz1z.js">
-  <link rel="stylesheet" crossorigin href="./assets/demo-BYUereW3.css">
+  <link rel="stylesheet" crossorigin href="./assets/header-CJ3ygRZW.css">
 </head>
 
 <body>
@@ -20,15 +28,40 @@
       <a href="../index.html" class="logo"><img src="./assets/logo-Bi_PJdUG.svg" alt="" width="40" height="32">rudof</a>
       <span class="subtitle">online demo</span>
     </div>
-    <nav class="links">
+    <nav class="links" aria-label="Main">
+      <details class="menu">
+        <summary>Examples</summary>
+        <div class="menu-panel">
+          <a href="./?manifestURL=https%3A%2F%2Fraw.githubusercontent.com%2Fvalidatingrdf%2FTutorial%2Frefs%2Fheads%2Fmaster%2FISWC_2026%2Fmanifest.yml">ISWC 2026 tutorial<small>The examples of the tutorial on validating RDF data</small></a>
+          <a href="help.html#format">Your own examples<small>How to write a manifest of examples</small></a>
+        </div>
+      </details>
+      <a href="help.html" title="How to run the examples of a manifest, and the format of manifests">Help</a>
+      <details class="menu">
+        <summary>About</summary>
+        <div class="menu-panel">
+          <a href="../index.html">rudof manual</a>
+          <a href="https://github.com/rudof-project/rudof">rudof on GitHub</a>
+          <a href="https://github.com/rudof-project/web-demo">Source code of this demo</a>
+          <a href="https://www.npmjs.com/package/@rudof/rudof">@rudof/rudof on npm</a>
+          <dl class="menu-versions">
+            <dt>rudof</dt><dd id="about-rudof-version"></dd>
+            <dt>This demo</dt><dd><span id="about-demo-version"></span> <span id="about-demo-commit"></span></dd>
+          </dl>
+        </div>
+      </details>
+      <details class="menu menu-icon">
+        <summary aria-label="Theme" title="Theme"><svg class="icon-light" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1.5v2.5M12 20v2.5M1.5 12H4M20 12h2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></g></svg><svg class="icon-dark" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M20.7 14.6A8.6 8.6 0 0 1 9.4 3.3a.6.6 0 0 0-.8-.7 9.8 9.8 0 1 0 12.8 12.8.6.6 0 0 0-.7-.8z"/></svg></summary>
+        <div class="menu-panel" role="radiogroup" aria-label="Theme">
+          <label><input type="radio" name="theme" value="system" checked> As the system</label>
+          <label><input type="radio" name="theme" value="light"> Light</label>
+          <label><input type="radio" name="theme" value="dark"> Dark</label>
+        </div>
+      </details>
       <button type="button" class="settings-open" id="settings-open" aria-haspopup="dialog" aria-label="Settings" title="Settings of rudof" disabled>
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M19.14 12.94c.04-.31.06-.62.06-.94s-.02-.63-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.62l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54A.48.48 0 0 0 13.93 2h-3.86a.48.48 0 0 0-.48.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.71 8.47a.48.48 0 0 0 .12.62l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.49.49 0 0 0-.12.62l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.25.41.48.41h3.86c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.48.48 0 0 0-.12-.62l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
         <span class="settings-badge" id="settings-badge" hidden></span>
       </button>
-      <a href="help.html" title="How to run the examples of a manifest, and the format of manifests">Help</a>
-      <a href="../index.html">Manual</a>
-      <a href="https://www.npmjs.com/package/@rudof/rudof">npm</a>
-      <a href="https://github.com/rudof-project/rudof">GitHub</a>
     </nav>
   </header>
 
@@ -290,6 +323,7 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
           <select id="shex-endpoint-choice" class="endpoint-choice"></select>
           <input id="shex-endpoint" class="endpoint" type="url" spellcheck="false" autocomplete="off" aria-label="URL of the endpoint"
             placeholder="None: validate the RDF data below">
+          <label class="inline endpoint-with-data" title="Merges the RDF data of the tab with the data of the endpoint" hidden><input type="checkbox" id="shex-endpoint-data"> With the RDF data</label>
           <span class="hint endpoint-hint">The endpoint must allow other sites to query it (CORS).</span>
         </div>
         <details class="endpoint-prefixes" id="shex-endpoint-prefixes" hidden>
@@ -412,6 +446,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
           <select id="shacl-endpoint-choice" class="endpoint-choice"></select>
           <input id="shacl-endpoint" class="endpoint" type="url" spellcheck="false" autocomplete="off" aria-label="URL of the endpoint"
             placeholder="None: validate the RDF data below">
+          <label class="inline endpoint-with-data" title="Merges the RDF data of the tab with the data of the endpoint" hidden><input type="checkbox" id="shacl-endpoint-data"> With the RDF data</label>
           <span class="hint endpoint-hint">The endpoint must allow other sites to query it (CORS).</span>
         </div>
         <details class="endpoint-prefixes" id="shacl-endpoint-prefixes" hidden>
@@ -557,6 +592,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
           <select id="dctap-endpoint-choice" class="endpoint-choice"></select>
           <input id="dctap-endpoint" class="endpoint" type="url" spellcheck="false" autocomplete="off" aria-label="URL of the endpoint"
             placeholder="None: validate the RDF data below">
+          <label class="inline endpoint-with-data" title="Merges the RDF data of the tab with the data of the endpoint" hidden><input type="checkbox" id="dctap-endpoint-data"> With the RDF data</label>
           <span class="hint endpoint-hint">The endpoint must allow other sites to query it (CORS).</span>
         </div>
         <details class="endpoint-prefixes" id="dctap-endpoint-prefixes" hidden>
@@ -795,6 +831,7 @@ e2: EnrolledInType</textarea>
           <select id="sparql-endpoint-choice" class="endpoint-choice"></select>
           <input id="sparql-endpoint" class="endpoint" type="url" spellcheck="false" autocomplete="off" aria-label="URL of the endpoint"
             placeholder="None: the query runs on the RDF data below">
+          <label class="inline endpoint-with-data" title="Merges the RDF data of the tab with the data of the endpoint" hidden><input type="checkbox" id="sparql-endpoint-data"> With the RDF data</label>
           <span class="hint endpoint-hint">The endpoint must allow other sites to query it (CORS).</span>
         </div>
         <details class="endpoint-prefixes" id="sparql-endpoint-prefixes" hidden>
