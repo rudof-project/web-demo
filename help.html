@@ -14,8 +14,8 @@
       if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
     } catch {}
   </script>
-  <script type="module" crossorigin src="./assets/header-ByFK_jm9.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/header-CJ3ygRZW.css">
+  <script type="module" crossorigin src="./assets/header-7QHX2c1M.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/header-B8BRBhR1.css">
 </head>
 
 <body>
@@ -171,8 +171,8 @@
 
       <h3 id="example-shacl">Validate with SHACL</h3>
       <p>Set <code>validationEngine: shacl</code>. The schema is the shapes graph, in an RDF format
-        (<code>schemaFormat</code>, Turtle by default). SHACL has no shape map: the shapes say which nodes they apply
-        to (<code>sh:targetClass</code>, <code>sh:targetNode</code>…).</p>
+        (<code>schemaFormat</code>, Turtle by default). Without a schema, the shapes are taken from the data. SHACL has
+        no shape map: the shapes say which nodes they apply to (<code>sh:targetClass</code>, <code>sh:targetNode</code>…).</p>
       <pre class="manifest-example"><code>- schemaLabel: Person (SHACL)
   validationEngine: shacl
   schema: |
@@ -383,7 +383,7 @@
             <tr>
               <td><code>schema</code>, <code>schemaURL</code></td>
               <td>The schema: ShEx, SHACL shapes (also <code>shapes</code>, <code>shapesURL</code>) or PGSchemaC</td>
-              <td><code>validate</code></td>
+              <td><code>validate</code>; optional for SHACL, which takes the shapes from the data without it</td>
             </tr>
             <tr>
               <td><code>queryMap</code>, <code>queryMapURL</code></td>

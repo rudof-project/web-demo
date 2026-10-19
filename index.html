@@ -15,11 +15,11 @@
       if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
     } catch {}
   </script>
-  <script type="module" crossorigin src="./assets/main-CxFbidBp.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/header-ByFK_jm9.js">
+  <script type="module" crossorigin src="./assets/main-CoHYIjzC.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/header-7QHX2c1M.js">
   <link rel="modulepreload" crossorigin href="./assets/dist-CjNGdU0X.js">
   <link rel="modulepreload" crossorigin href="./assets/dctap-DBredz1z.js">
-  <link rel="stylesheet" crossorigin href="./assets/header-CJ3ygRZW.css">
+  <link rel="stylesheet" crossorigin href="./assets/header-B8BRBhR1.css">
 </head>
 
 <body>
@@ -482,6 +482,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
           <div class="field">
             <div class="field-head">
               <label for="shacl-shapes">Shapes graph</label>
+              <span class="hint" id="shacl-shapes-from-data" hidden>Empty: the shapes are taken from the RDF data</span>
               <select id="shacl-shapes-format" aria-label="Shapes graph format">
                 <option value="turtle">Turtle</option>
                 <option value="ntriples">N-Triples</option>
@@ -492,7 +493,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
                 <option value="nquads">N-Quads</option>
               </select>
             </div>
-            <textarea id="shacl-shapes" data-editor data-format-select="shacl-shapes-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
+            <textarea id="shacl-shapes" data-editor data-format-select="shacl-shapes-format" spellcheck="false" placeholder="Optional: without a shapes graph, the shapes are taken from the RDF data">prefix : &lt;http://example.org/&gt;
 prefix sh: &lt;http://www.w3.org/ns/shacl#&gt;
 prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
 
@@ -531,13 +532,16 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
               <option value="sparql">SPARQL</option>
             </select>
           </label>
-          <label class="inline" title="How rudof validates shapes that refer to themselves">Recursion
-            <select id="shacl-recursion">
-              <option value="cautious">Cautious</option>
-              <option value="brave">Brave</option>
-              <option value="none">No recursion</option>
+          <label class="inline">Recursion
+            <select id="shacl-recursion" title="LFP (least fixed point), conservative mode: false unless proven. A node in a cycle of shapes conforms only when this can be shown without assuming that it conforms.">
+              <option value="none" title="No recursion: a shapes graph where a shape refers to itself (directly or through other shapes) is an error.">No recursion</option>
+              <option value="lfp" title="LFP (least fixed point), conservative mode: false unless proven. A node in a cycle of shapes conforms only when this can be shown without assuming that it conforms." selected>LFP: Conservative Mode</option>
+              <option value="gfp" title="GFP (greatest fixed point), permissive mode: true unless disproven. A node in a cycle of shapes conforms unless something shows that it does not.">GFP: Permissive Mode</option>
             </select>
           </label>
+          <span class="info" id="shacl-recursion-info" tabindex="0" role="note"
+            aria-label="How SHACL validates shapes that refer to themselves: LFP, conservative, is false unless proven; GFP, permissive, is true unless disproven"
+            title="How rudof validates shapes that refer to themselves, directly or through other shapes:&#10;&#10;LFP: Conservative Mode — False unless proven.&#10;GFP: Permissive Mode — True unless disproven.&#10;No recursion — such shapes are an error.">ⓘ</span>
           <span class="inline shacl-show" role="group" aria-label="Results to show">Show
             <label title="The violations, warnings and other errors"><input type="checkbox" id="shacl-errors" checked> Errors</label>
             <label title="Why the nodes conform"><input type="checkbox" id="shacl-evidences" checked> Evidences</label>
