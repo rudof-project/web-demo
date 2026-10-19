@@ -214,6 +214,13 @@ describe("parseManifest, with actions", () => {
     expect(one("- schemaURL: shapes.ttl\n  data: ''\n  validationEngine: shex\n").target).toBe("shex");
   });
 
+  it("validates SHACL without shapes, which are then those of the data", async () => {
+    const example = one("- data: ''\n  validationEngine: shacl\n");
+    expect(example).toMatchObject({ target: "shacl", unsupported: undefined });
+    const inputs = Object.fromEntries((await loadExample(example)).map((i) => [i.name, i]));
+    expect(inputs.schema).toMatchObject({ textarea: "shacl-shapes", text: "" });
+  });
+
   it("validates PGSchemaC files with PGSchema", () => {
     expect(one("- schemaURL: schema.pgs\n  data: ''\n  typeMap: ''\n").target).toBe("pgschema");
   });

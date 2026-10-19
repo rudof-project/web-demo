@@ -130,7 +130,8 @@ export const TARGETS = {
     action: "validate",
     what: "SHACL",
     inputs: [
-      { name: "schema", aliases: ["shapes"], key: "schemaFormat", textarea: "shacl-shapes", formatSelect: "shacl-shapes-format", formats: SHACL_FORMATS, names: `an RDF format (${RDF_NAMES})`, extensions: SHACL_EXTENSIONS, inline: rdfOf },
+      // Optional: without shapes, SHACL takes them from the data
+      { name: "schema", aliases: ["shapes"], key: "schemaFormat", textarea: "shacl-shapes", formatSelect: "shacl-shapes-format", formats: SHACL_FORMATS, names: `an RDF format (${RDF_NAMES})`, extensions: SHACL_EXTENSIONS, inline: rdfOf, optional: true },
       rdfData("shacl-data", "shacl-data-format"),
       endpointInput("shacl-endpoint"),
     ],

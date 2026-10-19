@@ -174,6 +174,12 @@ function updatePermalink() {
   history.replaceState(null, "", permalinkURL());
 }
 
+// The old values of the selects in permalinks, and their values now
+const VALUE_ALIASES = {
+  // rudof 0.3.28 calls cautious and brave lfp and gfp
+  "shacl-recursion": { cautious: "lfp", brave: "gfp" },
+};
+
 function restoreInputs() {
   if (!hasState(params)) return;
   const fragment = location.hash.slice(1);
@@ -183,9 +189,11 @@ function restoreInputs() {
     panel = panelOfParams(params);
     history.replaceState(null, "", `#${PANELS[panel].section}/${panel}`);
   }
-  for (const [id, value] of inputsOfParams(panel, params)) {
+  for (let [id, value] of inputsOfParams(panel, params)) {
     const input = $(id);
     if (input instanceof HTMLSelectElement) {
+      // Values that have other names now
+      value = VALUE_ALIASES[id]?.[value] ?? value;
       if (![...input.options].some((o) => o.value === value)) {
         if (id === "sparql-result-format") pendingSparqlFormat = value;
         continue;
@@ -361,6 +369,7 @@ setupExtraData(document, { onChange: updatePermalink });
 restoreInputs();
 showEndpointUse();
 showShaclOptions();
+showShapesFromData();
 selectTabFromHash();
 window.addEventListener("hashchange", selectTabFromHash);
 
@@ -976,19 +985,39 @@ function shaclConfig() {
   ].join("\n");
 }
 
-// "of shapes only" is about evidences
+// "of shapes only" is about evidences, and the menu of the recursion says
+// what its choice means
 function showShaclOptions() {
   $("shacl-evidences-shapes").disabled = !$("shacl-evidences").checked;
+  const recursion = $("shacl-recursion");
+  recursion.title = recursion.selectedOptions[0]?.title ?? "";
 }
 $("shacl-evidences").addEventListener("change", showShaclOptions);
+$("shacl-recursion").addEventListener("change", showShaclOptions);
+
+// The shapes graph is optional: without it, rudof takes the shapes from the
+// RDF data (readShacl without shapes)
+function shapesOfData() {
+  return !$("shacl-shapes").value.trim();
+}
+function showShapesFromData() {
+  $("shacl-shapes-from-data").hidden = !shapesOfData();
+}
+$("shacl-shapes").addEventListener("input", showShapesFromData);
+function shaclShapes() {
+  return shapesOfData() ? null : $("shacl-shapes").value;
+}
 for (const id of ["shacl-recursion", "shacl-errors", "shacl-evidences", "shacl-evidences-shapes"]) $(id).addEventListener("change", updatePermalink);
 
 function validateShacl() {
   const start = performance.now();
   const data = dataSession("shacl", { config: shaclConfig(), prefixes: schemaPrefixes($("shacl-shapes").value) });
   const mode = $("shacl-mode").value;
-  data.rudof.readShacl($("shacl-shapes").value, $("shacl-shapes-format").value);
-  return validation(data, () => data.rudof.validateShacl(mode), () => data.rudof.validateShaclAsync(mode), (report) => shaclResult(report, start));
+  data.rudof.readShacl(shaclShapes(), $("shacl-shapes-format").value);
+  return validation(data, () => data.rudof.validateShacl(mode), () => data.rudof.validateShaclAsync(mode), (report) => {
+    const result = shaclResult(report, start);
+    return shapesOfData() ? { ...result, verdict: `${result.verdict} (with the shapes of the RDF data)` } : result;
+  });
 }
 
 function shaclResult(report, start) {
@@ -1325,7 +1354,11 @@ function readSchema(language) {
   const start = performance.now();
   rudof.resetAll();
   if (language === "shex") rudof.readShex($("shex-schema").value, $("shex-schema-format").value);
-  else rudof.readShacl($("shacl-shapes").value, $("shacl-shapes-format").value);
+  else {
+    // The shapes of the RDF data, when there is no shapes graph
+    if (shapesOfData()) readTabData(rudof, "shacl");
+    rudof.readShacl(shaclShapes(), $("shacl-shapes-format").value);
+  }
   return { kind: "ok", millis: performance.now() - start, verdict: schemaVerdict(language) };
 }
 

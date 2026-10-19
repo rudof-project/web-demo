@@ -842,3 +842,7 @@ table.csv-result td code { font-size: 12px; white-space: pre-wrap; overflow-wrap
 .field.unused .extra-data > .cm-editor { opacity: 0.5; }
 .endpoint-with-data { display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; }
 .endpoint-with-data[hidden] { display: none; }
+
+/* An ⓘ that explains the choice next to it (its title) */
+.info { color: var(--muted); cursor: help; border-radius: 50%; }
+.info:hover, .info:focus-visible { color: var(--accent); }

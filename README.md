@@ -263,13 +263,27 @@ in a spreadsheet ([`table-tools.js`](table-tools.js)):
 Next to the **Validate** button of the SHACL tab:
 
 - **Recursion**: what rudof does with shapes that refer to themselves, in a
-  cycle. **Cautious** (the default) doesn't accept that a node conforms only
-  because of the cycle, **Brave** accepts it, and **No recursion** refuses a
-  shapes graph with a cycle.
+  cycle (`recursion_semantics`, whose values are `none`, `lfp` and `gfp`
+  since rudof 0.3.28; `cautious` and `brave` are their old names):
+  - **No recursion** refuses a shapes graph with a cycle.
+  - **LFP: Conservative Mode** (least fixed point, the default) is *false
+    unless proven*: a node in a cycle conforms only when this can be shown
+    without assuming that it conforms.
+  - **GFP: Permissive Mode** (greatest fixed point) is *true unless
+    disproven*: a node in a cycle conforms unless something shows that it
+    does not.
+
+  The options and the ⓘ next to the menu say this in their tooltips.
+  Permalinks with the old names (`recursion=cautious`, `recursion=brave`)
+  still work.
 - **Show**: the **Errors** (the violations and other results), the
   **Evidences** (why the nodes conform), and whether the evidences are only
   those **of shapes**, or also those of each constraint. By default, the
   errors and the evidences of shapes.
+
+The **Shapes graph** is optional: when it is empty, rudof takes the shapes
+from the RDF data (`readShacl` without shapes), and the verdict says so.
+The same goes for SHACL examples of manifests without `schema`.
 
 They are the `[shacl]` section of the configuration of rudof
 (`recursion_semantics`, `store_errors`, `store_evidences` and
