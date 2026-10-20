@@ -5,17 +5,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Help: manifests of examples — rudof online demo</title>
-  <meta name="description" content="How to run the examples of a manifest in the rudof online demo, and the format of manifest files.">
+  <meta name="description"
+    content="How to run the examples of a manifest in the rudof online demo, and the format of manifest files.">
   <link rel="icon" href="./assets/logo-Bi_PJdUG.svg" type="image/svg+xml">
   <!-- The theme kept in the browser (header.js), before the page is drawn -->
   <script>
     try {
       const theme = localStorage.getItem("rudof-demo-theme");
       if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
-    } catch {}
+    } catch { }
   </script>
-  <script type="module" crossorigin src="./assets/header-C968xrJ9.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/header-CGE332Ik.css">
+  <script type="module" crossorigin src="./assets/header-DG-id3U_.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/header-CLedU2G0.css">
 </head>
 
 <body>
@@ -28,8 +29,18 @@
       <details class="menu">
         <summary>Examples</summary>
         <div class="menu-panel">
-          <a href="./?manifestURL=https%3A%2F%2Fraw.githubusercontent.com%2Fvalidatingrdf%2FTutorial%2Frefs%2Fheads%2Fmaster%2FISWC_2026%2Fmanifest.yml">ISWC 2026 tutorial<small>The examples of the tutorial on validating RDF data</small></a>
-          <a href="help.html#format">Your own examples<small>How to write a manifest of examples</small></a>
+          <div class="menu-item">
+            <a href="./?manifestURL=https%3A%2F%2Fraw.githubusercontent.com%2Fvalidatingrdf%2FTutorial%2Frefs%2Fheads%2Fmaster%2FISWC_2026%2Fmanifest.yml">ISWC 2026 tutorial</a>
+            <small>The examples of <a href="https://www.validatingrdf.com/tutorial/iswc2026/">the tutorial on validating RDF data</a></small>
+          </div>
+          <div class="menu-item">
+            <a href="./?manifestURL=https%3A%2F%2Fraw.githubusercontent.com%2Fcogsl%2Fsheval%2Frefs%2Fheads%2Fmain%2Frudof.yaml">DMKG 26</a>
+            <small>Examples from the <a href="https://github.com/cogsl/sheval">sheval</a> paper</small>
+          </div>
+          <div class="menu-item">
+            <a href="help.html#format">Your own examples</a>
+            <small>How to write a manifest of examples</small>
+          </div>
         </div>
       </details>
       <a href="help.html" aria-current="page">Help</a>
@@ -41,13 +52,25 @@
           <a href="https://github.com/rudof-project/web-demo">Source code of this demo</a>
           <a href="https://www.npmjs.com/package/@rudof/rudof">@rudof/rudof on npm</a>
           <dl class="menu-versions">
-            <dt>rudof</dt><dd id="about-rudof-version"></dd>
-            <dt>This demo</dt><dd><span id="about-demo-version"></span> <span id="about-demo-commit"></span></dd>
+            <dt>rudof</dt>
+            <dd id="about-rudof-version"></dd>
+            <dt>This demo</dt>
+            <dd><span id="about-demo-version"></span> <span id="about-demo-commit"></span></dd>
           </dl>
         </div>
       </details>
       <details class="menu menu-icon">
-        <summary aria-label="Theme" title="Theme"><svg class="icon-light" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1.5v2.5M12 20v2.5M1.5 12H4M20 12h2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></g></svg><svg class="icon-dark" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M20.7 14.6A8.6 8.6 0 0 1 9.4 3.3a.6.6 0 0 0-.8-.7 9.8 9.8 0 1 0 12.8 12.8.6.6 0 0 0-.7-.8z"/></svg></summary>
+        <summary aria-label="Theme" title="Theme"><svg class="icon-light" viewBox="0 0 24 24" width="20" height="20"
+            aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="4.5" fill="currentColor" />
+            <g stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path
+                d="M12 1.5v2.5M12 20v2.5M1.5 12H4M20 12h2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8" />
+            </g>
+          </svg><svg class="icon-dark" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+            <path fill="currentColor"
+              d="M20.7 14.6A8.6 8.6 0 0 1 9.4 3.3a.6.6 0 0 0-.8-.7 9.8 9.8 0 1 0 12.8 12.8.6.6 0 0 0-.7-.8z" />
+          </svg></summary>
         <div class="menu-panel" role="radiogroup" aria-label="Theme">
           <label><input type="radio" name="theme" value="system" checked> As the system</label>
           <label><input type="radio" name="theme" value="light"> Light</label>
@@ -94,14 +117,17 @@
           <pre><code>https://rudof-project.github.io/web-demo/?manifestURL=https://example.org/my-examples.yaml</code></pre>
           <p>The URL can be relative to the page, for example <code>?manifestURL=examples.yml</code> for a manifest
             next to the demo. Try the
-            <a href="./?manifestURL=https://raw.githubusercontent.com/validatingrdf/Tutorial/refs/heads/master/ISWC_2026/manifest.yml">manifest
-              of the ISWC 2026 tutorial</a>.</p>
+            <a
+              href="./?manifestURL=https://raw.githubusercontent.com/validatingrdf/Tutorial/refs/heads/master/ISWC_2026/manifest.yml">manifest
+              of the ISWC 2026 tutorial</a>.
+          </p>
         </li>
         <li>
           <p>Above the tabs, the demo shows <strong>Examples from</strong> the manifest, and a list of its examples.
             Each example is named by its <code>comment</code> (or its <code>dataLabel</code>), and the examples are
             grouped by <code>schemaLabel</code>. ✓ and ✗ mark the examples whose <code>status</code> is
-            <code>conformant</code> or <code>nonconformant</code>.</p>
+            <code>conformant</code> or <code>nonconformant</code>.
+          </p>
         </li>
         <li>
           <p>Choose an example. The demo opens the tab of its <a href="#key-action"><code>action</code></a> and puts
@@ -109,10 +135,12 @@
           <ul>
             <li><strong>validate</strong>: the Validate tab of its engine (ShEx, SHACL, DCTAP or PGSchema). Press
               <strong>Validate</strong> to validate it: the verdict says whether the result is the one of its
-              <code>status</code> (“as the manifest expects”).</li>
+              <code>status</code> (“as the manifest expects”).
+            </li>
             <li><strong>query</strong>: the SPARQL tab. Press <strong>Run query</strong> to run the query.</li>
             <li><strong>data</strong>: the RDF or Property graph tab of the Data section. Press
-              <strong>Convert</strong> to convert the data.</li>
+              <strong>Convert</strong> to convert the data.
+            </li>
             <li><strong>schema</strong>: the Schema tab, with the language and the format of the schema. Choose what
               to convert it to, and press <strong>Convert</strong>.</li>
           </ul>
@@ -120,17 +148,20 @@
         </li>
         <li>
           <p>You can change the inputs and run them again. The verdict compares the result with the
-            <code>status</code> only while the inputs are those of the example.</p>
+            <code>status</code> only while the inputs are those of the example.
+          </p>
         </li>
       </ol>
       <p>When you choose an example, the URL of the page gets <code>&amp;example=&lt;n&gt;</code> (the n-th example,
         from 1) and the inputs of the tab, so it is a permalink of the example as it is now. To start again from the
         list, use <strong>Reload the examples</strong>, at the right of the list: it opens the page with only
         <code>?manifestURL=…</code>. A URL with <code>?manifestURL=…&amp;example=3</code> and no inputs loads the third
-        example when the page opens.</p>
+        example when the page opens.
+      </p>
       <p class="note">The browser reads the manifest and the files of its examples, so their server must allow other
         sites to read them (<a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS">CORS</a>). GitHub Pages and
-        <code>raw.githubusercontent.com</code> do. If a manifest can't be read, the demo says why below the list.</p>
+        <code>raw.githubusercontent.com</code> do. If a manifest can't be read, the demo says why below the list.
+      </p>
     </section>
 
     <section id="format">
@@ -144,7 +175,8 @@
 - dataURL: data/alice.ttl  # …or the URL of a file with the data</code></pre>
       <p>URLs are relative to the URL of the manifest. Use <code>|</code> for text of several lines, and quotes for
         text with a <code>:</code> followed by a space, or that starts with <code>@</code>, <code>[</code> or
-        <code>{</code> (for example <code>queryMap: ":alice@:Person"</code>).</p>
+        <code>{</code> (for example <code>queryMap: ":alice@:Person"</code>).
+      </p>
       <p>Every key is optional. Without <code>action</code>, an example is a validation, as in the manifests of shex.js,
         and without <code>validationEngine</code> the demo chooses the engine from the inputs
         (<a href="#defaults">see below</a>).</p>
@@ -172,7 +204,8 @@
       <h3 id="example-shacl">Validate with SHACL</h3>
       <p>Set <code>validationEngine: shacl</code>. The schema is the shapes graph, in an RDF format
         (<code>schemaFormat</code>, Turtle by default). Without a schema, the shapes are taken from the data. SHACL has
-        no shape map: the shapes say which nodes they apply to (<code>sh:targetClass</code>, <code>sh:targetNode</code>…).</p>
+        no shape map: the shapes say which nodes they apply to (<code>sh:targetClass</code>,
+        <code>sh:targetNode</code>…).</p>
       <pre class="manifest-example"><code>- schemaLabel: Person (SHACL)
   validationEngine: shacl
   schema: |
@@ -188,8 +221,10 @@
   status: nonconformant
   comment: A Person needs a name</code></pre>
       <p id="example-shacl-targets">The targets can also be given apart from the shapes, with <code>targets</code> (or
-        <code>targetsURL</code>, a file) and <code>targetsFormat</code> (Turtle by default). They are RDF triples, merged
-        with the shapes graph before the validation, as the <b>Target declarations</b> of the SHACL tab:</p>
+        <code>targetsURL</code>, a file) and <code>targetsFormat</code> (Turtle by default). They are RDF triples,
+        merged
+        with the shapes graph before the validation, as the <b>Target declarations</b> of the SHACL tab:
+      </p>
       <pre class="manifest-example"><code>- schemaLabel: Person (SHACL), with the targets apart
   validationEngine: shacl
   schemaURL: person-shapes.ttl
@@ -203,7 +238,8 @@
       <p>Without <code>validationEngine</code>, an example is also validated with SHACL when its schema is in an RDF
         format (a <code>schemaFormat</code> such as <code>turtle</code>, or a file such as <code>shapes.ttl</code>) and
         it has no <code>queryMap</code>, or when it gives its schema as <code>shapes</code> or
-        <code>shapesURL</code>. Writing <code>validationEngine: shacl</code> makes it clear.</p>
+        <code>shapesURL</code>. Writing <code>validationEngine: shacl</code> makes it clear.
+      </p>
 
       <h3 id="example-pgschema">Validate a property graph with PGSchema</h3>
       <p>The data is a property graph in YARS-PG (<code>dataFormat: yars-pg</code>), the schema is in PGSchemaC, and
@@ -225,11 +261,14 @@
         is <code>schemaLanguage: dctap</code>, which a CSV schema (<code>schemaFormat: csv</code>, or a
         <code>.csv</code> file) has without saying it. The DCTAP tab converts the profile to ShEx and validates the data
         with it, for the shape map (<code>queryMap</code>): <code>validationEngine</code> is <code>shex</code>, the only
-        one for DCTAP until rudof can convert DCTAP to SHACL.</p>
+        one for DCTAP until rudof can convert DCTAP to SHACL.
+      </p>
       <p>The names of the profile are prefixed names (<code>foaf:name</code>) or names without prefix
         (<code>Person</code>), so the example gives the prefixes of the profile in <code>prefixes</code> (or
-        <code>prefixesURL</code>), as Turtle declarations: <code>PREFIX</code>, and <code>BASE</code> for the names without
-        prefix. The values of picklists are separated by spaces, unless <code>picklistSeparator: "|"</code>.</p>
+        <code>prefixesURL</code>), as Turtle declarations: <code>PREFIX</code>, and <code>BASE</code> for the names
+        without
+        prefix. The values of picklists are separated by spaces, unless <code>picklistSeparator: "|"</code>.
+      </p>
       <pre class="manifest-example"><code>- schemaLabel: Person (DCTAP)
   schemaLanguage: dctap
   validationEngine: shex
@@ -277,7 +316,8 @@
       <h3 id="example-query">Run a SPARQL query</h3>
       <p><code>action: query</code> puts the query in the SPARQL tab, with the data it runs on, or with an
         <code>endpoint</code>: then the query runs on the endpoint (which must allow other sites to query it, as
-        Wikidata does), and the example needs no data.</p>
+        Wikidata does), and the example needs no data.
+      </p>
       <pre class="manifest-example"><code>- action: query
   data: |
     PREFIX foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
@@ -299,7 +339,8 @@
       <h3 id="example-endpoint">Validate the data of an endpoint</h3>
       <p>A validation with ShEx, SHACL or DCTAP can run on the data of a SPARQL endpoint, given by
         <code>endpoint</code>, instead of <code>data</code>: rudof asks the endpoint for the data of each node it
-        validates. The shape map can use the prefixes of the schema (for DCTAP, its <code>prefixes</code>).</p>
+        validates. The shape map can use the prefixes of the schema (for DCTAP, its <code>prefixes</code>).
+      </p>
       <pre class="manifest-example"><code>- endpoint: https://query.wikidata.org/sparql
   schema: |
     PREFIX wd: &lt;http://www.wikidata.org/entity/&gt;
@@ -319,7 +360,8 @@
         languages, to a UML diagram or to a SPARQL query. The language of the schema is its
         <code>schemaLanguage</code>; without it, the demo chooses it as for validations
         (<a href="#defaults">see below</a>). A DCTAP profile can have its <code>prefixes</code> and its
-        <code>picklistSeparator</code>.</p>
+        <code>picklistSeparator</code>.
+      </p>
       <pre class="manifest-example"><code>- action: schema
   schemaLanguage: shex
   schemaFormat: shexc
@@ -346,24 +388,34 @@
       <div class="table-wrap">
         <table class="keys">
           <thead>
-            <tr><th>Key</th><th>Values</th><th>Default</th></tr>
+            <tr>
+              <th>Key</th>
+              <th>Values</th>
+              <th>Default</th>
+            </tr>
           </thead>
           <tbody>
             <tr id="key-action">
               <td><code>action</code></td>
-              <td><code>validate</code>: validate the data with a schema;<br><code>data</code>: load the data;<br><code>query</code>: run a query on the data or on an endpoint;<br><code>schema</code>: show the schema in the Schema tab, to convert it</td>
+              <td><code>validate</code>: validate the data with a schema;<br><code>data</code>: load the
+                data;<br><code>query</code>: run a query on the data or on an endpoint;<br><code>schema</code>: show the
+                schema in the Schema tab, to convert it</td>
               <td><code>validate</code></td>
             </tr>
             <tr>
               <td><code>validationEngine</code></td>
-              <td><code>shex</code>, <code>shacl</code> or <code>pgschema</code>, for <code>action: validate</code>. <code>type</code> (of shex.js) is read as <code>validationEngine</code> too.</td>
-              <td>The engine of the <code>schemaLanguage</code>, or from the inputs (<a href="#defaults">see below</a>); <code>shex</code> in the end</td>
+              <td><code>shex</code>, <code>shacl</code> or <code>pgschema</code>, for <code>action: validate</code>.
+                <code>type</code> (of shex.js) is read as <code>validationEngine</code> too.</td>
+              <td>The engine of the <code>schemaLanguage</code>, or from the inputs (<a href="#defaults">see below</a>);
+                <code>shex</code> in the end</td>
             </tr>
             <tr>
               <td><code>schemaLanguage</code></td>
               <td>The language of the schema: <code>shex</code>, <code>shacl</code>, <code>pgschema</code> or
-                <code>dctap</code>. <code>schemaEngine</code> is another name of this key. A <code>dctap</code> schema is
-                validated with <code>shex</code>; the others with their own engine.</td>
+                <code>dctap</code>. <code>schemaEngine</code> is another name of this key. A <code>dctap</code> schema
+                is
+                validated with <code>shex</code>; the others with their own engine.
+              </td>
               <td><code>dctap</code> for a CSV schema; else the language of the <code>validationEngine</code></td>
             </tr>
             <tr>
@@ -385,7 +437,11 @@
       <div class="table-wrap">
         <table class="keys">
           <thead>
-            <tr><th>Key</th><th>What it is</th><th>Used by</th></tr>
+            <tr>
+              <th>Key</th>
+              <th>What it is</th>
+              <th>Used by</th>
+            </tr>
           </thead>
           <tbody>
             <tr>
@@ -408,13 +464,15 @@
             <tr>
               <td><code>queryMap</code>, <code>queryMapURL</code></td>
               <td>The shape map of ShEx: which nodes to validate with which shapes, such as
-                <code>":alice@:Person"</code> or <code>"{FOCUS a :Person}@:Person"</code></td>
+                <code>":alice@:Person"</code> or <code>"{FOCUS a :Person}@:Person"</code>
+              </td>
               <td><code>validate</code> with ShEx</td>
             </tr>
             <tr>
               <td><code>typeMap</code>, <code>typeMapURL</code></td>
               <td>The type map of PGSchema: which type each node or edge should have, such as
-                <code>"n1: PersonType, e1: KnowsType"</code> (<code>queryMap</code> is read as the type map too)</td>
+                <code>"n1: PersonType, e1: KnowsType"</code> (<code>queryMap</code> is read as the type map too)
+              </td>
               <td><code>validate</code> with PGSchema</td>
             </tr>
             <tr>
@@ -432,7 +490,8 @@
               <td><code>prefixes</code>, <code>prefixesURL</code></td>
               <td>The prefixes of a DCTAP profile, as Turtle declarations (<code>PREFIX ex: &lt;…&gt;</code>, and
                 <code>BASE &lt;…&gt;</code> for the names without prefix). <code>rdf</code>, <code>rdfs</code>,
-                <code>xsd</code>, <code>sh</code> and <code>dc</code> are always there.</td>
+                <code>xsd</code>, <code>sh</code> and <code>dc</code> are always there.
+              </td>
               <td><code>validate</code> with DCTAP</td>
             </tr>
             <tr>
@@ -449,28 +508,36 @@
       <div class="table-wrap">
         <table class="keys">
           <thead>
-            <tr><th>Key</th><th>Values</th><th>Default</th></tr>
+            <tr>
+              <th>Key</th>
+              <th>Values</th>
+              <th>Default</th>
+            </tr>
           </thead>
           <tbody>
             <tr>
               <td><code>dataFormat</code></td>
               <td>RDF: <code>turtle</code>, <code>ntriples</code>, <code>rdfxml</code>, <code>jsonld</code>,
-                <code>trig</code>, <code>n3</code>, <code>nquads</code>;<br>property graphs: <code>yars-pg</code></td>
+                <code>trig</code>, <code>n3</code>, <code>nquads</code>;<br>property graphs: <code>yars-pg</code>
+              </td>
               <td>The format of the file extension, else <code>turtle</code> (<code>jsonld</code> for text that starts
                 with <code>{</code> or <code>[</code>)</td>
             </tr>
             <tr>
               <td><code>schemaFormat</code></td>
               <td>ShEx: <code>shex</code> (ShExC), <code>shexj</code> or <code>json</code> (ShExJ), or an RDF format
-                (ShExR);<br>SHACL: an RDF format (<code>json</code> is JSON-LD);<br>PGSchema: <code>pgschema</code>;<br>DCTAP:
-                <code>csv</code></td>
+                (ShExR);<br>SHACL: an RDF format (<code>json</code> is JSON-LD);<br>PGSchema:
+                <code>pgschema</code>;<br>DCTAP:
+                <code>csv</code>
+              </td>
               <td>The format of the file extension, else <code>shex</code> for ShEx (<code>shexj</code> for text that
                 starts with <code>{</code>) and <code>turtle</code> for SHACL</td>
             </tr>
             <tr>
               <td><code>targetsFormat</code></td>
               <td>An RDF format: <code>turtle</code>, <code>ntriples</code>, <code>rdfxml</code>, <code>jsonld</code>,
-                <code>trig</code>, <code>n3</code>, <code>nquads</code></td>
+                <code>trig</code>, <code>n3</code>, <code>nquads</code>
+              </td>
               <td>The format of the file extension, else <code>turtle</code> (<code>jsonld</code> for text that starts
                 with <code>{</code> or <code>[</code>)</td>
             </tr>
@@ -486,13 +553,17 @@
         <code>.owl</code>, <code>.jsonld</code>, <code>.trig</code>, <code>.n3</code>, <code>.nq</code> (RDF);
         <code>.shex</code>, <code>.shexc</code>, <code>.shexj</code>, <code>.json</code> (ShEx); <code>.pg</code>,
         <code>.ypg</code>, <code>.yarspg</code> (YARS-PG); <code>.pgs</code>, <code>.pgschema</code> (PGSchemaC);
-        <code>.csv</code> (DCTAP).</p>
+        <code>.csv</code> (DCTAP).
+      </p>
 
       <h3>How it is shown</h3>
       <div class="table-wrap">
         <table class="keys">
           <thead>
-            <tr><th>Key</th><th>What it is</th></tr>
+            <tr>
+              <th>Key</th>
+              <th>What it is</th>
+            </tr>
           </thead>
           <tbody>
             <tr>
@@ -519,7 +590,8 @@
         <li><code>action: data</code> goes to the Property graph tab when the data is a property graph
           (<code>dataFormat: yars-pg</code>, or a <code>.pg</code> file), and to the RDF tab otherwise.</li>
         <li><code>action: query</code> goes to the SPARQL tab.</li>
-        <li><code>action: schema</code> goes to the Schema tab, in the <code>schemaLanguage</code> of the schema. Without
+        <li><code>action: schema</code> goes to the Schema tab, in the <code>schemaLanguage</code> of the schema.
+          Without
           it, the language is <code>dctap</code> for a DCTAP profile, else the language of the engine that would
           validate the schema (below).</li>
         <li><code>action: validate</code> (or no <code>action</code>) with a DCTAP profile
@@ -543,11 +615,12 @@
     <section id="unsupported">
       <h2>Examples that can't be run</h2>
       <p>They are in the list, marked “(not supported)”, and can't be chosen. Below the list, <strong>Why … examples
-        can't be run</strong> opens the list of these examples: for each one, the reason, a hint on how to change its
+          can't be run</strong> opens the list of these examples: for each one, the reason, a hint on how to change its
         entry, a link to this page, and the entry as the demo read it from the manifest. They are:</p>
       <ul>
         <li>examples without an input that their tab needs (for example a ShEx validation without
-          <code>queryMap</code>, or a query without <code>data</code> or <code>endpoint</code>);</li>
+          <code>queryMap</code>, or a query without <code>data</code> or <code>endpoint</code>);
+        </li>
         <li>formats that their tab can't read (for example TriX, or a <code>shex</code> schema for SHACL);</li>
         <li>unknown actions, validation engines or query engines;</li>
         <li>queries on property graphs;</li>
@@ -562,9 +635,11 @@
       <p>The demo reads the manifests of <a href="https://shex.js.org/">shex.js</a>, such as
         <a href="./?manifestURL=https://shex.js.org/doc/tests-manifest.yaml">its own examples</a>: they have no
         <code>action</code>, so they are ShEx validations, with <code>schemaLabel</code>, <code>schemaURL</code>,
-        <code>dataLabel</code>, <code>dataURL</code>, <code>queryMap</code> and <code>status</code>. Examples written for
+        <code>dataLabel</code>, <code>dataURL</code>, <code>queryMap</code> and <code>status</code>. Examples written
+        for
         the plugins of shex.js (<code>plugins</code>) can be loaded, with a note: rudof may not run their semantic
-        actions.</p>
+        actions.
+      </p>
     </section>
   </main>
 
