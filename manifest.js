@@ -35,6 +35,9 @@
 //                                 # pgschema or dctap (also schemaEngine:)
 //     prefixes: PREFIX : <...>    # or prefixesURL: ..., for DCTAP
 //     picklistSeparator: space    # or |, for DCTAP
+//     targets: |                  # or targetsURL: ..., for SHACL: target
+//       :S sh:targetNode :alice .  # declarations in RDF, merged with the
+//     targetsFormat: turtle       # shapes graph before the validation
 //
 // Without a format, the format is the one of the extension of the file, or
 // the default. Without a validationEngine, PGSchema validates property graphs
@@ -132,6 +135,7 @@ export const TARGETS = {
     inputs: [
       // Optional: without shapes, SHACL takes them from the data
       { name: "schema", aliases: ["shapes"], key: "schemaFormat", textarea: "shacl-shapes", formatSelect: "shacl-shapes-format", formats: SHACL_FORMATS, names: `an RDF format (${RDF_NAMES})`, extensions: SHACL_EXTENSIONS, inline: rdfOf, optional: true },
+      { name: "targets", key: "targetsFormat", textarea: "shacl-targets", formatSelect: "shacl-targets-format", formats: RDF_FORMATS, names: RDF_NAMES, extensions: RDF_EXTENSIONS, inline: rdfOf, optional: true },
       rdfData("shacl-data", "shacl-data-format"),
       endpointInput("shacl-endpoint"),
     ],

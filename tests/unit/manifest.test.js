@@ -221,6 +221,35 @@ describe("parseManifest, with actions", () => {
     expect(inputs.schema).toMatchObject({ textarea: "shacl-shapes", text: "" });
   });
 
+  it("gives SHACL the target declarations, merged with the shapes", async () => {
+    const example = one("- shapes: ''\n  data: ''\n  targets: '<http://example.org/S> <http://www.w3.org/ns/shacl#targetNode> <http://example.org/a> .'\n  targetsFormat: ntriples\n");
+    expect(example).toMatchObject({ target: "shacl", unsupported: undefined, formats: { targets: "ntriples" } });
+    const inputs = Object.fromEntries((await loadExample(example)).map((i) => [i.name, i]));
+    expect(inputs.targets).toMatchObject({ textarea: "shacl-targets", formatSelect: "shacl-targets-format", format: "ntriples" });
+    // From a file, in the format of its extension; Turtle by default
+    const file = one("- shapes: ''\n  data: ''\n  targetsURL: targets.nt\n");
+    expect(file.inputs.targets).toEqual({ url: new URL("targets.nt", MANIFEST_URL).href });
+    expect(file.formats.targets).toBe("ntriples");
+    expect((await loadExample(one("- shapes: ''\n  data: ''\n  targets: ':S sh:targetNode :a .'\n"))).find((i) => i.name === "targets").format).toBe("turtle");
+    // Optional: empty without them
+    expect((await loadExample(one("- shapes: ''\n  data: ''\n"))).find((i) => i.name === "targets")).toMatchObject({ text: "" });
+    expect(one("- shapes: ''\n  data: ''\n  targets: ''\n  targetsFormat: shex\n")).toMatchObject({ unsupported: expect.stringMatching(/targetsFormat "shex"/) });
+  });
+
+  it("validates with the target declarations merged with the shapes graph, in rudof", () => {
+    // As demo.js does: both read as RDF data, merged, and read as the shapes
+    const shapes = "prefix : <http://example.org/>\nprefix sh: <http://www.w3.org/ns/shacl#>\n:S a sh:NodeShape ; sh:property [ sh:path :p ; sh:minCount 1 ] .";
+    const graph = new Rudof();
+    graph.readData(shapes, "turtle");
+    graph.readData("<http://example.org/S> <http://www.w3.org/ns/shacl#targetNode> <http://example.org/a> .", "ntriples", undefined, undefined, true);
+    const rudof = new Rudof();
+    rudof.readData("<http://example.org/a> <http://example.org/q> 1 .", "turtle");
+    rudof.readShacl(shapes, "turtle");
+    expect(rudof.validateShacl("native").conforms).toBe(true);
+    rudof.readShacl(graph.serializeData("turtle"), "turtle");
+    expect(rudof.validateShacl("native").conforms).toBe(false);
+  });
+
   it("validates PGSchemaC files with PGSchema", () => {
     expect(one("- schemaURL: schema.pgs\n  data: ''\n  typeMap: ''\n").target).toBe("pgschema");
   });

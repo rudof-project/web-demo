@@ -285,6 +285,17 @@ The **Shapes graph** is optional: when it is empty, rudof takes the shapes
 from the RDF data (`readShacl` without shapes), and the verdict says so.
 The same goes for SHACL examples of manifests without `schema`.
 
+Under the shapes graph, the optional **Target declarations** are RDF triples
+that say which nodes the shapes apply to (such as
+`:PersonShape sh:targetNode :alice .`), in their own format. When they are
+not empty, rudof reads the shapes graph (or the RDF data, without a shapes
+graph) and the target declarations as RDF data in a session of their own,
+merges them, and reads the merged graph as the shapes. The verdict says
+"(with the target declarations)". In manifests, SHACL examples give them with
+`targets` or `targetsURL`, and `targetsFormat` (Turtle by default, or the
+format of the file extension). In permalinks, they are `targets` and
+`targets-format`.
+
 They are the `[shacl]` section of the configuration of rudof
 (`recursion_semantics`, `store_errors`, `store_evidences` and
 `evidence_shapes_only`). Without the errors, the verdict doesn't count them.

@@ -834,6 +834,9 @@ table.csv-result td code { font-size: 12px; white-space: pre-wrap; overflow-wrap
   :root:not([data-theme="light"]) .menu-icon .icon-dark { display: inline; }
 }
 
+/* The target declarations of SHACL, under the shapes graph */
+.sub-field { display: flex; flex-direction: column; margin-top: 0.6rem; }
+
 /* More RDF data, merged with the data of the tab (extra-data.js) */
 .extra-data { display: flex; flex-direction: column; margin-top: 0.6rem; }
 .extra-data .remove-data { margin-left: auto; }

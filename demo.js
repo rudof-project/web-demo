@@ -370,6 +370,7 @@ restoreInputs();
 showEndpointUse();
 showShaclOptions();
 showShapesFromData();
+showTargetsUsed();
 selectTabFromHash();
 window.addEventListener("hashchange", selectTabFromHash);
 
@@ -1007,16 +1008,56 @@ $("shacl-shapes").addEventListener("input", showShapesFromData);
 function shaclShapes() {
   return shapesOfData() ? null : $("shacl-shapes").value;
 }
+
+// The target declarations (optional): RDF triples, such as
+// :PersonShape sh:targetNode :alice, merged with the shapes graph before the
+// validation. rudof reads both as RDF data in a session of their own, and
+// reads the merged graph as the shapes.
+function hasTargets() {
+  return Boolean($("shacl-targets").value.trim());
+}
+function showTargetsUsed() {
+  $("shacl-targets-used").hidden = !hasTargets();
+  $("shacl-targets-used").textContent = shapesOfData() ? "Merged with the shapes of the RDF data" : "Merged with the shapes graph";
+}
+$("shacl-targets").addEventListener("input", showTargetsUsed);
+$("shacl-shapes").addEventListener("input", showTargetsUsed);
+
+// Reads the shapes of the SHACL tab in a session: the shapes graph (or the
+// shapes of the RDF data), merged with the target declarations
+function readShaclShapes(rudof) {
+  if (!hasTargets()) {
+    rudof.readShacl(shaclShapes(), $("shacl-shapes-format").value);
+    return;
+  }
+  const graph = session("shacl-targets");
+  graph.resetAll();
+  if (shapesOfData()) readTabData(graph, "shacl");
+  else graph.readData($("shacl-shapes").value, $("shacl-shapes-format").value);
+  try {
+    graph.readData($("shacl-targets").value, $("shacl-targets-format").value, undefined, undefined, true);
+  } catch (e) {
+    throw new Error(`The target declarations can't be read: ${e.message ?? e}`, { cause: e });
+  }
+  rudof.readShacl(graph.serializeData("turtle"), "turtle");
+}
+
+// What the shapes are, in the verdict, when they are not only the shapes graph
+function shapesNote() {
+  const parts = [shapesOfData() && "the shapes of the RDF data", hasTargets() && "the target declarations"].filter(Boolean);
+  return parts.length ? ` (with ${parts.join(" and ")})` : "";
+}
 for (const id of ["shacl-recursion", "shacl-errors", "shacl-evidences", "shacl-evidences-shapes"]) $(id).addEventListener("change", updatePermalink);
 
 function validateShacl() {
   const start = performance.now();
   const data = dataSession("shacl", { config: shaclConfig(), prefixes: schemaPrefixes($("shacl-shapes").value) });
   const mode = $("shacl-mode").value;
-  data.rudof.readShacl(shaclShapes(), $("shacl-shapes-format").value);
+  readShaclShapes(data.rudof);
+  const note = shapesNote();
   return validation(data, () => data.rudof.validateShacl(mode), () => data.rudof.validateShaclAsync(mode), (report) => {
     const result = shaclResult(report, start);
-    return shapesOfData() ? { ...result, verdict: `${result.verdict} (with the shapes of the RDF data)` } : result;
+    return { ...result, verdict: result.verdict + note };
   });
 }
 
@@ -1357,7 +1398,7 @@ function readSchema(language) {
   else {
     // The shapes of the RDF data, when there is no shapes graph
     if (shapesOfData()) readTabData(rudof, "shacl");
-    rudof.readShacl(shaclShapes(), $("shacl-shapes-format").value);
+    readShaclShapes(rudof);
   }
   return { kind: "ok", millis: performance.now() - start, verdict: schemaVerdict(language) };
 }

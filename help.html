@@ -187,6 +187,19 @@
     :bob a :Person .
   status: nonconformant
   comment: A Person needs a name</code></pre>
+      <p id="example-shacl-targets">The targets can also be given apart from the shapes, with <code>targets</code> (or
+        <code>targetsURL</code>, a file) and <code>targetsFormat</code> (Turtle by default). They are RDF triples, merged
+        with the shapes graph before the validation, as the <b>Target declarations</b> of the SHACL tab:</p>
+      <pre class="manifest-example"><code>- schemaLabel: Person (SHACL), with the targets apart
+  validationEngine: shacl
+  schemaURL: person-shapes.ttl
+  targets: |
+    PREFIX : &lt;http://example.org/&gt;
+    PREFIX sh: &lt;http://www.w3.org/ns/shacl#&gt;
+    :PersonShape sh:targetNode :bob .
+  targetsFormat: turtle
+  dataURL: people.ttl
+  comment: Bob, validated with the shapes of person-shapes.ttl</code></pre>
       <p>Without <code>validationEngine</code>, an example is also validated with SHACL when its schema is in an RDF
         format (a <code>schemaFormat</code> such as <code>turtle</code>, or a file such as <code>shapes.ttl</code>) and
         it has no <code>queryMap</code>, or when it gives its schema as <code>shapes</code> or
@@ -386,6 +399,13 @@
               <td><code>validate</code>; optional for SHACL, which takes the shapes from the data without it</td>
             </tr>
             <tr>
+              <td><code>targets</code>, <code>targetsURL</code></td>
+              <td>Target declarations of SHACL in RDF, such as <code>:PersonShape sh:targetNode :alice .</code>: they
+                are merged with the shapes graph (or with the shapes of the data) before the validation
+                (<a href="#example-shacl-targets">see above</a>)</td>
+              <td>Optional, <code>validate</code> with SHACL</td>
+            </tr>
+            <tr>
               <td><code>queryMap</code>, <code>queryMapURL</code></td>
               <td>The shape map of ShEx: which nodes to validate with which shapes, such as
                 <code>":alice@:Person"</code> or <code>"{FOCUS a :Person}@:Person"</code></td>
@@ -446,6 +466,13 @@
                 <code>csv</code></td>
               <td>The format of the file extension, else <code>shex</code> for ShEx (<code>shexj</code> for text that
                 starts with <code>{</code>) and <code>turtle</code> for SHACL</td>
+            </tr>
+            <tr>
+              <td><code>targetsFormat</code></td>
+              <td>An RDF format: <code>turtle</code>, <code>ntriples</code>, <code>rdfxml</code>, <code>jsonld</code>,
+                <code>trig</code>, <code>n3</code>, <code>nquads</code></td>
+              <td>The format of the file extension, else <code>turtle</code> (<code>jsonld</code> for text that starts
+                with <code>{</code> or <code>[</code>)</td>
             </tr>
             <tr>
               <td><code>queryFormat</code></td>

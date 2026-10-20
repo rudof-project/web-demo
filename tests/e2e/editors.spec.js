@@ -6,7 +6,7 @@ import { test, expect, editor, open, setInput } from "./fixtures.js";
 const example = (path) => readFileSync(new URL(`../../examples/${path}`, import.meta.url), "utf8");
 
 const INPUTS = [
-  "rdf-data", "pg-data", "convert-schema", "convert-prefixes", "shex-data", "shex-schema", "shex-shapemap", "shacl-data", "shacl-shapes",
+  "rdf-data", "pg-data", "convert-schema", "convert-prefixes", "shex-data", "shex-schema", "shex-shapemap", "shacl-data", "shacl-shapes", "shacl-targets",
   "dctap-data", "dctap-schema", "dctap-shapemap", "dctap-prefixes",
   "pgschema-data", "pgschema-schema", "pgschema-typemap", "sparql-data", "sparql-query",
   // The settings of rudof, in their dialog

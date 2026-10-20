@@ -48,6 +48,8 @@ export const PANELS = {
       endpoint: "shacl-endpoint",
       "endpoint-data": "shacl-endpoint-data",
       "shapes-format": "shacl-shapes-format",
+      targets: "shacl-targets",
+      "targets-format": "shacl-targets-format",
       "data-format": "shacl-data-format",
       mode: "shacl-mode",
       recursion: "shacl-recursion",
