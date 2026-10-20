@@ -162,6 +162,23 @@ Without them, the page sends SPARQL queries to the endpoint itself
 ([`endpoint.js`](endpoint.js), with the SPARQL 1.1 protocol), and the
 validations can't use endpoints.
 
+While a run waits for an endpoint, a line under the verdict says how many
+queries were sent to the endpoint, how many wait for an answer, and how long
+the run takes. **Details** shows each query, the last one first: when it was
+sent, the status of the answer, how long it took, its size and the start of
+the answer (at most 4000 characters). **Stop** stops the run: the queries
+that wait are aborted. The line and Details stay after the result, also when
+the run fails. rudof has no logs in WebAssembly, so the page gets the requests
+from the function that rudof uses to send them (`setFetch`):
+[`endpoint-log.js`](endpoint-log.js) sends them with `fetch` and logs them. The
+query of the SPARQL tab that the page sends itself is logged too.
+
+The log explains why the runs on endpoints are slow: rudof sends at most one
+query every 1.1 s to an endpoint (and waits longer, up to 10 s, after an
+answer `429 Too Many Requests`), so that endpoints such as Wikidata don't
+block it. It sends a query again when the answer is 429, 502, 503 or 504, at
+most 3 times. The page can't change this.
+
 SELECT results show in the table (with the prefixes of the query), as JSON
 or as CSV. The graphs of CONSTRUCT and DESCRIBE can be written in every RDF
 format.

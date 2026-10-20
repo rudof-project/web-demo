@@ -288,6 +288,52 @@ button.primary:disabled { opacity: 0.5; cursor: progress; }
 .result[data-kind="fail"] .result-head { background: var(--fail-bg); color: var(--fail-text); }
 .result[data-kind="error"] .result-head { background: var(--warn-bg); color: var(--warn-text); }
 .timing { font-weight: 400; opacity: 0.8; margin-left: auto; }
+
+/* What a run on an endpoint asks it (endpoint-log.js): under the verdict */
+.endpoint-activity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 0.8rem;
+  padding: 0.35rem 0.75rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.85em;
+  color: var(--muted);
+  flex: none;
+}
+.endpoint-activity[hidden] { display: none; }
+.endpoint-activity .activity-details { margin-left: auto; }
+.endpoint-activity .activity-stop { color: var(--fail-text); }
+.endpoint-log {
+  flex-basis: 100%;
+  max-height: 22rem;
+  overflow: auto;
+  margin: 0.2rem 0 0.3rem;
+  padding: 0;
+  list-style: none;
+}
+.endpoint-log[hidden] { display: none; }
+.log-entry { padding: 0.35rem 0; border-top: 1px solid var(--border); }
+.log-entry:first-child { border-top: none; }
+.log-note { padding: 0.35rem 0 0; border-top: 1px solid var(--border); }
+.log-head { color: var(--text); }
+.log-n { font-weight: 600; }
+.log-entry.waiting .log-state { color: var(--warn-text); }
+.log-entry.fail .log-state { color: var(--fail-text); }
+.log-entry.ok .log-state { color: var(--ok-text); }
+.log-query, .log-answer pre {
+  margin: 0.25rem 0 0;
+  padding: 0.4rem 0.5rem;
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  font: 12px/1.4 var(--mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 12rem;
+  overflow: auto;
+}
+.log-answer summary { cursor: pointer; margin-top: 0.2rem; }
 .output {
   margin: 0;
   padding: 0.75rem;

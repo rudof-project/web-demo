@@ -15,6 +15,7 @@ import { loadSettings, saveSettings, configWithSettings, settingsEndpoints } fro
 import { setupSettingsDialog } from "./settings-dialog.js";
 import { DATA_TABS, setupExtraData, addData, extraData, clearExtraData } from "./extra-data.js";
 import { parseBoxTable } from "./box-table.js";
+import { startLog, loggingFetch, logSummary, renderLog } from "./endpoint-log.js";
 import { LANGUAGES, TARGETS, DEFAULT_TARGET, canConvert, readSchema as readAnySchema, convertSchema, sourceLabel, targetLabel, asSource } from "./schema-convert.js";
 import { devDependencies } from "./package.json";
 
@@ -46,6 +47,11 @@ const last = {};
 // The tabs that can run on an endpoint (see Endpoints), and the endpoint of a
 // tab, if it doesn't run on the data of the page
 const ENDPOINT_TABS = ["shex", "shacl", "dctap", "sparql"];
+// The fetch of the requests to endpoints, which logs them: rudof's
+// (setFetch) and the page's (endpoint.js). Details of the log of a run on an
+// endpoint stays open for the next runs when it is open.
+const pageFetch = loggingFetch();
+let showLog = false;
 const endpointOf = (prefix) => $(`${prefix}-endpoint`).value.trim();
 // Whether a tab uses its RDF data with its endpoint
 const withData = (prefix) => Boolean($(`${prefix}-endpoint-data`)?.checked);
@@ -1288,7 +1294,7 @@ function runSparql() {
 async function runSparqlOnEndpoint(endpoint) {
   const query = $("sparql-query").value;
   const start = performance.now();
-  const results = await queryEndpoint(endpoint, query);
+  const results = await queryEndpoint(endpoint, query, pageFetch);
   const millis = performance.now() - start;
   if (results.kind === "graph") {
     const rudof = session("sparql-endpoint");
@@ -1491,10 +1497,101 @@ for (const prefix of CONVERTERS) {
 // endpoint takes a while, and can be run again meanwhile).
 const running = {};
 
+// ---------------------------------------------------------------------------
+// What the runs on endpoints ask the endpoints (endpoint-log.js): under the
+// verdict, how many queries were sent and how long the run takes, with
+// Details (the queries and the answers) and Stop.
+
+
+// The URL of an endpoint, also of one that rudof knows by its name
+function endpointUrlOf(endpoint) {
+  if (/^[a-z][\w+.-]*:/i.test(endpoint)) return endpoint;
+  return [...knownEndpoints, ...rudofKnownEndpoints].find(([name]) => name === endpoint || name.replace(/_/g, " ") === endpoint)?.[1] ?? endpoint;
+}
+
+// The place of the log in the result of a tab
+function activityOf(prefix) {
+  const box = $(`${prefix}-result`);
+  let activity = box.querySelector(".endpoint-activity");
+  if (activity) return activity;
+  const button = (className, text, title) => Object.assign(document.createElement("button"), { type: "button", className: `link ${className}`, textContent: text, title });
+  activity = Object.assign(document.createElement("div"), { className: "endpoint-activity" });
+  const details = button("activity-details", "Details", "The queries sent to the endpoint, and its answers");
+  const stop = button("activity-stop", "Stop", "Stop waiting for the endpoint");
+  const list = Object.assign(document.createElement("ol"), { className: "endpoint-log", hidden: !showLog });
+  details.setAttribute("aria-expanded", String(showLog));
+  details.addEventListener("click", () => {
+    showLog = list.hidden;
+    for (const other of document.querySelectorAll(".endpoint-activity")) {
+      other.querySelector(".endpoint-log").hidden = !showLog;
+      other.querySelector(".activity-details").setAttribute("aria-expanded", String(showLog));
+    }
+  });
+  activity.append(Object.assign(document.createElement("span"), { className: "activity-summary" }), details, stop, list);
+  box.querySelector(".result-head").after(activity);
+  return activity;
+}
+
+// Starts the log of a run of a tab on its endpoint, shown in its result.
+// `onStop`: when the user stops it, with the number of queries that wait for
+// an answer.
+function showEndpointLog(prefix, endpoint, onStop) {
+  const activity = activityOf(prefix);
+  activity.hidden = false;
+  let frame;
+  const draw = (log) => {
+    frame = undefined;
+    activity.querySelector(".activity-summary").textContent = logSummary(log);
+    activity.querySelector(".activity-stop").hidden = log.end !== undefined;
+    activity.querySelector(".endpoint-log").replaceChildren(...renderLog(document, log));
+  };
+  const log = startLog(endpointUrlOf(endpoint), {
+    onChange: (l) => {
+      frame ??= requestAnimationFrame(() => draw(l));
+    },
+  });
+  // The time, while it waits
+  const ticker = setInterval(() => log.end === undefined && draw(log), 500);
+  activity.querySelector(".activity-stop").onclick = () => {
+    const waiting = log.entries.filter((e) => e.millis === undefined).length;
+    log.stop();
+    onStop(waiting);
+  };
+  const finish = log.finish;
+  log.finish = () => {
+    clearInterval(ticker);
+    finish();
+    draw(log);
+  };
+  draw(log);
+  return log;
+}
+
+function hideEndpointLog(prefix) {
+  const activity = $(`${prefix}-result`).querySelector(".endpoint-activity");
+  if (activity) activity.hidden = true;
+}
+
 async function run(prefix) {
   if (!rudofModule || crashed) return;
   const { validate, serialize } = validators[prefix];
   const token = (running[prefix] = {});
+  // A run on an endpoint has its log
+  // (with rudof with endpoints, or the SPARQL tab, which sends the query)
+  const endpoint = ENDPOINT_TABS.includes(prefix) && (rudofEndpoints || prefix === "sparql") && endpointOf(prefix);
+  const log = endpoint
+    ? showEndpointLog(prefix, endpoint, (waiting) => {
+        if (running[prefix] !== token) return;
+        running[prefix] = {};
+        delete last[prefix];
+        showResult(prefix, {
+          verdict: "Stopped",
+          kind: "error",
+          output: `The run on ${endpointName(endpoint)} was stopped${waiting ? `, with ${waiting} ${waiting === 1 ? "query" : "queries"} waiting for an answer` : ""}. Details has the queries that were sent.`,
+        });
+        updateConvertButtons();
+      })
+    : hideEndpointLog(prefix);
   try {
     let result = validate();
     if (result instanceof Promise) {
@@ -1515,6 +1612,8 @@ async function run(prefix) {
     if (running[prefix] !== token) return;
     delete last[prefix];
     showError(prefix, e);
+  } finally {
+    log?.finish();
   }
   updateConvertButtons();
   updatePermalink();
@@ -1775,6 +1874,8 @@ try {
     rudofModule = await loadRudof(url);
   }
   rudofEndpoints = typeof rudofModule.Rudof.prototype.useEndpoint === "function";
+  // The requests of rudof to endpoints are logged (endpoint-log.js)
+  rudofModule.setFetch?.(pageFetch);
   // The version reported by the loaded module, not the one requested
   const version = new rudofModule.Rudof().getVersion();
   setStatus("ready", `rudof ${version} ready${rudofEndpoints ? ", with endpoints" : ""}`);
