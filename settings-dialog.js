@@ -32,6 +32,7 @@ function field(doc, setting) {
     if (setting.type === "iri") input.placeholder = "http://example.org/";
     if (setting.type === "iris") input.placeholder = "rdfs:label";
     if (setting.key === "shex_validator.max_steps") input.placeholder = "No limit";
+    if (setting.placeholder) input.placeholder = setting.placeholder;
   }
   const label = el(doc, "label", { className: "setting", htmlFor: id }, el(doc, "span", {}, setting.label), input);
   if (setting.help) label.append(el(doc, "small", { className: "hint" }, setting.help));
@@ -55,7 +56,11 @@ export function setupSettingsDialog({ dialog, opener, badge, getSettings, onSave
   const doc = dialog.ownerDocument;
   const fields = dialog.querySelector(".settings-fields");
   fields.replaceChildren(
-    ...SETTINGS.map((section) => el(doc, "fieldset", { className: "settings-section" }, el(doc, "legend", {}, section.title), ...section.settings.map((s) => field(doc, s)))),
+    ...SETTINGS.map((section) => {
+      const fieldset = el(doc, "fieldset", { className: "settings-section" }, el(doc, "legend", {}, section.title), ...section.settings.map((s) => field(doc, s)));
+      if (section.id) fieldset.id = `settings-${section.id}`;
+      return fieldset;
+    }),
   );
   const toml = dialog.querySelector(".settings-toml");
   const error = dialog.querySelector(".settings-error");
@@ -101,10 +106,18 @@ export function setupSettingsDialog({ dialog, opener, badge, getSettings, onSave
   dialog.addEventListener("change", update);
   toml.addEventListener("input", update);
 
-  opener.addEventListener("click", () => {
+  // Opens the dialog, at a section (its id) or at the start
+  function open(section) {
     show(getSettings());
     dialog.showModal();
-  });
+    const fieldset = section && doc.getElementById(`settings-${section}`);
+    if (fieldset) {
+      fieldset.scrollIntoView?.({ block: "start" });
+      fieldset.querySelector("input, select")?.focus();
+    }
+  }
+
+  opener.addEventListener("click", () => open());
   dialog.querySelector(".settings-reset").addEventListener("click", () => show(emptySettings()));
   dialog.querySelector("form").addEventListener("submit", (e) => {
     if (e.submitter?.value !== "save") return;
@@ -126,4 +139,5 @@ export function setupSettingsDialog({ dialog, opener, badge, getSettings, onSave
     showBadge();
   });
   showBadge();
+  return { open };
 }

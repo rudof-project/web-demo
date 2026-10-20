@@ -163,6 +163,12 @@ describe("endpointConfig", () => {
     );
   });
 
+  it("has the limits of the requests to the endpoint, which win over those of [rdf]", () => {
+    const toml = endpointConfig(ENDPOINT, {}, { min_request_interval_ms: 1100, max_nodes_per_query: 5 });
+    expect(toml).toContain(`query_url = "${ENDPOINT}"\nmin_request_interval_ms = 1100\nmax_nodes_per_query = 5\n`);
+    expect(() => new Rudof(RudofConfig.fromToml(`${BASE_CONFIG}\n${toml}`))).not.toThrow();
+  });
+
   it("is a configuration that rudof reads, after BASE_CONFIG", () => {
     expect(() => new Rudof(RudofConfig.fromToml(`${BASE_CONFIG}\n${endpointConfig(ENDPOINT, PREFIXES)}`))).not.toThrow();
   });

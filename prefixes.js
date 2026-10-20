@@ -38,8 +38,17 @@ export function endpointFileURL(version, name) {
 
 // The prefixes of the TOML description of an endpoint, as [alias, iri]
 export function prefixesOfEndpointToml(text) {
-  const prefixmap = parse(text).prefixmap ?? {};
-  return Object.entries(prefixmap).filter(([, iri]) => typeof iri === "string");
+  return prefixesOfEndpoint(parse(text));
+}
+
+const prefixesOfEndpoint = (description) => Object.entries(description.prefixmap ?? {}).filter(([, iri]) => typeof iri === "string");
+
+// The TOML description of an endpoint: its prefixes, as [alias, iri], and
+// its keys (such as min_request_interval_ms, which says how often rudof can
+// send it requests)
+export function endpointToml(text) {
+  const description = parse(text);
+  return { prefixes: prefixesOfEndpoint(description), description };
 }
 
 // The prefixes declared in a text (Turtle, TriG, N3, ShExC or SPARQL): PREFIX

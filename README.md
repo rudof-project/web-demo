@@ -162,22 +162,55 @@ Without them, the page sends SPARQL queries to the endpoint itself
 ([`endpoint.js`](endpoint.js), with the SPARQL 1.1 protocol), and the
 validations can't use endpoints.
 
-While a run waits for an endpoint, a line under the verdict says how many
-queries were sent to the endpoint, how many wait for an answer, and how long
-the run takes. **Details** shows each query, the last one first: when it was
-sent, the status of the answer, how long it took, its size and the start of
-the answer (at most 4000 characters). **Stop** stops the run: the queries
-that wait are aborted. The line and Details stay after the result, also when
-the run fails. rudof has no logs in WebAssembly, so the page gets the requests
-from the function that rudof uses to send them (`setFetch`):
-[`endpoint-log.js`](endpoint-log.js) sends them with `fetch` and logs them. The
-query of the SPARQL tab that the page sends itself is logged too.
+### The queries to the endpoint
 
-The log explains why the runs on endpoints are slow: rudof sends at most one
-query every 1.1 s to an endpoint (and waits longer, up to 10 s, after an
-answer `429 Too Many Requests`), so that endpoints such as Wikidata don't
-block it. It sends a query again when the answer is 429, 502, 503 or 504, at
-most 3 times. The page can't change this.
+While a run waits for an endpoint, the result shows its queries: how many
+were sent, answered, waiting and failed, the time of the run (in the head of
+the result), the limits of the requests, **Stop**, and a table of the
+queries, the last one first. The table has, for each query, when it was sent,
+the status of the answer, how long it took, its size, the nodes it asks about
+(rudof asks about several nodes of a shape map in one query, with `VALUES`)
+and the query. A click on a query shows all of it, the endpoint and the start
+of the answer (at most 4000 characters; JSON indented). **Stop** aborts the
+queries that wait, and stops the run. After the result, the switch
+**Result | Queries (n)** of the result goes from one to the other, also when
+the run fails or is stopped.
+
+rudof has no logs in WebAssembly, so the page gets the requests from the
+function that rudof uses to send them (`setFetch`):
+[`endpoint-log.js`](endpoint-log.js) sends them with `fetch` and logs them. The
+query of the SPARQL tab that the page sends itself (without rudof with
+endpoints) is shown too. rudof counts the requests of a session
+(`requestCount`), but can't say it while the session waits, so the page says
+it after the run, when it differs from the list (the list can have the
+queries of other tabs that run at the same time).
+
+### The limits of the requests
+
+rudof 0.3.29 waits between two requests to an endpoint, so that public
+endpoints such as Wikidata don't block it, and asks about the nodes of a shape
+map in batches. The **Endpoints** section of the settings (also **Options**,
+next to the Endpoint field) changes this, in `[rdf]` of the configuration:
+
+- **Milliseconds between two requests** (`min_request_interval_ms`): 1100 by
+  default, 0 for `localhost`. 0 doesn't wait. rudof still waits longer when
+  an endpoint answers `429 Too Many Requests`, and sends a query again when
+  the answer is 429, 502, 503 or 504, at most 3 times.
+- **Requests at the same time** (`max_concurrent_requests`, 1 by default):
+  when rudof gets the nodes of a shape map before it validates them.
+- **Nodes in one query** (`max_nodes_per_query`, 20 by default; 1 sends a
+  query for each node).
+- **How validations get the data of the nodes**: SPARQL queries (the
+  default), or the RDF of the IRIs of the nodes (`dereference`, the strategy
+  of `useEndpoint`), which needs servers that allow other sites to read them
+  (CORS), and https IRIs. The SPARQL tab always queries the endpoint.
+
+The endpoints that rudof knows have their own limits in their TOML files
+(such as `min_request_interval_ms = 1100` of Wikidata), and so can the
+endpoints of the settings (`[rdf.endpoints.<name>]`). The page gives them to
+rudof with the description of the endpoint (`endpointConfig`), so they win
+over the settings, as in rudof: Wikidata keeps 1100 ms when the settings say
+0. The result shows the limits of each run.
 
 SELECT results show in the table (with the prefixes of the query), as JSON
 or as CSV. The graphs of CONSTRUCT and DESCRIBE can be written in every RDF
@@ -225,6 +258,7 @@ that change what rudof does in the browser, by sections:
 | Section | Settings |
 |---------|----------|
 | General | the base IRI, the indentation of JSON and JSON-LD results |
+| Endpoints | the time between two requests, the requests at the same time, the nodes in one query, and how validations get the data of the nodes ([see above](#the-limits-of-the-requests)) |
 | ShEx validation | the maximum number of steps, the negation requirement |
 | UML diagrams | direction, lines, shadows, labels for IRIs and the properties of the labels, colors |
 | RDF diagrams | the colors of IRIs, blank nodes and literals (RDF data converted to a diagram) |
@@ -233,8 +267,9 @@ that change what rudof does in the browser, by sections:
 | DCTAP | delimiter, quote, flexible rows, delimiter of value shapes, base of datatypes |
 
 **More settings (TOML)** takes any other setting, over those of the form,
-such as endpoints (`[rdf.endpoints.<name>]` with `name`, `query_url` and a
-`[prefixmap]`), which are added to the Endpoint menus with their prefixes.
+such as endpoints (`[rdf.endpoints.<name>]` with `name`, `query_url`, a
+`[prefixmap]` and the limits of their requests), which are added to the
+Endpoint menus with their prefixes.
 **The configuration that rudof gets** shows the result. Settings that rudof
 can't read are not saved, and the dialog says why. The browser keeps the
 settings that differ from the defaults (not the permalinks), and the gear

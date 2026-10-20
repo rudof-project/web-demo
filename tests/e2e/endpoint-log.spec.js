@@ -1,110 +1,191 @@
-// What a run on an endpoint asks it (endpoint-log.js): under the verdict,
-// how many queries were sent and how long the run takes, Details with the
-// queries and the answers, and Stop.
+// What a run on an endpoint asks it (endpoint-log.js): while the run waits,
+// the result shows the queries (the progress, the limits of the requests and
+// a table of the queries, with Stop); then the switch "Result | Queries" of
+// the result. The limits are settings (the Options of the endpoints).
 
 import { test, expect, open, setInput, hasEndpointsBuild } from "./fixtures.js";
 import { sparqlEndpoint } from "./sparql-endpoint.js";
 
 const ENDPOINT = "https://endpoint.example/sparql";
+const WIKIDATA = "https://query.wikidata.org/sparql";
 
 const DATA = `prefix : <http://example.org/>
-:alice a :Person ; :name "Alice" .`;
+:alice a :Person ; :name "Alice" .
+:bob a :Person ; :name "Bob" .
+:carol a :Person ; :name "Carol" .`;
 
 const SHEX = `prefix : <http://example.org/>
 prefix xsd: <http://www.w3.org/2001/XMLSchema#>
 :Person { :name xsd:string }`;
 
-const activity = (page, prefix) => page.locator(`#${prefix}-result .endpoint-activity`);
+const box = (page, prefix) => page.locator(`#${prefix}-result`);
+const view = (page, prefix) => page.locator(`#${prefix}-result .queries-view`);
+const rows = (page, prefix) => view(page, prefix).locator("tr.query-row");
 const result = (page, prefix) => page.locator(`#${prefix}-result:not([data-kind="running"])`);
+const switchTo = (page, prefix, name) => page.locator(`#${prefix}-result .queries-switch [data-view="${name}"]`);
 
-async function shexOnEndpoint(page) {
+async function shexOnEndpoint(page, endpoint = ENDPOINT, shapeMap = ":alice@:Person") {
   await open(page, "#validate/shex");
-  await page.locator("#shex-endpoint").fill(ENDPOINT);
+  await page.locator("#shex-endpoint").fill(endpoint);
   await setInput(page, "shex-schema", SHEX);
-  await setInput(page, "shex-shapemap", ":alice@:Person");
+  await setInput(page, "shex-shapemap", shapeMap);
   await page.locator("#shex-validate").click();
 }
+
+// Changes the settings of the endpoints, with the Options of the ShEx tab
+async function endpointSettings(page, values) {
+  await page.locator("#shex-endpoint").fill(ENDPOINT);
+  await page.locator("#shex-endpoint-options").click();
+  await expect(page.locator("#settings")).toBeVisible();
+  await expect(page.locator("#setting-rdf-min_request_interval_ms")).toBeFocused();
+  for (const [id, value] of Object.entries(values)) {
+    const input = page.locator(`#setting-${id}`);
+    if ((await input.evaluate((e) => e.tagName)) === "SELECT") await input.selectOption(value);
+    else await input.fill(value);
+  }
+  await page.locator('#settings button[value="save"]').click();
+  await expect(page.locator("#settings")).toBeHidden();
+}
+
+const sentAt = async (page, prefix) => (await rows(page, prefix).locator("td:nth-child(2)").allTextContents()).map((t) => parseFloat(t)).reverse();
 
 test.describe("with rudof with endpoints", () => {
   test.skip(!hasEndpointsBuild, "no rudof with endpoints in node_modules or RUDOF_ENDPOINTS_DIR");
 
-  test("the result says the queries sent to the endpoint, and Details shows them", async ({ page }) => {
+  test("after the result, Queries shows the queries sent to the endpoint", async ({ page }) => {
     const queries = await sparqlEndpoint(page, ENDPOINT, DATA);
-    await shexOnEndpoint(page);
-    await expect(result(page, "shex").locator(".verdict")).toHaveText("Conforms: 1 node validated on endpoint.example", { timeout: 30_000 });
+    await shexOnEndpoint(page, ENDPOINT, ":alice@:Person, :bob@:Person");
+    await expect(result(page, "shex").locator(".verdict")).toHaveText("Conforms: 2 nodes validated on endpoint.example", { timeout: 30_000 });
+    // The result, with the switch to the queries
+    await expect(box(page, "shex").locator("table.report")).toBeVisible();
+    await expect(view(page, "shex")).toBeHidden();
     const n = queries.length;
-    expect(n).toBeGreaterThan(0);
-    await expect(activity(page, "shex").locator(".activity-summary")).toHaveText(new RegExp(`^${n} quer(y|ies) to endpoint\\.example, \\d+\\.\\d s$`));
-    await expect(activity(page, "shex").locator(".activity-stop")).toBeHidden();
-    // Details: each query, the last one first, with its status and its answer
-    const log = activity(page, "shex").locator(".endpoint-log");
-    await expect(log).toBeHidden();
-    await activity(page, "shex").locator(".activity-details").click();
-    await expect(log.locator(".log-entry")).toHaveCount(n);
-    // Why the queries are slow
-    await expect(log.locator(".log-note")).toContainText("at most one query every 1.1 s");
-    await expect(log.locator(".log-query").last()).toHaveText(queries[0]);
-    await expect(log.locator(".log-entry.ok .log-state").first()).toHaveText(/^200( OK)?, \d+ ms, \d+ characters$/);
-    await log.locator(".log-answer summary").first().click();
-    await expect(log.locator(".log-answer pre").first()).toContainText("{");
-    // Details stays open for the next run; a run without an endpoint has no log
-    await page.locator("#shex-validate").click();
-    await expect(result(page, "shex").locator(".verdict")).toHaveText(/^Conforms/, { timeout: 30_000 });
-    await expect(log).toBeVisible();
+    await expect(switchTo(page, "shex", "queries")).toHaveText(`Queries (${n})`);
+    await expect(switchTo(page, "shex", "result")).toHaveAttribute("aria-pressed", "true");
+    await switchTo(page, "shex", "queries").click();
+    await expect(view(page, "shex")).toBeVisible();
+    await expect(box(page, "shex").locator("table.report")).toBeHidden();
+    await expect(view(page, "shex").locator(".queries-summary")).toHaveText(`${n} ${n === 1 ? "query" : "queries"} · ${n} answered · 0 failed`);
+    await expect(view(page, "shex").locator(".queries-stop")).toBeHidden();
+    // rudof's limits: the two nodes of the shape map in one query
+    await expect(view(page, "shex").locator(".queries-limits")).toContainText("Limits: 1 query every 1.1 s at most · 1 at a time · 20 nodes per query");
+    await expect(rows(page, "shex")).toHaveCount(n);
+    const first = rows(page, "shex").last();
+    await expect(first.locator("td").nth(2)).toHaveText(/^200( OK)?$/);
+    await expect(first.locator("td").nth(5)).toHaveText("2");
+    // A click shows the query and the answer
+    await first.click();
+    await expect(view(page, "shex").locator("tr.query-detail .query-full")).toHaveText(queries[0]);
+    await expect(view(page, "shex").locator("tr.query-detail .query-answer")).toContainText('"bindings"');
+    // Back to the result
+    await switchTo(page, "shex", "result").click();
+    await expect(box(page, "shex").locator("table.report")).toBeVisible();
+    // A run without an endpoint has no queries
     await page.locator("#shex-endpoint").fill("");
     await setInput(page, "shex-data", DATA);
     await page.locator("#shex-validate").click();
-    await expect(result(page, "shex").locator(".verdict")).toHaveText("Conforms: 1 node validated");
-    await expect(activity(page, "shex")).toBeHidden();
+    await expect(result(page, "shex").locator(".verdict")).toHaveText("Conforms: 2 nodes validated");
+    await expect(box(page, "shex").locator(".queries-switch")).toBeHidden();
   });
 
-  test("while the endpoint doesn't answer, the log says so, and Stop stops the run", async ({ page }) => {
+  test("while the endpoint doesn't answer, the result shows the queries, and Stop stops the run", async ({ page }) => {
     // An endpoint that never answers
     await page.route(`${ENDPOINT}**`, () => {});
     await shexOnEndpoint(page);
-    await expect(page.locator("#shex-result .verdict")).toHaveText("Waiting for the endpoint…");
-    const summary = activity(page, "shex").locator(".activity-summary");
-    await expect(summary).toHaveText(/^1 query to endpoint\.example, 1 waiting for an answer, \d+\.\d s$/, { timeout: 15_000 });
-    // The time goes on
-    const before = Number((await summary.textContent()).match(/([\d.]+) s$/)[1]);
-    await expect.poll(async () => Number((await summary.textContent()).match(/([\d.]+) s$/)[1]), { timeout: 5_000 }).toBeGreaterThan(before);
-    await activity(page, "shex").locator(".activity-details").click();
-    await expect(activity(page, "shex").locator(".log-entry.waiting .log-state")).toHaveText("waiting for an answer…");
-    await activity(page, "shex").locator(".activity-stop").click();
-    await expect(page.locator("#shex-result")).toHaveAttribute("data-kind", "error");
-    await expect(page.locator("#shex-result .verdict")).toHaveText("Stopped");
+    await expect(box(page, "shex").locator(".verdict")).toHaveText("Waiting for endpoint.example…");
+    await expect(view(page, "shex")).toBeVisible();
+    await expect(box(page, "shex").locator(".queries-switch")).toBeHidden();
+    await expect(view(page, "shex").locator(".queries-summary")).toHaveText("1 query · 0 answered · 1 waiting · 0 failed", { timeout: 15_000 });
+    await expect(rows(page, "shex").locator(".query-state")).toHaveText("waiting…");
+    // The time goes on, in the head of the result
+    const time = box(page, "shex").locator(".timing");
+    const before = parseFloat(await time.textContent());
+    await expect.poll(async () => parseFloat(await time.textContent()), { timeout: 5_000 }).toBeGreaterThan(before);
+    await view(page, "shex").locator(".queries-stop").click();
+    await expect(box(page, "shex")).toHaveAttribute("data-kind", "error");
+    await expect(box(page, "shex").locator(".verdict")).toHaveText("Stopped");
+    // The queries stay, and the result says why it stopped
+    await expect(view(page, "shex")).toBeVisible();
+    await expect(rows(page, "shex").locator(".query-state")).toHaveText("Stopped");
+    await expect(view(page, "shex").locator(".queries-stop")).toBeHidden();
+    await switchTo(page, "shex", "result").click();
     await expect(page.locator("#shex-output")).toContainText("with 1 query waiting for an answer");
-    await expect(activity(page, "shex").locator(".log-entry.fail .log-state")).toHaveText("Stopped");
-    await expect(activity(page, "shex").locator(".activity-stop")).toBeHidden();
     // The run can start again
     await page.locator("#shex-validate").click();
-    await expect(page.locator("#shex-result .verdict")).toHaveText("Waiting for the endpoint…");
+    await expect(box(page, "shex").locator(".verdict")).toHaveText("Waiting for endpoint.example…");
+    await expect(view(page, "shex")).toBeVisible();
   });
 
-  test("the queries of the SPARQL tab are in the log too", async ({ page }) => {
+  test("the settings of the endpoints change how rudof sends the queries", async ({ page }) => {
+    await sparqlEndpoint(page, ENDPOINT, DATA);
+    await open(page, "#validate/shex");
+    await endpointSettings(page, { "rdf-min_request_interval_ms": "0", "rdf-max_nodes_per_query": "1" });
+    await shexOnEndpoint(page, ENDPOINT, ":alice@:Person, :bob@:Person, :carol@:Person");
+    await expect(result(page, "shex").locator(".verdict")).toHaveText("Conforms: 3 nodes validated on endpoint.example", { timeout: 30_000 });
+    await switchTo(page, "shex", "queries").click();
+    await expect(view(page, "shex").locator(".queries-limits")).toContainText("Limits: no wait between queries · 1 at a time · 1 node per query");
+    // A query for each node, without waiting
+    await expect(rows(page, "shex")).toHaveCount(3);
+    expect((await sentAt(page, "shex")).at(-1)).toBeLessThan(1);
+  });
+
+  test("Wikidata keeps its own limit, also when the settings have a lower one", async ({ page }) => {
+    await sparqlEndpoint(page, WIKIDATA, DATA);
+    await open(page, "#validate/shex");
+    await endpointSettings(page, { "rdf-min_request_interval_ms": "0", "rdf-max_nodes_per_query": "1" });
+    await shexOnEndpoint(page, WIKIDATA, ":alice@:Person, :bob@:Person");
+    await expect(result(page, "shex").locator(".verdict")).toHaveText(/^Conforms: 2 nodes validated/, { timeout: 30_000 });
+    await switchTo(page, "shex", "queries").click();
+    await expect(view(page, "shex").locator(".queries-limits")).toContainText(/Limits: 1 query every 1\.1 s at most · 1 at a time · 1 node per query \(those of .+\)/);
+    const [a, b] = await sentAt(page, "shex");
+    expect(b - a).toBeGreaterThanOrEqual(1);
+  });
+
+  test("validations can get the RDF of the IRIs of the nodes (dereference)", async ({ page }) => {
+    await page.route("http://example.org/alice", (route) =>
+      route.fulfill({ body: '<http://example.org/alice> <http://example.org/name> "Alice" .', headers: { "content-type": "text/turtle", "access-control-allow-origin": "*" } }),
+    );
+    await open(page, "#validate/shex");
+    await endpointSettings(page, { endpoint_strategy: "dereference" });
+    await shexOnEndpoint(page);
+    await expect(result(page, "shex").locator(".verdict")).toHaveText("Conforms: 1 node validated on endpoint.example", { timeout: 30_000 });
+    await switchTo(page, "shex", "queries").click();
+    await expect(view(page, "shex").locator(".queries-limits")).toContainText("the RDF of the IRIs of the nodes (dereference)");
+    await expect(rows(page, "shex").locator(".query-text")).toHaveText("http://example.org/alice");
+  });
+
+  test("the queries of the SPARQL tab are shown too", async ({ page }) => {
     await sparqlEndpoint(page, ENDPOINT, DATA);
     await open(page, "#query/sparql");
     await page.locator("#sparql-endpoint").fill(ENDPOINT);
     await setInput(page, "sparql-query", "SELECT ?s WHERE { ?s a <http://example.org/Person> }");
     await page.locator("#sparql-validate").click();
-    await expect(result(page, "sparql").locator(".verdict")).toHaveText(/^1 result/, { timeout: 30_000 });
-    await expect(activity(page, "sparql").locator(".activity-summary")).toHaveText(/^1 query to endpoint\.example/);
-    await activity(page, "sparql").locator(".activity-details").click();
-    await expect(activity(page, "sparql").locator(".log-query")).toContainText("SELECT ?s WHERE");
+    await expect(result(page, "sparql").locator(".verdict")).toHaveText(/^3 results/, { timeout: 30_000 });
+    await expect(switchTo(page, "sparql", "queries")).toHaveText("Queries (1)");
+    await switchTo(page, "sparql", "queries").click();
+    await expect(rows(page, "sparql").locator(".query-text")).toContainText("SELECT ?s WHERE");
   });
 });
 
 test.describe("without rudof with endpoints", () => {
   test.use({ rudofEndpoints: false });
 
-  test("the query that the page sends to the endpoint is in the log", async ({ page }) => {
+  test("the query that the page sends to the endpoint is shown", async ({ page }) => {
     await sparqlEndpoint(page, ENDPOINT, DATA);
     await open(page, "#query/sparql");
     await page.locator("#sparql-endpoint").fill(ENDPOINT);
     await setInput(page, "sparql-query", "SELECT ?s WHERE { ?s a <http://example.org/Person> }");
     await page.locator("#sparql-validate").click();
-    await expect(result(page, "sparql").locator(".verdict")).toHaveText(/^1 result/, { timeout: 30_000 });
-    await activity(page, "sparql").locator(".activity-details").click();
-    await expect(activity(page, "sparql").locator(".log-query")).toContainText("SELECT ?s WHERE");
+    await expect(result(page, "sparql").locator(".verdict")).toHaveText(/^3 results/, { timeout: 30_000 });
+    await switchTo(page, "sparql", "queries").click();
+    await expect(view(page, "sparql").locator(".queries-limits")).toHaveText(/The page sends the query to the endpoint itself/);
+    await expect(view(page, "sparql").locator(".queries-options")).toBeHidden();
+    await expect(rows(page, "sparql").locator(".query-text")).toContainText("SELECT ?s WHERE");
+  });
+
+  test("the Options of the endpoints are not there: the validations can't use endpoints", async ({ page }) => {
+    await open(page, "#validate/shex");
+    await expect(page.locator("#shex-endpoint")).toBeDisabled();
+    await expect(page.locator("#shex-endpoint-options")).toBeHidden();
   });
 });

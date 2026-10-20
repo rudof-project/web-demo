@@ -9,13 +9,6 @@
 // the logs of the runs on the host of its URL (or of all the runs, when no
 // run is on that host).
 
-// Why the queries are sent one after another, slowly (rudof_rdf, the
-// endpoints of rudof)
-export const RATE_NOTE =
-  "rudof sends at most one query every 1.1 s to an endpoint, and waits longer (up to 10 s) after an answer " +
-  "429 Too Many Requests, so that endpoints such as Wikidata don't block it. It sends a query again when the " +
-  "answer is 429, 502, 503 or 504, at most 3 times.";
-
 // The text of the answers that a log keeps, at most
 export const ANSWER_LIMIT = 4000;
 
@@ -68,17 +61,27 @@ function logsOf(url) {
 }
 
 // The SPARQL query of a request (GET, with the SPARQL protocol), and the
-// other parameters of its URL
+// other parameters of its URL. A request without a query gets the RDF of an
+// IRI (the dereference strategy).
 export function requestParts(url) {
   try {
     const u = new URL(url);
     const query = u.searchParams.get("query") ?? u.searchParams.get("update");
     u.searchParams.delete("query");
     u.searchParams.delete("update");
-    return { query, url: u.href };
+    return { query, url: u.href, nodes: nodesOf(query) };
   } catch {
-    return { query: null, url: String(url) };
+    return { query: null, url: String(url), nodes: undefined };
   }
+}
+
+// The nodes that a query asks about: the values of its VALUES (rudof asks
+// about several nodes of a shape map in one query), or one
+export function nodesOf(query) {
+  if (!query) return 1;
+  const values = query.match(/VALUES\s+\?\w+\s*\{([^}]*)\}/i);
+  if (!values) return undefined;
+  return (values[1].match(/<[^>]*>|"(?:[^"\\]|\\.)*"(?:\^\^<[^>]*>|@[\w-]+)?|_:\S+|[\w-]*:\S*/g) ?? []).length;
 }
 
 // The fetch function for setFetch
@@ -113,48 +116,122 @@ export function loggingFetch(baseFetch = (...args) => fetch(...args)) {
   };
 }
 
-// The summary of a log: "3 queries, 1 waiting, 2.4 s"
-export function logSummary(log) {
-  const n = log.entries.length;
+// The numbers of the requests of a log
+export function logCounts(log) {
+  const sent = log.entries.length;
   const waiting = log.entries.filter((e) => e.millis === undefined).length;
   const failed = log.entries.filter((e) => e.error || e.status >= 400).length;
-  const seconds = (((log.end ?? log.now()) - log.start) / 1000).toFixed(1);
-  const parts = [`${n} ${n === 1 ? "query" : "queries"} to ${log.host ?? log.endpoint}`];
-  if (waiting && log.end === undefined) parts.push(`${waiting} waiting for an answer`);
-  if (failed) parts.push(`${failed} failed`);
-  parts.push(`${seconds} s`);
-  return parts.join(", ");
+  return { sent, answered: sent - waiting - failed, waiting, failed };
 }
 
-// The log as elements: a list of the requests, the last one first
-export function renderLog(doc, log) {
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
+// The summary of a log: "8 queries · 7 answered · 1 waiting · 0 failed"
+export function logSummary(log) {
+  const { sent, answered, waiting, failed } = logCounts(log);
+  const parts = [plural(sent, "query", "queries"), `${answered} answered`];
+  if (waiting || log.end === undefined) parts.push(`${waiting} waiting`);
+  parts.push(`${failed} failed`);
+  return parts.join(" · ");
+}
+
+// The time of a run so far, or all of it: "12.4 s"
+export const logTime = (log) => `${(((log.end ?? log.now()) - log.start) / 1000).toFixed(1)} s`;
+
+// The limits of the requests to an endpoint, as text:
+// { interval, concurrent, nodes } in ms, requests and nodes
+export function limitsText({ interval, concurrent, nodes }) {
+  const every = interval ? `1 query every ${interval >= 1000 ? `${(interval / 1000).toFixed(1)} s` : `${interval} ms`} at most` : "no wait between queries";
+  return `${every} · ${concurrent} at a time · ${plural(nodes, "node", "nodes")} per query`;
+}
+
+// A size in characters: "512 B", "12.3 kB", "1.2 MB"
+export function sizeText(n) {
+  if (n === undefined) return "";
+  if (n < 1000) return `${n} B`;
+  if (n < 1e6) return `${(n / 1000).toFixed(1)} kB`;
+  return `${(n / 1e6).toFixed(1)} MB`;
+}
+
+// The state of a request, as text, and its kind (ok, fail, waiting)
+function stateOf(entry) {
+  if (entry.error) return [entry.error, "fail"];
+  if (entry.millis === undefined) return ["waiting…", "waiting"];
+  return [`${entry.status}${entry.statusText ? ` ${entry.statusText}` : ""}`, entry.status >= 400 ? "fail" : "ok"];
+}
+
+// The answer to a request, as the log keeps it: JSON (SPARQL results)
+// indented, when the log has all of it
+export function answerText({ answer, size }) {
+  if (!answer) return "(empty)";
+  if (size === answer.length && /^\s*[[{]/.test(answer)) {
+    try {
+      return JSON.stringify(JSON.parse(answer), null, 2);
+    } catch {
+      // not JSON
+    }
+  }
+  return answer;
+}
+
+const COLUMNS = ["#", "Sent", "Status", "Time", "Size", "Nodes", "Query"];
+
+// The requests of a log as a table, the last one first. A click on a request
+// shows its query and its answer under it (log.open has the numbers of the
+// requests shown so).
+export function renderQueries(doc, log) {
   const el = (tag, props = {}, ...children) => {
     const e = Object.assign(doc.createElement(tag), props);
     e.append(...children);
     return e;
   };
-  const note = el("li", { className: "hint log-note" }, RATE_NOTE);
-  if (!log.entries.length) return [el("li", { className: "hint" }, "No queries yet: rudof prepares the validation, or reads the data of the page."), note];
-  const items = log.entries
-    .map((entry, i) => {
-      const at = `${((entry.sent - log.start) / 1000).toFixed(1)} s`;
-      const state =
-        entry.error ? `${entry.error}` :
-        entry.millis === undefined ? "waiting for an answer…" :
-        `${entry.status}${entry.statusText ? ` ${entry.statusText}` : ""}, ${entry.millis.toFixed(0)} ms, ${entry.size} characters`;
-      const kind = entry.error || entry.status >= 400 ? "fail" : entry.millis === undefined ? "waiting" : "ok";
-      const item = el(
-        "li",
-        { className: `log-entry ${kind}` },
-        el("div", { className: "log-head" }, el("span", { className: "log-n" }, `#${i + 1}`), ` at ${at} · `, el("span", { className: "log-state" }, state)),
-        el("pre", { className: "log-query" }, entry.query ?? entry.url),
-      );
-      if (entry.answer !== undefined) {
-        const more = entry.size > entry.answer.length ? `\n… (${entry.size - entry.answer.length} more characters)` : "";
-        item.append(el("details", { className: "log-answer" }, el("summary", {}, "Answer"), el("pre", {}, (entry.answer || "(empty)") + more)));
-      }
-      return item;
-    })
-    .reverse();
-  return [...items, note];
+  log.open ??= new Set();
+  const rows = [];
+  log.entries.forEach((entry, i) => {
+    const [state, kind] = stateOf(entry);
+    const open = log.open.has(i);
+    const row = el(
+      "tr",
+      { className: `query-row ${kind}${open ? " open" : ""}`, tabIndex: 0, title: open ? "Hide the query and the answer" : "Show the query and the answer" },
+      el("td", { className: "query-n" }, String(i + 1)),
+      el("td", {}, `${((entry.sent - log.start) / 1000).toFixed(1)} s`),
+      el("td", { className: "query-state" }, state),
+      el("td", {}, entry.millis === undefined ? "" : `${entry.millis.toFixed(0)} ms`),
+      el("td", {}, sizeText(entry.size)),
+      el("td", {}, entry.nodes === undefined ? "" : String(entry.nodes)),
+      el("td", { className: "query-text" }, el("span", {}, (entry.query ?? entry.url).replace(/\s+/g, " ").trim())),
+    );
+    row.dataset.n = String(i);
+    row.setAttribute("aria-expanded", String(open));
+    const group = [row];
+    if (open) {
+      const more = entry.size > (entry.answer?.length ?? 0) ? `\n… (${entry.size - entry.answer.length} more characters)` : "";
+      const cell = el("td", { colSpan: COLUMNS.length }, el("div", { className: "query-label" }, entry.query ? "Query" : "IRI"), el("pre", { className: "query-full" }, entry.query ?? entry.url));
+      if (entry.query) cell.append(el("div", { className: "query-label" }, `Endpoint: ${entry.url}`));
+      if (entry.answer !== undefined) cell.append(el("div", { className: "query-label" }, "Answer"), el("pre", { className: "query-answer" }, answerText(entry) + more));
+      group.push(el("tr", { className: "query-detail" }, cell));
+    }
+    rows.push(group);
+  });
+  const body = el("tbody", {}, ...rows.reverse().flat());
+  if (!log.entries.length) body.append(el("tr", { className: "query-none" }, el("td", { colSpan: COLUMNS.length }, "No queries yet: rudof prepares the run.")));
+  const table = el("table", { className: "queries" }, el("thead", {}, el("tr", {}, ...COLUMNS.map((c) => el("th", {}, c)))), body);
+  const toggle = (row) => {
+    const n = Number(row.dataset.n);
+    if (log.open.has(n)) log.open.delete(n);
+    else log.open.add(n);
+    log.changed();
+  };
+  table.addEventListener("click", (e) => {
+    const row = e.target.closest("tr.query-row");
+    if (row && !doc.getSelection?.()?.toString()) toggle(row);
+  });
+  table.addEventListener("keydown", (e) => {
+    const row = e.target.closest?.("tr.query-row");
+    if (row && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      toggle(row);
+    }
+  });
+  return table;
 }

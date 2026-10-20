@@ -13,6 +13,7 @@ import {
   COMMON_PREFIXES,
   endpointFileURL,
   prefixesOfEndpointToml,
+  endpointToml,
   declaredPrefixes,
   declaration,
   declarationPosition,
@@ -30,6 +31,12 @@ describe("prefixes", () => {
     expect(prefixes).toContainEqual(["wd", "http://www.wikidata.org/entity/"]);
     expect(prefixes).toContainEqual(["wdt", "http://www.wikidata.org/prop/direct/"]);
     expect(prefixesOfEndpointToml('name = "x"\nquery_url = "https://x/"\n')).toEqual([]);
+  });
+
+  it("of the endpoints come with the other keys of their files, such as the limits of their requests", () => {
+    const { prefixes, description } = endpointToml(WIKIDATA);
+    expect(prefixes).toEqual(prefixesOfEndpointToml(WIKIDATA));
+    expect(description.min_request_interval_ms).toBe(1100);
   });
 
   it("declared in a text are read in any style", () => {

@@ -1,7 +1,8 @@
 // The log of the requests to endpoints (endpoint-log.js).
 
 import { describe, it, expect } from "vitest";
-import { startLog, loggingFetch, logSummary, requestParts, ANSWER_LIMIT } from "../../endpoint-log.js";
+import { JSDOM } from "jsdom";
+import { startLog, loggingFetch, logSummary, logTime, requestParts, nodesOf, limitsText, sizeText, answerText, renderQueries, ANSWER_LIMIT } from "../../endpoint-log.js";
 
 const QUERY_URL = (host, query) => `https://${host}/sparql?query=${encodeURIComponent(query)}`;
 
@@ -30,7 +31,8 @@ describe("the log of a run on an endpoint", () => {
     expect(log.entries[0].answer).toHaveLength(ANSWER_LIMIT);
     now.add(1000);
     log.finish();
-    expect(logSummary(log)).toBe("1 query to a.example, 1.3 s");
+    expect(logSummary(log)).toBe("1 query · 1 answered · 0 failed");
+    expect(logTime(log)).toBe("1.3 s");
   });
 
   it("says the queries that wait for an answer, and those that failed", async () => {
@@ -41,10 +43,11 @@ describe("the log of a run on an endpoint", () => {
     const waiting = fetch(QUERY_URL("a.example", "ASK {}"), { headers: {} });
     await fetch(QUERY_URL("a.example", "fail"), { headers: {} });
     now.add(2000);
-    expect(logSummary(log)).toBe("2 queries to a.example, 1 waiting for an answer, 1 failed, 2.0 s");
+    expect(logSummary(log)).toBe("2 queries · 0 answered · 1 waiting · 1 failed");
     answer(new Response("{}"));
     await waiting;
-    expect(logSummary(log)).toBe("2 queries to a.example, 1 failed, 2.0 s");
+    expect(logSummary(log)).toBe("2 queries · 1 answered · 0 waiting · 1 failed");
+    log.finish();
   });
 
   it("stops: the requests that wait are aborted", async () => {
@@ -73,7 +76,50 @@ describe("the log of a run on an endpoint", () => {
   });
 
   it("reads the query of a request", () => {
-    expect(requestParts("https://a.example/sparql?query=ASK%20%7B%7D&format=json")).toEqual({ query: "ASK {}", url: "https://a.example/sparql?format=json" });
-    expect(requestParts("https://a.example/page.ttl")).toEqual({ query: null, url: "https://a.example/page.ttl" });
+    expect(requestParts("https://a.example/sparql?query=ASK%20%7B%7D&format=json")).toEqual({ query: "ASK {}", url: "https://a.example/sparql?format=json", nodes: undefined });
+    // Dereference: the IRI of a node
+    expect(requestParts("https://a.example/page.ttl")).toEqual({ query: null, url: "https://a.example/page.ttl", nodes: 1 });
+  });
+
+  it("counts the nodes that a query asks about", () => {
+    expect(nodesOf("SELECT ?s ?p ?o WHERE { VALUES ?s { <http://a> <http://b> wd:Q1 } { ?s ?p ?o } }")).toBe(3);
+    expect(nodesOf("SELECT ?p ?o WHERE { <http://a> ?p ?o }")).toBeUndefined();
+  });
+
+  it("writes the limits, the sizes and the answers", () => {
+    expect(limitsText({ interval: 1100, concurrent: 1, nodes: 20 })).toBe("1 query every 1.1 s at most · 1 at a time · 20 nodes per query");
+    expect(limitsText({ interval: 250, concurrent: 4, nodes: 1 })).toBe("1 query every 250 ms at most · 4 at a time · 1 node per query");
+    expect(limitsText({ interval: 0, concurrent: 1, nodes: 20 })).toMatch(/^no wait between queries/);
+    expect([sizeText(512), sizeText(12345), sizeText(2_500_000)]).toEqual(["512 B", "12.3 kB", "2.5 MB"]);
+    expect(answerText({ answer: '{"head":{}}', size: 11 })).toBe('{\n  "head": {}\n}');
+    // Not all of it: as it is
+    expect(answerText({ answer: '{"head":', size: 100 })).toBe('{"head":');
+    expect(answerText({ answer: "", size: 0 })).toBe("(empty)");
+  });
+
+  it("is a table of the requests, the last one first, which shows a request with a click", async () => {
+    const doc = new JSDOM("").window.document;
+    const now = clock();
+    let changes = 0;
+    const log = startLog("https://a.example/sparql", { now, onChange: () => (changes += 1) });
+    const fetch = loggingFetch(async () => new Response('{"head":{}}'));
+    await fetch(QUERY_URL("a.example", "SELECT * WHERE { VALUES ?s { <http://a> <http://b> } ?s ?p ?o }"), { headers: {} });
+    now.add(1100);
+    await fetch(QUERY_URL("a.example", "ASK {}"), { headers: {} });
+    log.finish();
+    let table = renderQueries(doc, log);
+    expect([...table.querySelectorAll("th")].map((th) => th.textContent)).toEqual(["#", "Sent", "Status", "Time", "Size", "Nodes", "Query"]);
+    const rows = () => [...table.querySelectorAll("tr.query-row")].map((tr) => [...tr.children].slice(0, 6).map((td) => td.textContent));
+    expect(rows()).toEqual([
+      ["2", "1.1 s", "200", "0 ms", "11 B", ""],
+      ["1", "0.0 s", "200", "0 ms", "11 B", "2"],
+    ]);
+    // A click shows the query and the answer, and the log says it changed
+    const before = changes;
+    table.querySelector('tr.query-row[data-n="0"] td').dispatchEvent(new doc.defaultView.MouseEvent("click", { bubbles: true }));
+    expect(changes).toBe(before + 1);
+    table = renderQueries(doc, log);
+    expect(table.querySelector("tr.query-detail .query-full").textContent).toContain("VALUES ?s");
+    expect(table.querySelector("tr.query-detail .query-answer").textContent).toBe('{\n  "head": {}\n}');
   });
 });

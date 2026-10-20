@@ -19,13 +19,17 @@ export const PAGE_ENDPOINT = "page";
 // prefixes, so that the shape maps of validations on the endpoint can use the
 // prefixes of the schema (the data of an endpoint has no prefixes). Appended
 // to a configuration with its [rdf] section, such as BASE_CONFIG of dctap.js.
-export function endpointConfig(endpoint, prefixes = {}) {
+// `limits` are the limits of the requests to the endpoint
+// (min_request_interval_ms, max_concurrent_requests, max_nodes_per_query),
+// which win over those of [rdf].
+export function endpointConfig(endpoint, prefixes = {}, limits = {}) {
   const url = endpointURL(endpoint).href;
   const toml = JSON.stringify;
   return [
     `[rdf.endpoints.${PAGE_ENDPOINT}]`,
     `name = ${toml(PAGE_ENDPOINT)}`,
     `query_url = ${toml(url)}`,
+    ...Object.entries(limits).map(([key, value]) => `${key} = ${Number(value)}`),
     "",
     `[rdf.endpoints.${PAGE_ENDPOINT}.prefixmap]`,
     ...Object.entries(prefixes).map(([alias, iri]) => `${toml(alias)} = ${toml(iri)}`),

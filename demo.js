@@ -9,13 +9,13 @@ import { dctapConfig, columnClass, parsePrefixes, BASIC_PREFIXES, BASE_CONFIG } 
 import { setupTableView } from "./table-view.js";
 import { parseCsv } from "./csv.js";
 import { makeTableTools } from "./table-tools.js";
-import { COMMON_PREFIXES, endpointFileURL, prefixesOfEndpointToml } from "./prefixes.js";
+import { COMMON_PREFIXES, endpointFileURL, endpointToml } from "./prefixes.js";
 import { setPrefixSource } from "./prefix-completion.js";
-import { loadSettings, saveSettings, configWithSettings, settingsEndpoints } from "./settings.js";
+import { loadSettings, saveSettings, configWithSettings, settingsEndpoints, settingsConfig, pageSetting, limitsOf } from "./settings.js";
 import { setupSettingsDialog } from "./settings-dialog.js";
 import { DATA_TABS, setupExtraData, addData, extraData, clearExtraData } from "./extra-data.js";
 import { parseBoxTable } from "./box-table.js";
-import { startLog, loggingFetch, logSummary, renderLog } from "./endpoint-log.js";
+import { startLog, loggingFetch, logSummary, logTime, limitsText, renderQueries } from "./endpoint-log.js";
 import { LANGUAGES, TARGETS, DEFAULT_TARGET, canConvert, readSchema as readAnySchema, convertSchema, sourceLabel, targetLabel, asSource } from "./schema-convert.js";
 import { devDependencies } from "./package.json";
 
@@ -51,7 +51,11 @@ const ENDPOINT_TABS = ["shex", "shacl", "dctap", "sparql"];
 // (setFetch) and the page's (endpoint.js). Details of the log of a run on an
 // endpoint stays open for the next runs when it is open.
 const pageFetch = loggingFetch();
-let showLog = false;
+// The dialog of the settings (setupSettings), which the Options of the
+// endpoints open
+let settingsDialog;
+// The log of the last run of each tab on an endpoint: only it is drawn
+const currentLogs = {};
 const endpointOf = (prefix) => $(`${prefix}-endpoint`).value.trim();
 // Whether a tab uses its RDF data with its endpoint
 const withData = (prefix) => Boolean($(`${prefix}-endpoint-data`)?.checked);
@@ -74,6 +78,11 @@ let settings = loadSettings(localStorageOrNone());
 // before rudof is loaded), and those of the settings, with their prefixes
 let rudofKnownEndpoints = KNOWN_ENDPOINTS;
 const settingsEndpointPrefixes = new Map();
+// The limits of the requests to the endpoints of the settings, and to those
+// that rudof knows (in their TOML files, such as min_request_interval_ms of
+// Wikidata), by their URLs
+const settingsEndpointLimits = new Map();
+const endpointLimits = new Map();
 
 // The names of the endpoints in rudof, by their URLs, and their prefixes
 // (readEndpointPrefixes): being read, and read, as [alias, iri]
@@ -651,13 +660,15 @@ function showEndpointUse() {
     $(`${prefix}-data-unused`).hidden = !unused;
     // "With the RDF data" is for endpoints
     $(`${prefix}-endpoint-data`).closest("label").hidden = !onEndpoint;
+    $(`${prefix}-endpoint-options`).hidden = !onEndpoint;
     showEndpointPrefixes(prefix);
   }
   showEndpointChoices();
 }
 
 // The prefixes that rudof declares for the endpoints it knows (see
-// prefixes.js), read once. Endpoints that rudof doesn't know have none.
+// prefixes.js), read once, with the limits of their requests. Endpoints that
+// rudof doesn't know have none.
 function readEndpointPrefixes(url) {
   if (settingsEndpointPrefixes.has(url)) return Promise.resolve(settingsEndpointPrefixes.get(url));
   const name = endpointNames.get(url);
@@ -665,7 +676,12 @@ function readEndpointPrefixes(url) {
   if (!endpointPrefixReads.has(url)) {
     const read = fetch(endpointFileURL(RUDOF_VERSION, name))
           .then((response) => (response.ok ? response.text() : ""))
-          .then((text) => (text ? prefixesOfEndpointToml(text) : []))
+          .then((text) => {
+            if (!text) return [];
+            const { prefixes, description } = endpointToml(text);
+            endpointLimits.set(url, limitsOf(description));
+            return prefixes;
+          })
           .catch((e) => {
             console.info(`The prefixes of ${name} could not be read: ${e.message ?? e}`);
             return [];
@@ -786,15 +802,17 @@ function setupEndpoints() {
 function refreshKnownEndpoints() {
   const byUrl = new Map(rudofKnownEndpoints.map(([name, url]) => [url, name.replace(/_/g, " ")]));
   settingsEndpointPrefixes.clear();
+  settingsEndpointLimits.clear();
   let fromSettings = [];
   try {
     fromSettings = settingsEndpoints(settings);
   } catch (e) {
     console.warn(`The endpoints of the settings can't be read: ${e.message ?? e}`);
   }
-  for (const [name, url, prefixes] of fromSettings) {
+  for (const [name, url, prefixes, limits] of fromSettings) {
     byUrl.set(url, name);
     settingsEndpointPrefixes.set(url, prefixes);
+    settingsEndpointLimits.set(url, limits);
   }
   knownEndpoints = [...byUrl].map(([url, name]) => [name, url]).sort(([a], [b]) => a.localeCompare(b, "en", { sensitivity: "base" }));
   fillEndpointChoices();
@@ -804,6 +822,36 @@ function refreshKnownEndpoints() {
 
 // The prefixes of an endpoint, when they are known
 const prefixesOfEndpoint = (url) => settingsEndpointPrefixes.get(url) ?? endpointPrefixes.get(url) ?? [];
+
+// The limits of the requests to an endpoint of its own (of the settings, or
+// of rudof), which win over those of the settings for all the endpoints
+const limitsOfEndpoint = (url) => settingsEndpointLimits.get(url) ?? endpointLimits.get(url) ?? {};
+
+// How validations get the data of the nodes (a setting): SPARQL queries, or
+// dereferencing their IRIs. The SPARQL tab always queries the endpoint.
+const strategyOf = (prefix) => (prefix === "sparql" ? "sparql" : pageSetting(settings, "endpoint_strategy"));
+
+// The limits that rudof applies to the requests to an endpoint: its own,
+// else the settings, else the defaults of rudof (0 ms for localhost). rudof
+// waits longer when the endpoint answers 429 Too Many Requests.
+function endpointLimitsOf(endpoint) {
+  const url = endpointUrlOf(endpoint);
+  const general = settingsConfig(settings).rdf ?? {};
+  const own = limitsOfEndpoint(url);
+  let local = false;
+  try {
+    local = ["localhost", "127.0.0.1", "[::1]"].includes(new URL(url).hostname);
+  } catch {
+    // a name
+  }
+  const pick = (key, fallback) => own[key] ?? (Number.isInteger(general[key]) ? general[key] : fallback);
+  return {
+    interval: pick("min_request_interval_ms", local ? 0 : 1100),
+    concurrent: pick("max_concurrent_requests", 1),
+    nodes: pick("max_nodes_per_query", 20),
+    own: Object.keys(own).length > 0,
+  };
+}
 
 // Reads the RDF data of a tab in a session: its data, and the data added to
 // it (extra-data.js), merged. With merge, merged with the data the session
@@ -836,10 +884,12 @@ function dataSession(prefix, { config, prefixes } = {}) {
   const byUrl = /^[a-z][\w+.-]*:/i.test(endpoint);
   // The prefixes of the endpoint, and those of the schema, which win
   const all = { ...Object.fromEntries(prefixesOfEndpoint(endpoint)), ...prefixes };
-  const toml = byUrl ? `${config ?? BASE_CONFIG}\n${endpointConfig(endpoint, all)}` : config;
+  // With the limits of the requests that the endpoint has, which win over the
+  // settings
+  const toml = byUrl ? `${config ?? BASE_CONFIG}\n${endpointConfig(endpoint, all, limitsOfEndpoint(endpoint))}` : config;
   const rudof = new rudofModule.Rudof(rudofConfig(toml));
   configStamps.set(rudof, settingsStamp);
-  rudof.useEndpoint(byUrl ? PAGE_ENDPOINT : endpoint);
+  rudof.useEndpoint(byUrl ? PAGE_ENDPOINT : endpoint, strategyOf(prefix), {});
   // The RDF data of the tab too, merged with the data of the endpoint
   if (withData(prefix)) readTabData(rudof, prefix, true);
   return { rudof, endpoint };
@@ -1509,50 +1559,100 @@ function endpointUrlOf(endpoint) {
   return [...knownEndpoints, ...rudofKnownEndpoints].find(([name]) => name === endpoint || name.replace(/_/g, " ") === endpoint)?.[1] ?? endpoint;
 }
 
-// The place of the log in the result of a tab
-function activityOf(prefix) {
+// The view of the queries in the result of a tab: the progress, the limits
+// of the requests, and the table of the queries. While the run waits, the
+// result shows it; then the switch "Result | Queries" of the result does.
+function queriesViewOf(prefix) {
   const box = $(`${prefix}-result`);
-  let activity = box.querySelector(".endpoint-activity");
-  if (activity) return activity;
-  const button = (className, text, title) => Object.assign(document.createElement("button"), { type: "button", className: `link ${className}`, textContent: text, title });
-  activity = Object.assign(document.createElement("div"), { className: "endpoint-activity" });
-  const details = button("activity-details", "Details", "The queries sent to the endpoint, and its answers");
-  const stop = button("activity-stop", "Stop", "Stop waiting for the endpoint");
-  const list = Object.assign(document.createElement("ol"), { className: "endpoint-log", hidden: !showLog });
-  details.setAttribute("aria-expanded", String(showLog));
-  details.addEventListener("click", () => {
-    showLog = list.hidden;
-    for (const other of document.querySelectorAll(".endpoint-activity")) {
-      other.querySelector(".endpoint-log").hidden = !showLog;
-      other.querySelector(".activity-details").setAttribute("aria-expanded", String(showLog));
-    }
+  let view = box.querySelector(".queries-view");
+  if (view) return view;
+  const el = (tag, props = {}, ...children) => {
+    const e = Object.assign(document.createElement(tag), props);
+    e.append(...children);
+    return e;
+  };
+  const stop = el("button", { type: "button", className: "link queries-stop", title: "Stop waiting for the endpoint: the queries that wait are aborted" }, "Stop");
+  const options = el("button", { type: "button", className: "link queries-options", title: "The limits of the requests to endpoints, in the settings" }, "Options");
+  options.addEventListener("click", () => settingsDialog?.open("endpoints"));
+  view = el(
+    "div",
+    { className: "queries-view" },
+    el("div", { className: "queries-progress" }, el("span", { className: "queries-summary" }), stop),
+    el("div", { className: "queries-limits" }, el("span", {}), options),
+    el("div", { className: "queries-table" }),
+  );
+  box.querySelector(".result-head").after(view);
+  // The switch of the views, in the head of the result
+  const button = (name, text) => {
+    const b = el("button", { type: "button" }, text);
+    b.dataset.view = name;
+    return b;
+  };
+  const toResult = button("result", "Result");
+  const toQueries = button("queries", "Queries");
+  const viewSwitch = el("div", { className: "view-switch queries-switch", hidden: true }, toResult, toQueries);
+  viewSwitch.setAttribute("role", "group");
+  viewSwitch.setAttribute("aria-label", "Result or queries to the endpoint");
+  viewSwitch.addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (b) showView(prefix, b.dataset.view);
   });
-  activity.append(Object.assign(document.createElement("span"), { className: "activity-summary" }), details, stop, list);
-  box.querySelector(".result-head").after(activity);
-  return activity;
+  box.querySelector(".result-head .timing").before(viewSwitch);
+  return view;
+}
+
+// Shows the result of a tab, or the queries of its run
+function showView(prefix, name) {
+  const box = $(`${prefix}-result`);
+  if (name === "queries") box.dataset.view = "queries";
+  else delete box.dataset.view;
+  for (const b of box.querySelectorAll(".queries-switch button")) b.setAttribute("aria-pressed", String(b.dataset.view === (name === "queries" ? "queries" : "result")));
 }
 
 // Starts the log of a run of a tab on its endpoint, shown in its result.
 // `onStop`: when the user stops it, with the number of queries that wait for
 // an answer.
 function showEndpointLog(prefix, endpoint, onStop) {
-  const activity = activityOf(prefix);
-  activity.hidden = false;
+  const view = queriesViewOf(prefix);
+  const box = $(`${prefix}-result`);
+  const viewSwitch = box.querySelector(".queries-switch");
+  viewSwitch.hidden = true;
+  showView(prefix, "queries");
   let frame;
   const draw = (log) => {
     frame = undefined;
-    activity.querySelector(".activity-summary").textContent = logSummary(log);
-    activity.querySelector(".activity-stop").hidden = log.end !== undefined;
-    activity.querySelector(".endpoint-log").replaceChildren(...renderLog(document, log));
+    if (currentLogs[prefix] !== log) return; // the tab runs again
+    const running = log.end === undefined;
+    let summary = logSummary(log);
+    if (log.rudofCount !== undefined && log.rudofCount !== log.entries.length) {
+      summary += ` (rudof counted ${log.rudofCount}: the list can have queries of other tabs)`;
+    }
+    view.querySelector(".queries-summary").textContent = summary;
+    view.querySelector(".queries-stop").hidden = !running;
+    // The limits of rudof (the page sends the query of the SPARQL tab itself
+    // when rudof can't)
+    const limits = endpointLimitsOf(endpoint);
+    const strategy = strategyOf(prefix) === "dereference" ? " · the RDF of the IRIs of the nodes (dereference)" : "";
+    view.querySelector(".queries-limits span").textContent = rudofEndpoints
+      ? `Limits: ${limitsText(limits)}${strategy}${limits.own ? ` (those of ${endpointName(endpoint)})` : ""}`
+      : "The page sends the query to the endpoint itself.";
+    view.querySelector(".queries-options").hidden = !rudofEndpoints;
+    // The request that has the focus keeps it
+    const focused = view.contains(document.activeElement) ? document.activeElement.dataset?.n : undefined;
+    view.querySelector(".queries-table").replaceChildren(renderQueries(document, log));
+    if (focused !== undefined) view.querySelector(`tr.query-row[data-n="${focused}"]`)?.focus();
+    viewSwitch.querySelector('[data-view="queries"]').textContent = `Queries (${log.entries.length})`;
+    if (running && box.dataset.kind === "running") box.querySelector(".timing").textContent = logTime(log);
   };
   const log = startLog(endpointUrlOf(endpoint), {
     onChange: (l) => {
       frame ??= requestAnimationFrame(() => draw(l));
     },
   });
+  currentLogs[prefix] = log;
   // The time, while it waits
   const ticker = setInterval(() => log.end === undefined && draw(log), 500);
-  activity.querySelector(".activity-stop").onclick = () => {
+  view.querySelector(".queries-stop").onclick = () => {
     const waiting = log.entries.filter((e) => e.millis === undefined).length;
     log.stop();
     onStop(waiting);
@@ -1561,15 +1661,23 @@ function showEndpointLog(prefix, endpoint, onStop) {
   log.finish = () => {
     clearInterval(ticker);
     finish();
+    if (currentLogs[prefix] !== log) return;
     draw(log);
+    // Then the result (the queries, when the user stopped the run), and the
+    // switch between them
+    viewSwitch.hidden = false;
+    if (!log.stopped) showView(prefix, "result");
   };
   draw(log);
   return log;
 }
 
 function hideEndpointLog(prefix) {
-  const activity = $(`${prefix}-result`).querySelector(".endpoint-activity");
-  if (activity) activity.hidden = true;
+  delete currentLogs[prefix];
+  const box = $(`${prefix}-result`);
+  showView(prefix, "result");
+  const viewSwitch = box.querySelector(".queries-switch");
+  if (viewSwitch) viewSwitch.hidden = true;
 }
 
 async function run(prefix) {
@@ -1587,19 +1695,28 @@ async function run(prefix) {
         showResult(prefix, {
           verdict: "Stopped",
           kind: "error",
-          output: `The run on ${endpointName(endpoint)} was stopped${waiting ? `, with ${waiting} ${waiting === 1 ? "query" : "queries"} waiting for an answer` : ""}. Details has the queries that were sent.`,
+          output: `The run on ${endpointName(endpoint)} was stopped${waiting ? `, with ${waiting} ${waiting === 1 ? "query" : "queries"} waiting for an answer` : ""}. Queries has the queries that were sent.`,
         });
         updateConvertButtons();
       })
     : hideEndpointLog(prefix);
   try {
+    if (endpoint) showResult(prefix, { verdict: `Waiting for ${endpointName(endpoint)}…`, kind: "running", output: "" });
+    // The limits of an endpoint that rudof knows are in its TOML file, read
+    // with its prefixes
+    if (endpoint && rudofEndpoints) {
+      await readEndpointPrefixes(endpointUrlOf(endpoint));
+      if (running[prefix] !== token) return;
+    }
     let result = validate();
     if (result instanceof Promise) {
-      showResult(prefix, { verdict: "Waiting for the endpoint…", kind: "running", output: "" });
+      if (!endpoint) showResult(prefix, { verdict: "Waiting for the endpoint…", kind: "running", output: "" });
       result = await result;
       if (running[prefix] !== token) return;
     }
-    // The session that ran on an endpoint has the results now
+    // The session that ran on an endpoint has the results now, and the
+    // number of requests it sent (rudof can't say it while it waits)
+    if (log && result.session?.requestCount) log.rudofCount = Number(result.session.requestCount());
     if (result.session) {
       sessions[prefix] = result.session;
       delete result.session;
@@ -1835,7 +1952,7 @@ if (params.has("manifestURL")) loadManifest(params.get("manifestURL"));
 // the sessions the new configuration, and the endpoints of the settings to
 // the menus.
 function setupSettings() {
-  setupSettingsDialog({
+  settingsDialog = setupSettingsDialog({
     dialog: $("settings"),
     opener: $("settings-open"),
     badge: $("settings-badge"),
@@ -1850,6 +1967,7 @@ function setupSettings() {
     },
   });
   $("settings-open").disabled = false;
+  for (const prefix of ENDPOINT_TABS) $(`${prefix}-endpoint-options`).addEventListener("click", () => settingsDialog.open("endpoints"));
 }
 
 // A module of rudof, initialized

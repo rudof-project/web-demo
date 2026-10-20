@@ -38,12 +38,55 @@ const groupColor = (group, key, label) => ({
 
 // Each setting: its key in the configuration (a path of keys), its label,
 // its type (boolean, number, text, iri, char, select), its default, and help.
+// A number can have a minimum (min). The settings with `page` are not in the
+// configuration of rudof: the page uses them (pageSetting).
 export const SETTINGS = [
   {
     title: "General",
     settings: [
       { key: "base_iri", label: "Base IRI", type: "iri", default: "", help: "The base of relative IRIs in data and schemas (http://base/ when empty)." },
       { key: "rdf.pretty_json", label: "Indent JSON and JSON-LD results", type: "boolean", default: true },
+    ],
+  },
+  {
+    title: "Endpoints",
+    id: "endpoints",
+    settings: [
+      {
+        key: "rdf.min_request_interval_ms",
+        label: "Milliseconds between two requests",
+        type: "number",
+        default: "",
+        placeholder: "1100",
+        help: "The least time between two requests to an endpoint (0: no wait). Empty: 1100 ms, and 0 for localhost. rudof waits longer when an endpoint answers 429 Too Many Requests. Public endpoints such as Wikidata keep their own limit.",
+      },
+      {
+        key: "rdf.max_concurrent_requests",
+        label: "Requests at the same time",
+        type: "number",
+        min: 1,
+        default: "",
+        placeholder: "1",
+        help: "When rudof gets the nodes of a shape map before it validates them. Empty: 1.",
+      },
+      {
+        key: "rdf.max_nodes_per_query",
+        label: "Nodes in one query",
+        type: "number",
+        min: 1,
+        default: "",
+        placeholder: "20",
+        help: "The nodes of a shape map that one query gets (VALUES). 1: a query for each node. Empty: 20.",
+      },
+      {
+        key: "endpoint_strategy",
+        page: true,
+        label: "How validations get the data of the nodes",
+        type: "select",
+        default: "sparql",
+        options: [["sparql", "SPARQL queries to the endpoint"], ["dereference", "The RDF of the IRIs of the nodes (dereference)"]],
+        help: "Dereference gets each IRI as Turtle: its server must allow other sites to read it (CORS), and this https page can't read http: IRIs. SPARQL queries always use the endpoint.",
+      },
     ],
   },
   {
@@ -139,7 +182,8 @@ export function settingValue(setting, text) {
   if (setting.type === "number") {
     if (value.trim() === "") return "";
     const n = Number(value);
-    if (!Number.isInteger(n) || n < 0) throw new Error(`${setting.label}: write a whole number, or leave it empty`);
+    const min = setting.min ?? 0;
+    if (!Number.isInteger(n) || n < min) throw new Error(`${setting.label}: write a whole number${min ? ` from ${min}` : ""}, or leave it empty`);
     return n;
   }
   if (setting.type === "char" && [...value].length !== 1) throw new Error(`${setting.label}: write one character`);
@@ -198,6 +242,7 @@ export function settingsConfig({ values = {}, toml = "" } = {}) {
       continue;
     }
     if (value === "") continue; // empty: rudof's default
+    if (byKey.get(key).page) continue; // not for rudof
     setPath(config, key, value);
   }
   // The tables that rudof reads whole
@@ -216,13 +261,32 @@ export function configWithSettings(toml, settings) {
   return stringify(mergeConfig(parse(toml), settingsConfig(settings)));
 }
 
+// A setting of the page (`page`): its value, or its default
+export function pageSetting(settings, key) {
+  return changedValues(settings?.values ?? {})[key] ?? byKey.get(key).default;
+}
+
+// The limits of the requests to an endpoint, in its description
+// ([rdf.endpoints.<name>] of a configuration, or the TOML file of an endpoint
+// that rudof knows): { min_request_interval_ms, … }, the numbers only
+export const LIMIT_KEYS = ["min_request_interval_ms", "max_concurrent_requests", "max_nodes_per_query"];
+
+export function limitsOf(description) {
+  return Object.fromEntries(LIMIT_KEYS.filter((key) => Number.isInteger(description?.[key]) && description[key] >= 0).map((key) => [key, description[key]]));
+}
+
 // The endpoints of the settings ([rdf.endpoints.<name>] of the TOML):
-// [name, url, prefixes as [alias, iri]]
+// [name, url, prefixes as [alias, iri], limits]
 export function settingsEndpoints(settings) {
   const endpoints = settingsConfig(settings).rdf?.endpoints ?? {};
   return Object.entries(endpoints)
     .filter(([, e]) => isObject(e) && typeof e.query_url === "string")
-    .map(([key, e]) => [String(e.name ?? key), e.query_url, Object.entries(isObject(e.prefixmap) ? e.prefixmap : {}).filter(([, iri]) => typeof iri === "string")]);
+    .map(([key, e]) => [
+      String(e.name ?? key),
+      e.query_url,
+      Object.entries(isObject(e.prefixmap) ? e.prefixmap : {}).filter(([, iri]) => typeof iri === "string"),
+      limitsOf(e),
+    ]);
 }
 
 // The settings kept in the browser

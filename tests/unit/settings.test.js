@@ -11,6 +11,7 @@ import {
   settingsConfig,
   configWithSettings,
   settingsEndpoints,
+  pageSetting,
   mergeConfig,
   loadSettings,
   saveSettings,
@@ -147,8 +148,34 @@ describe("configWithSettings", () => {
 describe("settingsEndpoints", () => {
   it("are the endpoints of the TOML, with their prefixes", () => {
     const toml = '[rdf.endpoints.Mine]\nname = "My endpoint"\nquery_url = "https://mine.example/sparql"\n[rdf.endpoints.Mine.prefixmap]\nmine = "http://mine.example/"\n[rdf.endpoints.Bad]\nname = "No URL"\n';
-    expect(settingsEndpoints({ values: {}, toml })).toEqual([["My endpoint", "https://mine.example/sparql", [["mine", "http://mine.example/"]]]]);
+    expect(settingsEndpoints({ values: {}, toml })).toEqual([["My endpoint", "https://mine.example/sparql", [["mine", "http://mine.example/"]], {}]]);
     expect(settingsEndpoints(emptySettings())).toEqual([]);
+  });
+
+  it("have the limits of their requests", () => {
+    const toml = '[rdf.endpoints.Mine]\nquery_url = "https://mine.example/sparql"\nmin_request_interval_ms = 0\nmax_nodes_per_query = 5\nmax_concurrent_requests = "many"\n';
+    expect(settingsEndpoints({ values: {}, toml })[0][3]).toEqual({ min_request_interval_ms: 0, max_nodes_per_query: 5 });
+  });
+});
+
+describe("the settings of endpoints", () => {
+  it("are in [rdf] of the configuration, and empty is the default of rudof", () => {
+    const values = { "rdf.min_request_interval_ms": 0, "rdf.max_concurrent_requests": 4, "rdf.max_nodes_per_query": "" };
+    expect(settingsConfig({ values }).rdf).toEqual({ min_request_interval_ms: 0, max_concurrent_requests: 4 });
+    expect(new Rudof(RudofConfig.fromToml(configWithSettings(BASE_CONFIG, { values })))).toBeTruthy();
+  });
+
+  it("need at least one request at a time and one node in a query", () => {
+    expect(() => settingValue(setting("rdf.max_concurrent_requests"), "0")).toThrow(/whole number from 1/);
+    expect(() => settingValue(setting("rdf.max_nodes_per_query"), "0")).toThrow(/whole number from 1/);
+    expect(settingValue(setting("rdf.min_request_interval_ms"), "0")).toBe(0);
+  });
+
+  it("have the strategy of the page, which is not in the configuration of rudof", () => {
+    const values = { endpoint_strategy: "dereference" };
+    expect(settingsConfig({ values })).toEqual({});
+    expect(pageSetting({ values }, "endpoint_strategy")).toBe("dereference");
+    expect(pageSetting(emptySettings(), "endpoint_strategy")).toBe("sparql");
   });
 });
 
