@@ -812,6 +812,16 @@ table.csv-result td code { font-size: 12px; white-space: pre-wrap; overflow-wrap
 .menu-panel a:hover, .menu-panel label:hover { background: var(--surface); text-decoration: none; }
 .menu-versions a { display: inline; padding: 0; }
 .menu-panel a small { display: block; color: var(--muted); font-size: 0.85em; }
+/* An item of a menu: its link, and a description with links of its own. The
+   link covers the whole item, under the links of the description. */
+.menu-item { position: relative; padding: 0.35rem 0.6rem; border-radius: 6px; }
+.menu-item:hover { background: var(--surface); }
+.menu-item > a { padding: 0; }
+.menu-item > a::after { content: ""; position: absolute; inset: 0; border-radius: 6px; }
+.menu-item > a:hover { background: none; }
+.menu-item > small { display: block; color: var(--muted); font-size: 0.85em; }
+.menu-item > small a { position: relative; z-index: 1; display: inline; padding: 0; color: var(--accent); text-decoration: underline; }
+.menu-item > small a:hover { background: none; }
 .menu-panel label { cursor: pointer; }
 .menu-versions {
   display: grid;

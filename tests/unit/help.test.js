@@ -62,8 +62,10 @@ describe("the help page", () => {
     const items = (doc) => [...doc.querySelectorAll("header .links > a, header .links > details:not(.menu-icon) > summary")].map((e) => e.textContent.trim());
     expect(items(demo)).toEqual(["Examples", "Help", "About"]);
     expect(items(help)).toEqual(["Examples", "Help", "About"]);
-    // The same menus in both pages
-    expect(help.querySelector("header .links details").innerHTML).toBe(demo.querySelector("header .links details").innerHTML);
+    // The same menus in both pages, even when an editor wraps their lines
+    // in other places
+    const menus = (doc) => doc.querySelector("header .links details").innerHTML.replace(/\s+/g, " ").replace(/> </g, "><").replace(/\s+(?=[/]?>)/g, "");
+    expect(menus(help)).toBe(menus(demo));
   });
 
   it("links only to parts of it that exist", () => {

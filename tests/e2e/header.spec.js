@@ -23,6 +23,26 @@ test("Examples opens the examples of the ISWC 2026 tutorial", async ({ page }) =
   await expect(page.locator("#manifest-examples option").nth(1)).toHaveText("An example");
 });
 
+test("the descriptions of the examples link to their events, and the item opens the examples", async ({ page }) => {
+  await page.route("https://raw.githubusercontent.com/**", (route) =>
+    route.fulfill({ headers: { "access-control-allow-origin": "*" }, body: "- comment: An example of sheval\n  data: ''\n  action: data\n" }),
+  );
+  await open(page);
+  const examples = menu(page, "Examples");
+  await examples.locator("summary").click();
+  await expect(examples.getByRole("link", { name: "the tutorial on validating RDF data" })).toHaveAttribute("href", "https://www.validatingrdf.com/tutorial/iswc2026/");
+  const sheval = examples.getByRole("link", { name: "sheval", exact: true });
+  await expect(sheval).toHaveAttribute("href", "https://github.com/cogsl/sheval");
+  // The link of the description is over the link of the item
+  const box = await sheval.boundingBox();
+  expect(await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.textContent, [box.x + box.width / 2, box.y + box.height / 2])).toBe("sheval");
+  // A click on the rest of the description opens the examples
+  const description = await examples.locator(".menu-item small", { hasText: "sheval" }).boundingBox();
+  await page.mouse.click(description.x + 4, description.y + description.height / 2);
+  await expect(page.locator("#manifest-link")).toHaveText("https://raw.githubusercontent.com/cogsl/sheval/refs/heads/main/rudof.yaml");
+  await expect(page.locator("#manifest-examples option").nth(1)).toHaveText("An example of sheval");
+});
+
 test("About has the links of rudof and the demo, and their versions", async ({ page }) => {
   await open(page);
   const about = menu(page, "About");
