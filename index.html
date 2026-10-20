@@ -15,11 +15,11 @@
       if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
     } catch {}
   </script>
-  <script type="module" crossorigin src="./assets/main-CoHYIjzC.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/header-7QHX2c1M.js">
+  <script type="module" crossorigin src="./assets/main-DGNFXL3B.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/header-C968xrJ9.js">
   <link rel="modulepreload" crossorigin href="./assets/dist-CjNGdU0X.js">
   <link rel="modulepreload" crossorigin href="./assets/dctap-DBredz1z.js">
-  <link rel="stylesheet" crossorigin href="./assets/header-B8BRBhR1.css">
+  <link rel="stylesheet" crossorigin href="./assets/header-CGE332Ik.css">
 </head>
 
 <body>
@@ -508,6 +508,24 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
     sh:path :birthDate ;
     sh:datatype xsd:date
   ] .</textarea>
+            <!-- Optional: merged with the shapes graph before the validation -->
+            <div class="sub-field" id="shacl-targets-field">
+              <div class="field-head">
+                <label for="shacl-targets" title="Optional. RDF triples that declare targets, such as :PersonShape sh:targetNode :alice. They are merged with the shapes graph before the validation.">Target declarations</label>
+                <span class="hint" id="shacl-targets-used" hidden>Merged with the shapes graph</span>
+                <select id="shacl-targets-format" aria-label="Target declarations format">
+                  <option value="turtle">Turtle</option>
+                  <option value="ntriples">N-Triples</option>
+                  <option value="rdfxml">RDF/XML</option>
+                  <option value="jsonld">JSON-LD</option>
+                  <option value="trig">TriG</option>
+                  <option value="n3">N3</option>
+                  <option value="nquads">N-Quads</option>
+                </select>
+              </div>
+              <textarea id="shacl-targets" data-editor data-format-select="shacl-targets-format" class="short" spellcheck="false"
+                placeholder="Optional: target declarations in RDF, merged with the shapes graph. For example: &lt;http://example.org/PersonShape&gt; &lt;http://www.w3.org/ns/shacl#targetNode&gt; &lt;http://example.org/alice&gt; ."></textarea>
+            </div>
           </div>
         </div>
         <div class="toolbar">
