@@ -374,6 +374,8 @@ caption.table-status { caption-side: bottom; text-align: left; padding: 0.4rem 0
 .filter-menu .filter-count { color: var(--muted); font-size: 0.9em; }
 .filter-menu .filter-all { font-weight: 600; }
 table.report th, table.report td.verdict-cell { white-space: nowrap; }
+/* The lines of the text of the cells, as rudof writes them */
+table.report td > code { white-space: pre-wrap; overflow-wrap: anywhere; }
 table.report td.verdict-cell { font-weight: 600; }
 table.report tr.ok td.verdict-cell { color: var(--ok-text); }
 table.report tr.fail td.verdict-cell { color: var(--fail-text); }

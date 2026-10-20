@@ -2,7 +2,7 @@
 // SHACL and DCTAP), sorted by clicking their headers and filtered by the
 // values of their columns.
 
-import { test, expect, open } from "./fixtures.js";
+import { test, expect, open, setInput } from "./fixtures.js";
 
 const column = (table, i) => table.locator(`tbody tr td:nth-child(${i})`);
 
@@ -82,4 +82,17 @@ test("a column is filtered by its values, as in a spreadsheet", async ({ page })
   await menu.getByRole("button", { name: "Clear filter" }).click();
   await expect(rows).toHaveCount(total);
   await expect(table.locator("caption")).toBeHidden();
+});
+
+test("the details in the table keep their lines, as in the Details format", async ({ page }) => {
+  await open(page, "#validate/shex");
+  await setInput(page, "shex-schema", "prefix : <http://example.org/>\n:R [:a] OR { :p @:R + ; :p . * }");
+  await setInput(page, "shex-data", "prefix : <http://example.org/>\n:a :p :d .\n:b :p :a .");
+  await setInput(page, "shex-shapemap", ":a@:R");
+  await page.locator("#shex-validate").click();
+  const details = page.locator("#shex-result table.report tbody td .details").first();
+  expect(await details.evaluate((d) => d.textContent)).toBe("OR passed (:a@[:a])\n└── Reference to [:a] passes node :a");
+  // Two lines on the page
+  const lineHeight = await details.evaluate((d) => parseFloat(getComputedStyle(d).lineHeight));
+  expect((await details.boundingBox()).height).toBeGreaterThan(1.5 * lineHeight);
 });
