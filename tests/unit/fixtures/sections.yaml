@@ -1,0 +1,53 @@
+# A manifest with sections, which can have sections
+- section: Knowledge Graphs
+  comment: Examples about Knowledge Graphs
+  examples:
+  - comment: 'Tim Berners-Lee in RDF (Turtle)'
+    dataLabel: example 01
+    dataURL: ex01.ttl
+    dataFormat: turtle
+    action: data
+  - section: 'Wikidata & Wikibase'
+    examples:
+           # Example 4: wikidata query
+       - comment: 'Wikidata SPARQL query'
+         endpoint: https://query.wikidata.org/sparql
+         queryURL: ex04_wikidata.sparql
+         queryEngine: sparql
+         action: query
+  - section: 'RDF 1.2'
+    examples:
+           # Example 5 RDF 1.2 annotated triples
+           - comment: 'RDF 1.2 (annotated triples)'
+             dataLabel: Tim Berners Lee
+             dataURL: ex05_annotated.ttl
+             dataFormat: turtle
+             action: data
+           - comment: 'RDF 1.2 (reifies)'
+             dataLabel: Tim Berners Lee in RDF 1.2 with reifies
+             dataURL: ex05_with_reifies.ttl
+             dataFormat: turtle
+             action: data
+- section: "Validating RDF 1.2"
+  examples:
+  # SHACL 1.2
+  - comment: 'SHACL 1.2'
+    schemaLabel: Researcher
+    schemaURL: ex19_shacl12.ttl
+    schemaFormat: turtle
+    dataLabel: Tim Berners Lee
+    dataURL: ex06_rdf12_non_asserted.ttl
+    dataFormat: turtle
+    status: conformant
+    validationEngine: shacl
+    action: validate
+- comment: 'Example outside of sections'
+  schemaLabel: Researcher
+  schemaURL: ex19_shacl12.ttl
+  schemaFormat: turtle
+  dataLabel: Tim Berners Lee
+  dataURL: ex06_rdf12_non_asserted.ttl
+  dataFormat: turtle
+  status: conformant
+  validationEngine: shacl
+  action: validate

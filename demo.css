@@ -512,6 +512,43 @@ table.solutions .term-note { color: var(--muted); font: 11px var(--mono); }
 .manifest-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
 .manifest-head label { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
 .manifest-head a { font-weight: 400; }
+/* The examples of a manifest with sections: sections that open and close */
+.manifest-sections { margin-top: 0.5rem; }
+.manifest-sections[hidden] { display: none; }
+.manifest-sections-tools { display: flex; gap: 1rem; font-size: 0.85em; margin-bottom: 0.3rem; }
+.manifest-tree, .manifest-tree ul { list-style: none; margin: 0; padding: 0; }
+.manifest-tree ul { margin-left: 1.1rem; padding-left: 0.6rem; border-left: 1px solid var(--border); }
+.manifest-section > summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 6px;
+  cursor: pointer;
+  list-style: none;
+}
+.manifest-section > summary::-webkit-details-marker { display: none; }
+.manifest-section > summary::before { content: "▸"; width: 0.8em; color: var(--muted); }
+.manifest-section[open] > summary::before { content: "▾"; }
+.manifest-section > summary:hover { background: var(--surface); }
+.manifest-section .section-title { font-weight: 600; }
+.manifest-section .section-count { color: var(--muted); font-size: 0.85em; }
+.manifest-section .section-comment { margin: 0.1rem 0 0.3rem 1.6rem; color: var(--muted); font-size: 0.9em; }
+.manifest-example {
+  display: block;
+  width: 100%;
+  padding: 0.2rem 0.5rem 0.2rem 1.6rem;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.manifest-example:hover:not(:disabled) { background: var(--surface); text-decoration: underline; }
+.manifest-example:disabled { color: var(--muted); cursor: not-allowed; }
+.manifest-example.chosen { background: var(--surface); color: var(--text); font-weight: 600; }
 .manifest-home { margin-left: auto; font-size: 0.9em; white-space: nowrap; }
 #manifest-examples { flex: 1 1 18rem; min-width: 0; max-width: 100%; }
 .manifest-note { margin: 0.5rem 0 0; color: var(--muted); font-size: 0.9em; white-space: pre-line; }

@@ -311,10 +311,11 @@ function isPgData(entry, manifestURL) {
 
 // The examples of a manifest (its YAML text), with their URLs made absolute
 // against the URL of the manifest. Each example has:
-//   index      its position in the manifest
+//   index      its position in the manifest (in its sections too)
 //   action     data, validate or query
 //   target     the tab it goes to (a key of TARGETS)
 //   group      what it is grouped by (the schema label)
+//   sections   the titles of its sections, from the outermost ([] for none)
 //   label      its name in the list: the comment, or else the data label
 //   dataLabel  the data label
 //   status     the result it should have, if the manifest says it
@@ -331,62 +332,94 @@ function isPgData(entry, manifestURL) {
 //
 // `endpoints` says whether the page can validate the data of endpoints (with
 // rudof built with endpoints): without it, those examples can't be run.
-export function parseManifest(source, manifestURL, { endpoints = false } = {}) {
+export function parseManifest(source, manifestURL, options) {
+  return parseSections(source, manifestURL, options).examples;
+}
+
+// The examples of a manifest and its sections. An entry with `section` is a
+// section: its title, an optional `comment`, and `examples`, a list of
+// examples and sections. A manifest without sections is a list of examples.
+// The examples are numbered in the order of the manifest (index), in their
+// sections too, and each one has the titles of its sections (sections).
+// `tree` is the manifest as [{ section: { title, comment, items } } or
+// { example }], and `hasSections` whether it has sections.
+export function parseSections(source, manifestURL, { endpoints = false } = {}) {
   const entries = parse(source);
   if (!Array.isArray(entries)) throw new Error("a manifest is a YAML list of examples");
-  return entries.map((entry, index) => {
-    if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
-      throw new Error(`entry ${index + 1} of the manifest is not a map of keys and values`);
-    }
-    const { target, problem: noTarget } = targetOf(entry, isPgData(entry, manifestURL), manifestURL);
-    const { action, inputs: specs } = TARGETS[target] ?? { action: lower(entry.action) ?? "validate", inputs: [] };
-    const inputs = {};
-    const formats = {};
-    const problems = [];
-    for (const { name, aliases = [], key, formats: known, names, extensions, values } of specs) {
-      const input = inputOf(entry, [name, ...aliases], manifestURL);
-      if (!input) continue;
-      // An input with some values only, such as picklistSeparator
-      if (values) {
-        const value = values[input.text ?? ""] ?? values[lower(input.text) ?? ""];
-        if (value == null) problems.push({ key: name, value: input.text ?? input.url, names: Object.keys(values).filter((v) => v.trim()).join(" or ") });
-        inputs[name] = { text: value };
-        continue;
+  const examples = [];
+  let hasSections = false;
+  const read = (list, sections) =>
+    list.map((entry, i) => {
+      const where = sections.length ? `entry ${i + 1} of the section “${sections.at(-1)}”` : `entry ${i + 1} of the manifest`;
+      if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
+        throw new Error(`${where} is not a map of keys and values`);
       }
-      inputs[name] = input;
-      if (!key) continue;
-      if (entry[key] != null) {
-        formats[name] = known[lower(entry[key])];
-        if (!formats[name]) problems.push({ key, value: entry[key], names });
-      } else if (input.url) {
-        formats[name] = extensions?.[extension(input.url)];
+      if (entry.section != null) {
+        hasSections = true;
+        const title = text(entry.section);
+        const items = entry.examples ?? [];
+        if (!Array.isArray(items)) throw new Error(`the examples of the section “${title}” are not a YAML list`);
+        return { section: { title, comment: text(entry.comment), items: read(items, [...sections, title]) } };
       }
+      const example = parseEntry(entry, examples.length, manifestURL, endpoints);
+      example.sections = sections;
+      examples.push(example);
+      return { example };
+    });
+  const tree = read(entries, []);
+  return { examples, tree, hasSections };
+}
+
+// An example of a manifest, the index-th one
+function parseEntry(entry, index, manifestURL, endpoints) {
+  const { target, problem: noTarget } = targetOf(entry, isPgData(entry, manifestURL), manifestURL);
+  const { action, inputs: specs } = TARGETS[target] ?? { action: lower(entry.action) ?? "validate", inputs: [] };
+  const inputs = {};
+  const formats = {};
+  const problems = [];
+  for (const { name, aliases = [], key, formats: known, names, extensions, values } of specs) {
+    const input = inputOf(entry, [name, ...aliases], manifestURL);
+    if (!input) continue;
+    // An input with some values only, such as picklistSeparator
+    if (values) {
+      const value = values[input.text ?? ""] ?? values[lower(input.text) ?? ""];
+      if (value == null) problems.push({ key: name, value: input.text ?? input.url, names: Object.keys(values).filter((v) => v.trim()).join(" or ") });
+      inputs[name] = { text: value };
+      continue;
     }
-    const notes = [];
-    if (entry.plugins?.length) {
-      const names = [].concat(entry.plugins).map((p) => String(p).split("/").pop().replace(/\.js$/, ""));
-      notes.push(`Written for shex.js with ${names.join(", ")}: rudof may not run its semantic actions.`);
+    inputs[name] = input;
+    if (!key) continue;
+    if (entry[key] != null) {
+      formats[name] = known[lower(entry[key])];
+      if (!formats[name]) problems.push({ key, value: entry[key], names });
+    } else if (input.url) {
+      formats[name] = extensions?.[extension(input.url)];
     }
-    const why = noTarget ?? unsupported(entry, target, inputs, problems, endpoints);
-    return {
-      index,
-      action,
-      target,
-      group: text(entry.schemaLabel ?? entry.label) ?? "",
-      label: text(entry.comment ?? entry.dataLabel ?? entry.name) ?? `Example ${index + 1}`,
-      dataLabel: text(entry.dataLabel ?? entry.name),
-      status: text(entry.status),
-      comment: text(entry.comment),
-      endpoint: text(entry.endpoint),
-      notes,
-      unsupported: why?.reason,
-      hint: why?.hint,
-      help: why?.help,
-      source: why ? stringify(entry, { lineWidth: 0 }) : undefined,
-      inputs,
-      formats,
-    };
-  });
+  }
+  const notes = [];
+  if (entry.plugins?.length) {
+    const names = [].concat(entry.plugins).map((p) => String(p).split("/").pop().replace(/\.js$/, ""));
+    notes.push(`Written for shex.js with ${names.join(", ")}: rudof may not run its semantic actions.`);
+  }
+  const why = noTarget ?? unsupported(entry, target, inputs, problems, endpoints);
+  return {
+    index,
+    action,
+    target,
+    group: text(entry.schemaLabel ?? entry.label) ?? "",
+    label: text(entry.comment ?? entry.dataLabel ?? entry.name) ?? `Example ${index + 1}`,
+    dataLabel: text(entry.dataLabel ?? entry.name),
+    status: text(entry.status),
+    comment: text(entry.comment),
+    endpoint: text(entry.endpoint),
+    notes,
+    unsupported: why?.reason,
+    hint: why?.hint,
+    help: why?.help,
+    source: why ? stringify(entry, { lineWidth: 0 }) : undefined,
+    inputs,
+    formats,
+  };
 }
 
 // What to add for each input an entry doesn't have, and where help.html says it.

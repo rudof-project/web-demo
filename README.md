@@ -404,6 +404,34 @@ the vocabulary of shex.js:
   comment: Shown in the list of examples
 ```
 
+A manifest can also put its examples in sections, which can have sections
+too. An item with `section` is a section: its title, an optional `comment`
+and `examples`, a list of examples and sections. A manifest without sections
+is a list of examples, as before, and keeps the menu of examples (grouped by
+`schemaLabel`). A manifest with sections shows them as a tree
+(`parseSections` in `manifest.js`, `showSections` in `demo.js`): the titles of
+the sections, closed, with the number of their examples; a click on a title
+opens the section (`<details>`), with its comment, and another click closes
+it. The examples are numbered in the order of the manifest, depth first, so
+`&example=<n>` still names one, and the demo opens its sections.
+
+```yaml
+- section: Knowledge Graphs
+  comment: Examples about Knowledge Graphs
+  examples:
+  - comment: Tim Berners-Lee in RDF (Turtle)
+    dataURL: ex01.ttl
+    action: data
+  - section: RDF 1.2
+    examples:
+    - comment: RDF 1.2 (annotated triples)
+      dataURL: ex05_annotated.ttl
+      action: data
+- comment: An example out of the sections
+  dataURL: ex02.ttl
+  action: data
+```
+
 Optional keys say what to do with an example. Without them, an entry is a
 ShEx validation, as in the manifests of shex.js:
 

@@ -81,6 +81,7 @@ describe("the help page", () => {
       "data", "dataURL", "schema", "schemaURL", "shapes", "shapesURL", "queryMap", "queryMapURL",
       "typeMap", "typeMapURL", "query", "queryURL", "endpoint", "dataFormat", "schemaFormat", "queryFormat",
       "schemaLanguage", "schemaEngine", "prefixes", "prefixesURL", "picklistSeparator",
+      "targets", "targetsURL", "targetsFormat", "section", "examples",
     ];
     expect(keys.filter((key) => !documented.has(key))).toEqual([]);
   });

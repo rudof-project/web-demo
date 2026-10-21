@@ -2,9 +2,10 @@
 // vocabulary of shex.js (https://shex.js.org/doc/tests-manifest.yaml), with
 // the keys that say what to do with them (action, dataFormat…).
 
+import { readFileSync } from "node:fs";
 import { describe, it, expect, vi } from "vitest";
 import { Rudof } from "@rudof/rudof";
-import { parseManifest, groupExamples, loadExample, TARGETS } from "../../manifest.js";
+import { parseManifest, parseSections, groupExamples, loadExample, TARGETS } from "../../manifest.js";
 
 const MANIFEST_URL = "https://example.org/doc/tests-manifest.yaml";
 
@@ -485,6 +486,63 @@ describe("validations on an endpoint", () => {
 
   it("still need a shape map for ShEx", () => {
     expect(one(`- schema: ''\n  endpoint: ${ENDPOINT}\n`, { endpoints: true }).unsupported).toBe("has no queryMap");
+  });
+});
+
+describe("sections", () => {
+  const SECTIONS = readFileSync(new URL("./fixtures/sections.yaml", import.meta.url), "utf8");
+  // The tree, as text: sections with their comments, and examples
+  const outline = (items) =>
+    items.map((item) => (item.example ? `${item.example.index}: ${item.example.label}` : [`${item.section.title}${item.section.comment ? ` (${item.section.comment})` : ""}`, outline(item.section.items)]));
+
+  it("have examples and sections, and the examples are numbered in the order of the manifest", () => {
+    const { examples, tree, hasSections } = parseSections(SECTIONS, MANIFEST_URL);
+    expect(hasSections).toBe(true);
+    expect(outline(tree)).toEqual([
+      [
+        "Knowledge Graphs (Examples about Knowledge Graphs)",
+        [
+          "0: Tim Berners-Lee in RDF (Turtle)",
+          ["Wikidata & Wikibase", ["1: Wikidata SPARQL query"]],
+          ["RDF 1.2", ["2: RDF 1.2 (annotated triples)", "3: RDF 1.2 (reifies)"]],
+        ],
+      ],
+      ["Validating RDF 1.2", ["4: SHACL 1.2"]],
+      "5: Example outside of sections",
+    ]);
+    expect(examples.map((e) => e.index)).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(examples.map((e) => e.sections)).toEqual([
+      ["Knowledge Graphs"],
+      ["Knowledge Graphs", "Wikidata & Wikibase"],
+      ["Knowledge Graphs", "RDF 1.2"],
+      ["Knowledge Graphs", "RDF 1.2"],
+      ["Validating RDF 1.2"],
+      [],
+    ]);
+    // The examples of the sections are examples as the others
+    expect(examples.map((e) => e.target)).toEqual(["rdf", "sparql", "rdf", "rdf", "shacl", "shacl"]);
+    expect(examples[1].inputs.query).toEqual({ url: "https://example.org/doc/ex04_wikidata.sparql" });
+    // parseManifest gives the examples
+    expect(parseManifest(SECTIONS, MANIFEST_URL).map((e) => e.label)).toEqual(examples.map((e) => e.label));
+  });
+
+  it("are optional: a manifest without them is a list of examples, as before", () => {
+    const { examples, tree, hasSections } = parseSections("- data: ''\n  action: data\n- data: ''\n  action: data\n", MANIFEST_URL);
+    expect(hasSections).toBe(false);
+    expect(tree.map((item) => item.example.index)).toEqual([0, 1]);
+    expect(examples.map((e) => e.sections)).toEqual([[], []]);
+  });
+
+  it("can be empty, and have no comment", () => {
+    const { examples, tree } = parseSections("- section: Soon\n- section: Empty\n  examples: []\n", MANIFEST_URL);
+    expect(examples).toEqual([]);
+    expect(tree).toEqual([{ section: { title: "Soon", comment: undefined, items: [] } }, { section: { title: "Empty", comment: undefined, items: [] } }]);
+  });
+
+  it("say where an entry is wrong", () => {
+    expect(() => parseSections("- section: A\n  examples: not a list\n", MANIFEST_URL)).toThrow("the examples of the section “A” are not a YAML list");
+    expect(() => parseSections("- section: A\n  examples:\n  - just text\n", MANIFEST_URL)).toThrow("entry 1 of the section “A” is not a map of keys and values");
+    expect(() => parseSections("- just text\n", MANIFEST_URL)).toThrow("entry 1 of the manifest is not a map of keys and values");
   });
 });
 

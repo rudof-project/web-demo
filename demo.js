@@ -1811,7 +1811,7 @@ function showProblems(examples) {
       el(
         "li",
         { id: `manifest-problem-${example.index + 1}` },
-        el("p", { className: "problem-title" }, el("strong", {}, example.label), ` (entry ${example.index + 1}${example.group ? `, ${example.group}` : ""})`),
+        el("p", { className: "problem-title" }, el("strong", {}, example.label), ` (entry ${example.index + 1}${example.sections?.length ? `, in ${example.sections.join(" › ")}` : ""}${example.group ? `, ${example.group}` : ""})`),
         el("p", { className: "problem-reason" }, `This example ${example.unsupported}.`),
         el(
           "p",
@@ -1838,6 +1838,7 @@ async function loadManifest(manifestURL) {
   const select = $("manifest-examples");
   let manifest;
   let examples;
+  let tree;
   try {
     const url = new URL(manifestURL, location.href).href;
     link.href = url;
@@ -1845,30 +1846,96 @@ async function loadManifest(manifestURL) {
     const text = await manifest.defaultFetchText(url);
     // Which rudof is loaded says whether examples can validate endpoints
     await rudofLoaded;
-    examples = manifest.parseManifest(text, url, { endpoints: rudofEndpoints });
+    tree = manifest.parseSections(text, url, { endpoints: rudofEndpoints });
+    examples = tree.examples;
   } catch (e) {
     select.options[0].text = "No examples";
     manifestNote([`Could not load the manifest: ${e.message ?? e}`], "error");
     return;
   }
-  const items = manifest.groupExamples(examples).flatMap(({ name, examples }) => {
-    const options = examples.map(exampleOption);
-    if (!name) return options;
-    const group = Object.assign(document.createElement("optgroup"), { label: name });
-    group.append(...options);
-    return [group];
-  });
-  select.replaceChildren(new Option(`Choose one of ${count(examples.length, "example")}…`, ""), ...items);
   showProblems(examples);
-  select.disabled = false;
-  select.addEventListener("change", () => {
-    if (select.value) chooseExample(manifest, examples[Number(select.value)]);
-  });
   const n = Number(params.get("example"));
-  if (Number.isInteger(n) && examples[n - 1] && !examples[n - 1].unsupported) {
-    select.value = String(n - 1);
-    if (!hasState(params)) chooseExample(manifest, examples[n - 1]);
+  const first = Number.isInteger(n) && examples[n - 1] && !examples[n - 1].unsupported ? examples[n - 1] : undefined;
+  if (tree.hasSections) {
+    // The sections, which open and close, instead of the menu
+    select.hidden = true;
+    showSections(manifest, tree.tree, first);
+  } else {
+    const items = manifest.groupExamples(examples).flatMap(({ name, examples }) => {
+      const options = examples.map(exampleOption);
+      if (!name) return options;
+      const group = Object.assign(document.createElement("optgroup"), { label: name });
+      group.append(...options);
+      return [group];
+    });
+    select.replaceChildren(new Option(`Choose one of ${count(examples.length, "example")}…`, ""), ...items);
+    select.disabled = false;
+    select.addEventListener("change", () => {
+      if (select.value) chooseExample(manifest, examples[Number(select.value)]);
+    });
+    if (first) select.value = String(first.index);
   }
+  if (first && !hasState(params)) chooseExample(manifest, first);
+}
+
+// The examples of a manifest with sections: a tree of sections, which open
+// and close with a click on their titles, and of examples, which load with a
+// click. The sections are closed, but those of the example of the URL.
+function showSections(manifest, tree, chosen) {
+  const el = (tag, props = {}, ...children) => {
+    const e = Object.assign(document.createElement(tag), props);
+    e.append(...children);
+    return e;
+  };
+  const box = $("manifest-sections");
+  const examplesIn = (items) => items.reduce((n, item) => n + (item.example ? 1 : examplesIn(item.section.items)), 0);
+  const itemOf = (item) => {
+    if (item.example) {
+      const example = item.example;
+      const button = el(
+        "button",
+        { type: "button", className: "manifest-example", disabled: Boolean(example.unsupported) },
+        `${STATUS_MARKS[example.status] ?? ""}${example.label}${example.unsupported ? " (not supported)" : ""}`,
+      );
+      button.dataset.index = String(example.index);
+      button.title = example.unsupported ? `This example ${example.unsupported}. ${example.hint ?? ""}`.trim() : (example.dataLabel ?? "");
+      button.addEventListener("click", () => {
+        markChosen(example);
+        chooseExample(manifest, example);
+      });
+      return el("li", {}, button);
+    }
+    const { title, comment, items } = item.section;
+    const n = examplesIn(items);
+    const details = el(
+      "details",
+      { className: "manifest-section" },
+      el("summary", {}, el("span", { className: "section-title" }, title), el("span", { className: "section-count" }, count(n, "example"))),
+    );
+    if (comment) details.append(el("p", { className: "section-comment" }, comment));
+    details.append(el("ul", {}, ...items.map(itemOf)));
+    return el("li", {}, details);
+  };
+  const list = box.querySelector(".manifest-tree");
+  list.replaceChildren(...tree.map(itemOf));
+  // The example chosen: marked, and its sections open
+  const markChosen = (example) => {
+    for (const b of list.querySelectorAll(".manifest-example")) {
+      const current = Boolean(example) && b.dataset.index === String(example.index);
+      b.classList.toggle("chosen", current);
+      if (current) b.setAttribute("aria-current", "true");
+      else b.removeAttribute("aria-current");
+    }
+    const button = example && list.querySelector(`.manifest-example[data-index="${example.index}"]`);
+    for (let d = button?.closest("details"); d; d = d.parentElement.closest("details")) d.open = true;
+  };
+  markChosen(chosen);
+  const all = (open) => () => {
+    for (const d of list.querySelectorAll("details")) d.open = open;
+  };
+  $("manifest-expand").onclick = all(true);
+  $("manifest-collapse").onclick = all(false);
+  box.hidden = false;
 }
 
 // Puts the inputs of an example in the editors, and shows its tab.
