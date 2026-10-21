@@ -15,11 +15,11 @@
       if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
     } catch {}
   </script>
-  <script type="module" crossorigin src="./assets/main-DxU_Rtcd.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/header-D8sz3UVG.js">
+  <script type="module" crossorigin src="./assets/main-CgZyxj7c.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/header-CWCGmNyw.js">
   <link rel="modulepreload" crossorigin href="./assets/dist-CjNGdU0X.js">
   <link rel="modulepreload" crossorigin href="./assets/dctap-DBredz1z.js">
-  <link rel="stylesheet" crossorigin href="./assets/header-_d-whmTU.css">
+  <link rel="stylesheet" crossorigin href="./assets/header-CDSK9EKW.css">
 </head>
 
 <body>
@@ -93,6 +93,14 @@
           <option value="">Loading the manifest…</option>
         </select>
         <a id="manifest-home" class="manifest-home">Reload the examples</a>
+      </div>
+      <!-- The examples of a manifest with sections, which open and close -->
+      <div id="manifest-sections" class="manifest-sections" hidden>
+        <div class="manifest-sections-tools">
+          <button type="button" class="link" id="manifest-expand">Open all the sections</button>
+          <button type="button" class="link" id="manifest-collapse">Close all the sections</button>
+        </div>
+        <ul class="manifest-tree" aria-labelledby="manifest-title"></ul>
       </div>
       <p id="manifest-note" class="manifest-note" role="status" hidden></p>
       <!-- Why the examples marked "not supported" can't be run -->

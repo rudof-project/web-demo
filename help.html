@@ -15,8 +15,8 @@
       if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
     } catch { }
   </script>
-  <script type="module" crossorigin src="./assets/header-D8sz3UVG.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/header-_d-whmTU.css">
+  <script type="module" crossorigin src="./assets/header-CWCGmNyw.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/header-CDSK9EKW.css">
 </head>
 
 <body>
@@ -91,7 +91,11 @@
     <nav class="toc" aria-label="Contents">
       <ol>
         <li><a href="#run">Run the examples of a manifest</a></li>
-        <li><a href="#format">The format of a manifest</a></li>
+        <li><a href="#format">The format of a manifest</a>
+          <ul>
+            <li><a href="#sections">Sections</a></li>
+          </ul>
+        </li>
         <li><a href="#examples">Examples of entries</a>
           <ol>
             <li><a href="#example-shex">Validate with ShEx</a></li>
@@ -180,6 +184,32 @@
       <p>Every key is optional. Without <code>action</code>, an example is a validation, as in the manifests of shex.js,
         and without <code>validationEngine</code> the demo chooses the engine from the inputs
         (<a href="#defaults">see below</a>).</p>
+
+      <h3 id="sections">Sections</h3>
+      <p>A manifest can put its examples in sections, which can have sections too. A section is an item with
+        <code>section</code> (its title), an optional <code>comment</code> (more about it) and <code>examples</code>:
+        a list of examples and sections. A manifest can have examples out of sections too, and a manifest without
+        sections is a list of examples, as before.</p>
+      <pre><code>- section: Knowledge Graphs
+  comment: Examples about Knowledge Graphs
+  examples:
+  - comment: Tim Berners-Lee in RDF (Turtle)
+    dataURL: ex01.ttl
+    action: data
+  - section: Wikidata
+    examples:
+    - comment: Wikidata SPARQL query
+      endpoint: https://query.wikidata.org/sparql
+      queryURL: ex04_wikidata.sparql
+      action: query
+- comment: An example out of the sections
+  dataURL: ex02.ttl
+  action: data</code></pre>
+      <p>The demo shows the titles of the sections, with the number of their examples, closed. A click on a title
+        opens the section (its comment, then its examples and its sections), and another click closes it.
+        <strong>Open all the sections</strong> and <strong>Close all the sections</strong> do it for all of them. The
+        examples are numbered in the order of the manifest, in their sections too: <code>&amp;example=4</code> is the
+        fourth example of the manifest, and the demo opens its sections.</p>
     </section>
 
     <section id="examples">
@@ -577,7 +607,13 @@
             </tr>
             <tr>
               <td><code>schemaLabel</code> (or <code>label</code>)</td>
-              <td>The group of the example in the list: consecutive examples with the same label are in one group</td>
+              <td>The group of the example in the list: consecutive examples with the same label are in one group
+                (in manifests without sections)</td>
+            </tr>
+            <tr>
+              <td><code>section</code>, <code>examples</code></td>
+              <td>Not keys of examples: an item with <code>section</code> is a section, with its title, an optional
+                <code>comment</code> and its <code>examples</code> (<a href="#sections">see above</a>)</td>
             </tr>
           </tbody>
         </table>
