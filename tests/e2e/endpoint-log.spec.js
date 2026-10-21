@@ -141,6 +141,41 @@ test.describe("with rudof with endpoints", () => {
     expect(b - a).toBeGreaterThanOrEqual(1);
   });
 
+  test("SHACL gets the data of the endpoint node by node, or shape by shape (rudof 0.3.30)", async ({ page }) => {
+    const people = Array.from({ length: 6 }, (_, i) => `:p${i} a :Person ; :name "P${i}" .`).join("\n");
+    const shapes = `prefix : <http://example.org/>
+prefix sh: <http://www.w3.org/ns/shacl#>
+:PersonShape a sh:NodeShape ; sh:targetClass :Person ; sh:property [ sh:path :name ; sh:minCount 1 ] .`;
+    // The number of queries of a validation, and the nodes of each one
+    async function validate(values) {
+      await page.unroute(`${ENDPOINT}**`);
+      const queries = await sparqlEndpoint(page, ENDPOINT, `prefix : <http://example.org/>\n${people}`);
+      // The settings, which the page reads when it opens
+      await open(page, "#validate/shacl");
+      await page.evaluate((v) => localStorage.setItem("rudof-demo-settings", JSON.stringify({ values: v, toml: "" })), { "rdf.min_request_interval_ms": 0, ...values });
+      await page.reload();
+      await expect(page.locator("#status")).toHaveClass(/ready/, { timeout: 30_000 });
+      await page.locator("#shacl-endpoint").fill(ENDPOINT);
+      await setInput(page, "shacl-shapes", shapes);
+      await page.locator("#shacl-validate").click();
+      await expect(result(page, "shacl").locator(".verdict")).toHaveText("Conforms on endpoint.example", { timeout: 30_000 });
+      await switchTo(page, "shacl", "queries").click();
+      const nodes = await rows(page, "shacl").locator("td:nth-child(6)").allTextContents();
+      return { queries, nodes, limits: await view(page, "shacl").locator(".queries-limits").textContent() };
+    }
+    const onDemand = await validate({});
+    expect(onDemand.limits).toContain("SHACL: node by node");
+    const byShape = await validate({ "shacl.fetch_strategy": "by-shape" });
+    expect(byShape.limits).toContain("SHACL: shape by shape, 50 nodes per query, 16 shape references deep");
+    expect(byShape.queries.length).toBeLessThan(onDemand.queries.length);
+    expect(byShape.nodes).toContain("6");
+    // Fewer nodes in one query: more queries
+    const small = await validate({ "shacl.fetch_strategy": "by-shape", "shacl.prefetch_batch_size": 2 });
+    expect(small.limits).toContain("SHACL: shape by shape, 2 nodes per query");
+    expect(small.nodes.filter((n) => n).map(Number).every((n) => n <= 2)).toBe(true);
+    expect(small.queries.length).toBeGreaterThan(byShape.queries.length);
+  });
+
   test("validations can get the RDF of the IRIs of the nodes (dereference)", async ({ page }) => {
     await page.route("http://example.org/alice", (route) =>
       route.fulfill({ body: '<http://example.org/alice> <http://example.org/name> "Alice" .', headers: { "content-type": "text/turtle", "access-control-allow-origin": "*" } }),

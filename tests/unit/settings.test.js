@@ -171,6 +171,17 @@ describe("the settings of endpoints", () => {
     expect(settingValue(setting("rdf.min_request_interval_ms"), "0")).toBe(0);
   });
 
+  it("of SHACL are in [shacl], over the options of the SHACL tab", () => {
+    const values = { "shacl.fetch_strategy": "by-shape", "shacl.prefetch_batch_size": 10, "shacl.prefetch_max_rounds": "" };
+    expect(settingsConfig({ values }).shacl).toEqual({ fetch_strategy: "by-shape", prefetch_batch_size: 10 });
+    const config = parse(configWithSettings(`${BASE_CONFIG}\n[shacl]\nstore_errors = true\n`, { values }));
+    expect(config.shacl).toEqual({ store_errors: true, fetch_strategy: "by-shape", prefetch_batch_size: 10 });
+    expect(new Rudof(RudofConfig.fromToml(configWithSettings(BASE_CONFIG, { values })))).toBeTruthy();
+    // The default is not written
+    expect(settingsConfig({ values: { "shacl.fetch_strategy": "on-demand" } })).toEqual({});
+    expect(() => settingValue(setting("shacl.prefetch_batch_size"), "0")).toThrow(/whole number from 1/);
+  });
+
   it("have the strategy of the page, which is not in the configuration of rudof", () => {
     const values = { endpoint_strategy: "dereference" };
     expect(settingsConfig({ values })).toEqual({});

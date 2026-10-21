@@ -1632,7 +1632,7 @@ function showEndpointLog(prefix, endpoint, onStop) {
     // The limits of rudof (the page sends the query of the SPARQL tab itself
     // when rudof can't)
     const limits = endpointLimitsOf(endpoint);
-    const strategy = strategyOf(prefix) === "dereference" ? " · the RDF of the IRIs of the nodes (dereference)" : "";
+    const strategy = (strategyOf(prefix) === "dereference" ? " · the RDF of the IRIs of the nodes (dereference)" : "") + shaclFetchText(prefix);
     view.querySelector(".queries-limits span").textContent = rudofEndpoints
       ? `Limits: ${limitsText(limits)}${strategy}${limits.own ? ` (those of ${endpointName(endpoint)})` : ""}`
       : "The page sends the query to the endpoint itself.";
@@ -1670,6 +1670,14 @@ function showEndpointLog(prefix, endpoint, onStop) {
   };
   draw(log);
   return log;
+}
+
+// How SHACL gets the data of the endpoint (the settings of [shacl])
+function shaclFetchText(prefix) {
+  if (prefix !== "shacl") return "";
+  const shacl = settingsConfig(settings).shacl ?? {};
+  if (shacl.fetch_strategy !== "by-shape") return " · SHACL: node by node";
+  return ` · SHACL: shape by shape, ${shacl.prefetch_batch_size ?? 50} nodes per query, ${shacl.prefetch_max_rounds ?? 16} shape references deep`;
 }
 
 function hideEndpointLog(prefix) {

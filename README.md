@@ -200,6 +200,14 @@ next to the Endpoint field) changes this, in `[rdf]` of the configuration:
   when rudof gets the nodes of a shape map before it validates them.
 - **Nodes in one query** (`max_nodes_per_query`, 20 by default; 1 sends a
   query for each node).
+- **How SHACL gets the data of an endpoint** (`[shacl] fetch_strategy`,
+  rudof 0.3.30): node by node, when the validation needs it (`on-demand`,
+  the default), or shape by shape before the validation (`by-shape`), with
+  the data of many focus nodes in one query: far fewer requests when there
+  are many focus nodes. With `by-shape`, **nodes in one query**
+  (`prefetch_batch_size`, 50 by default) and **the depth of the data fetched
+  before** (`prefetch_max_rounds`, 16 shape references by default, from the
+  shapes with targets; deeper data is fetched when the validation needs it).
 - **How validations get the data of the nodes**: SPARQL queries (the
   default), or the RDF of the IRIs of the nodes (`dereference`, the strategy
   of `useEndpoint`), which needs servers that allow other sites to read them
@@ -210,7 +218,8 @@ The endpoints that rudof knows have their own limits in their TOML files
 endpoints of the settings (`[rdf.endpoints.<name>]`). The page gives them to
 rudof with the description of the endpoint (`endpointConfig`), so they win
 over the settings, as in rudof: Wikidata keeps 1100 ms when the settings say
-0. The result shows the limits of each run.
+0. The result shows the limits of each run (and, in the SHACL tab, how SHACL
+gets the data).
 
 SELECT results show in the table (with the prefixes of the query), as JSON
 or as CSV. The graphs of CONSTRUCT and DESCRIBE can be written in every RDF
@@ -258,7 +267,7 @@ that change what rudof does in the browser, by sections:
 | Section | Settings |
 |---------|----------|
 | General | the base IRI, the indentation of JSON and JSON-LD results |
-| Endpoints | the time between two requests, the requests at the same time, the nodes in one query, and how validations get the data of the nodes ([see above](#the-limits-of-the-requests)) |
+| Endpoints | the time between two requests, the requests at the same time, the nodes in one query, how SHACL gets the data of an endpoint (node by node or shape by shape), and how validations get the data of the nodes ([see above](#the-limits-of-the-requests)) |
 | ShEx validation | the maximum number of steps, the negation requirement |
 | UML diagrams | direction, lines, shadows, labels for IRIs and the properties of the labels, colors |
 | RDF diagrams | the colors of IRIs, blank nodes and literals (RDF data converted to a diagram) |
