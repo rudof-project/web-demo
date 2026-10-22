@@ -386,6 +386,12 @@ in a spreadsheet ([`table-tools.js`](table-tools.js)):
   result format and back), until the page is reloaded. A double click on a
   border gives the table its widths again.
 
+The other tables of the page have these borders too (`makeResizable` of
+[`table-tools.js`](table-tools.js)): the table view of the DCTAP profile
+(whose widths stay when it is drawn again, as the text changes; the column of
+the buttons has none) and the table of the queries to an endpoint (drawn again
+at each query, with the same widths, also while a border is dragged).
+
 ### SHACL options
 
 Next to the **Validate** button of the SHACL tab:

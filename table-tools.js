@@ -37,7 +37,8 @@ const EMPTY = "(Empty)";
 
 // The widths of the columns of the tables that were changed, by their columns
 const savedWidths = new Map();
-// The least width of a column, and how much the arrow keys change it
+// The least width of a column whose border is moved, and how much the arrow
+// keys change it
 export const MIN_WIDTH = 40;
 const STEP = 16;
 
@@ -251,11 +252,29 @@ export function makeTableTools(table) {
       e.stopPropagation();
       openMenu(column, button);
     });
-    th.replaceChildren(el(doc, "div", { className: "th-inner" }, name, button), resizer(column, label));
+    th.replaceChildren(el(doc, "div", { className: "th-inner" }, name, button));
   });
 
-  // Widths
-  const key = headers.map((th) => th.dataset.label).join("\u0000");
+  makeResizable(table, { key: headers.map((th) => th.dataset.label).join("\u0000") });
+  return table;
+}
+
+// The tables whose columns change their widths, the last one of each key:
+// a table drawn again (the queries to an endpoint, at each query) takes the
+// widths of the one before, also while its border is dragged
+const resizable = new Map();
+
+// The borders of the columns of a table, which change their widths (see
+// above). `key` names the table: the widths stay for the next table with the
+// same key. `fixed(th)`: the columns without a border (their width doesn't
+// change).
+export function makeResizable(table, { key, fixed = () => false } = {}) {
+  const doc = table.ownerDocument;
+  const headers = [...(table.tHead?.rows[0]?.cells ?? [])];
+  if (!headers.length) return table;
+  key ??= headers.map((th) => th.textContent.trim()).join("\u0000");
+  table.classList.add("resizable");
+  const saved = () => (savedWidths.get(key)?.length === headers.length ? savedWidths.get(key) : undefined);
   function setWidths(widths) {
     if (!widths) {
       table.classList.remove("resized");
@@ -269,13 +288,19 @@ export function makeTableTools(table) {
     table.style.width = `${widths.reduce((a, b) => a + b, 0)}px`;
     savedWidths.set(key, widths);
   }
+  const self = { setWidths, currentWidths: () => currentWidths() };
+  resizable.set(key, self);
+  // The table of a border: its own, or the one drawn in its place
+  const current = () => (table.isConnected ? self : (resizable.get(key) ?? self));
   // The widths the columns have now
   // (rounded up: a column a fraction of a pixel narrower than its name cuts it)
-  const currentWidths = () => savedWidths.get(key) ?? headers.map((th) => Math.max(MIN_WIDTH, Math.ceil(th.getBoundingClientRect().width)));
+  function currentWidths() {
+    return saved() ?? headers.map((th) => Math.ceil(th.getBoundingClientRect().width));
+  }
   function resize(column, width) {
-    const widths = [...currentWidths()];
+    const widths = [...current().currentWidths()];
     widths[column] = Math.max(MIN_WIDTH, Math.round(width));
-    setWidths(widths);
+    current().setWidths(widths);
   }
 
   function resizer(column, label) {
@@ -289,34 +314,40 @@ export function makeTableTools(table) {
       e.preventDefault();
       e.stopPropagation();
       const start = e.clientX;
-      const width = currentWidths()[column];
-      handle.setPointerCapture?.(e.pointerId);
+      const width = current().currentWidths()[column];
       handle.classList.add("dragging");
+      // On the page, which still gets them when the table is drawn again
+      const view = doc.defaultView;
       const move = (m) => resize(column, width + m.clientX - start);
       const up = () => {
         handle.classList.remove("dragging");
-        handle.removeEventListener("pointermove", move);
-        handle.removeEventListener("pointerup", up);
-        handle.removeEventListener("pointercancel", up);
+        view.removeEventListener("pointermove", move);
+        view.removeEventListener("pointerup", up);
+        view.removeEventListener("pointercancel", up);
       };
-      handle.addEventListener("pointermove", move);
-      handle.addEventListener("pointerup", up);
-      handle.addEventListener("pointercancel", up);
+      view.addEventListener("pointermove", move);
+      view.addEventListener("pointerup", up);
+      view.addEventListener("pointercancel", up);
     });
     handle.addEventListener("dblclick", (e) => {
       e.stopPropagation();
-      setWidths(undefined);
+      current().setWidths(undefined);
     });
     handle.addEventListener("keydown", (e) => {
       const step = { ArrowLeft: -STEP, ArrowRight: STEP }[e.key];
       if (!step) return;
       e.preventDefault();
-      resize(column, currentWidths()[column] + step);
+      resize(column, current().currentWidths()[column] + step);
     });
     return handle;
   }
 
-  // The widths of the last table with these columns
-  if (savedWidths.has(key)) setWidths(savedWidths.get(key));
+  headers.forEach((th, column) => {
+    if (fixed(th)) return;
+    const label = th.dataset.label ?? (th.textContent.trim() || th.querySelector("input")?.value || `column ${column + 1}`);
+    th.append(resizer(column, label));
+  });
+  // The widths of the last table with this key
+  if (saved()) setWidths(saved());
   return table;
 }

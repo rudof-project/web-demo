@@ -14,6 +14,8 @@
 // going to the network: else rudof would go on asking the endpoint, and
 // reading its answers, in the page.
 
+import { makeResizable } from "./table-tools.js";
+
 // The text of the answers that a log keeps, at most
 export const ANSWER_LIMIT = 4000;
 
@@ -272,6 +274,9 @@ export function renderQueries(doc, log) {
   if (first) body.append(el("tr", { className: "query-none" }, el("td", { colSpan: COLUMNS.length }, `… and ${plural(first, "earlier query", "earlier queries")}, which the table doesn't show`)));
   if (!log.entries.length) body.append(el("tr", { className: "query-none" }, el("td", { colSpan: COLUMNS.length }, "No queries yet: rudof prepares the run.")));
   const table = el("table", { className: "queries" }, el("thead", {}, el("tr", {}, ...COLUMNS.map((c) => el("th", {}, c)))), body);
+  // The borders of the columns change their widths, which stay when the
+  // table is drawn again (at each request)
+  makeResizable(table, { key: "queries" });
   const toggle = (row) => {
     const n = Number(row.dataset.n);
     if (log.open.has(n)) log.open.delete(n);

@@ -77,6 +77,15 @@ test.describe("with rudof with endpoints", () => {
     await first.click();
     await expect(view(page, "shex").locator("tr.query-detail .query-full")).toHaveText(queries[0]);
     await expect(view(page, "shex").locator("tr.query-detail .query-answer")).toContainText('"bindings"');
+    // The columns change their widths, as in the other tables
+    const status = view(page, "shex").locator("table.queries thead th").nth(2);
+    const before = (await status.boundingBox()).width;
+    const border = await status.locator(".col-resizer").boundingBox();
+    await page.mouse.move(border.x + border.width / 2, border.y + border.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(border.x + border.width / 2 + 50, border.y + border.height / 2, { steps: 5 });
+    await page.mouse.up();
+    expect(Math.abs((await status.boundingBox()).width - (before + 50))).toBeLessThanOrEqual(2);
     // Back to the result
     await switchTo(page, "shex", "result").click();
     await expect(box(page, "shex").locator("table.report")).toBeVisible();

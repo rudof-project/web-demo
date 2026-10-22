@@ -5,6 +5,7 @@
 // manifest or a permalink) draws the table again.
 
 import { parseCsv, serializeCsv } from "./csv.js";
+import { makeResizable } from "./table-tools.js";
 
 const VIEW_KEY = "rudof-demo-view-";
 
@@ -80,7 +81,11 @@ export function setupTableView({ textarea, container, toggle, cellClass = () => 
       ...body.map((row, r) => el(doc, "tr", {}, ...pad(row).map((v, i) => cell(v, i, names[i], "td")), rowActions(r + 1))),
     );
     const add = el(doc, "button", { type: "button", className: "secondary add-row", textContent: "Add row" });
-    container.replaceChildren(el(doc, "div", { className: "table-scroll" }, el(doc, "table", { className: "csv-table" }, thead, tbody)), add);
+    const table = el(doc, "table", { className: "csv-table" }, thead, tbody);
+    container.replaceChildren(el(doc, "div", { className: "table-scroll" }, table), add);
+    // The borders of the columns change their widths, which stay when the
+    // table is drawn again (the column of the buttons has none)
+    makeResizable(table, { key: `csv-table:${name}`, fixed: (th) => th.classList.contains("row-actions") });
   }
 
   container.addEventListener("input", (e) => {

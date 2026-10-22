@@ -385,31 +385,33 @@ table.report th, table.report td {
 }
 table.report th { color: var(--muted); font-weight: 600; border-top: none; }
 /* Headers that sort and filter the table (table-tools.js) */
-th.sortable { position: relative; user-select: none; white-space: nowrap; }
+th.sortable { user-select: none; white-space: nowrap; }
+/* The headers of the tables whose columns change their widths hold their
+   borders (the headers that stay on top, sticky, hold them too) */
+table.resizable th { position: relative; }
 /* The border of a column, which changes its width (table-tools.js) */
 .col-resizer {
   position: absolute;
   top: 0;
-  right: -4px;
+  right: 0;
   bottom: 0;
-  z-index: 1;
+  z-index: 2;
   width: 8px;
   cursor: col-resize;
   touch-action: none;
 }
+/* The line of the border, at the right of the header: the handle is in its
+   header, as the next header (when it stays on top, sticky) covers it */
 .col-resizer::after {
   content: "";
   position: absolute;
   top: 20%;
   bottom: 20%;
-  left: 3px;
+  right: 0;
   width: 2px;
   border-radius: 1px;
   background: var(--border);
 }
-.col-resizer:hover::after, .col-resizer.dragging::after, .col-resizer:focus-visible::after { top: 0; bottom: 0; background: var(--accent); }
-.col-resizer:focus-visible { outline: none; }
-th.sortable:last-child .col-resizer { right: 0; }
 /* A table with the widths of its columns: the text that doesn't fit is cut */
 table.resized { table-layout: fixed; }
 table.resized th, table.resized td { overflow: hidden; text-overflow: ellipsis; }
@@ -795,6 +797,8 @@ table.keys tr:target { background: var(--cm-selection-match); }
 .csv-table { border-collapse: collapse; font: 13px/1.45 var(--mono); min-width: 100%; }
 .csv-table th, .csv-table td { padding: 0; border: 1px solid var(--border); }
 .csv-table thead th { position: sticky; top: 0; background: var(--bg); z-index: 1; }
+.csv-table.resized { min-width: 0; }
+.csv-table.resized input { min-width: 0; }
 .csv-table input {
   width: 100%;
   min-width: 6rem;

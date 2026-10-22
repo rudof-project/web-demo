@@ -130,3 +130,34 @@ test("the border of a column changes its width, as in a spreadsheet", async ({ p
   await expect(table).not.toHaveClass(/resized/);
   expect(Math.abs((await width(2)) - before[2])).toBeLessThanOrEqual(2);
 });
+
+// Drags the border of a column
+async function dragBorder(page, th, dx) {
+  const box = await th.locator(".col-resizer").boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + dx, box.y + box.height / 2, { steps: 5 });
+  await page.mouse.up();
+}
+
+test("the columns of the table of the DCTAP profile change their widths too", async ({ page }) => {
+  await open(page, "#validate/dctap");
+  await page.locator('#panel-dctap [data-view="table"]').first().click();
+  const table = page.locator("#dctap-table table.csv-table");
+  await expect(table).toBeVisible();
+  const th = (i) => table.locator("thead th").nth(i);
+  const width = async (i) => (await th(i).boundingBox()).width;
+  // The column of the buttons has no border
+  await expect(table.locator("thead th.row-actions .col-resizer")).toHaveCount(0);
+  const before = [await width(0), await width(1)];
+  await dragBorder(page, th(1), 60);
+  expect(Math.abs((await width(1)) - (before[1] + 60))).toBeLessThanOrEqual(2);
+  expect(Math.abs((await width(0)) - before[0])).toBeLessThanOrEqual(1);
+  // The cells can still be edited
+  await table.locator("tbody tr").first().locator("input").nth(1).fill("A person");
+  expect(await page.locator("#dctap-schema").evaluate((t) => t.value)).toMatch(/\nPerson,A person,:name,/);
+  // Drawn again (the text changes), with the same widths
+  await page.locator('#panel-dctap [data-view="csv"]').first().click();
+  await page.locator('#panel-dctap [data-view="table"]').first().click();
+  expect(Math.abs((await width(1)) - (before[1] + 60))).toBeLessThanOrEqual(2);
+});
