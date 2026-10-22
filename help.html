@@ -15,7 +15,7 @@
       if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
     } catch { }
   </script>
-  <script type="module" crossorigin src="./assets/header-1BHwkXZk.js"></script>
+  <script type="module" crossorigin src="./assets/header-BkIORTAL.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/header-CDSK9EKW.css">
 </head>
 
@@ -230,6 +230,10 @@
   queryMap: ":alice@:Person"
   status: conformant
   comment: Alice has a name, so she is a Person</code></pre>
+
+      <p id="shex-imports">A ShEx schema can import other schemas (<code>IMPORT &lt;iri&gt;</code>). The demo gets them in
+        Chrome and Edge 137 or later; their servers must allow other sites to read them (CORS). Relative imports
+        (<code>IMPORT &lt;book.shex&gt;</code>) are relative to the file of the schema (<code>schemaURL</code>).</p>
 
       <h3 id="example-shacl">Validate with SHACL</h3>
       <p>Set <code>validationEngine: shacl</code>. The schema is the shapes graph, in an RDF format
