@@ -185,7 +185,7 @@ export function setupInputSources(doc, ids, { prefixesOf, onChange, fetch: fetch
     });
     doc.querySelector(`label[for="${id}"]`).after(box);
 
-    const input = el(doc, "input", { type: "text", id: `${id}-url`, className: "url-input", spellcheck: false, autocomplete: "off", placeholder: "https://… or a prefixed name, such as es:E371" });
+    const input = el(doc, "input", { type: "text", id: `${id}-url`, className: "url-input", spellcheck: false, autocomplete: "off", placeholder: "https://…" });
     input.setAttribute("aria-label", `URL of the ${name}`);
     input.addEventListener("input", () => {
       sources.get(id).url = input.value;
