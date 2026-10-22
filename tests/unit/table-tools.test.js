@@ -2,7 +2,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { JSDOM } from "jsdom";
-import { makeTableTools, compareValues } from "../../table-tools.js";
+import { makeTableTools, compareValues, MIN_WIDTH } from "../../table-tools.js";
 
 let document;
 beforeEach(() => {
@@ -150,5 +150,42 @@ describe("filtering", () => {
     sortBy(t, 1).click();
     expect(column(t, 1)).toEqual([":alice", ":dave"]);
     expect(column(t, 1, true)).toEqual([":alice", ":bob", ":carol", ":dave"]);
+  });
+});
+
+describe("widths", () => {
+  // jsdom draws nothing: the columns are as narrow as they can be
+  const key = (t, i, k) => t.tHead.rows[0].cells[i].querySelector(".col-resizer").dispatchEvent(new document.defaultView.KeyboardEvent("keydown", { key: k }));
+  const widths = (t) => [...t.tHead.rows[0].cells].map((th) => th.style.width);
+
+  it("change with the border of a column, and the table keeps them", () => {
+    const t = table(["Node", "Shape"], [[":a", ":S"]]);
+    const handle = t.tHead.rows[0].cells[0].querySelector(".col-resizer");
+    expect(handle.getAttribute("role")).toBe("separator");
+    expect(handle.getAttribute("aria-label")).toBe("Width of Node");
+    expect(t.classList.contains("resized")).toBe(false);
+    key(t, 0, "ArrowRight");
+    expect(t.classList.contains("resized")).toBe(true);
+    expect(widths(t)).toEqual([`${MIN_WIDTH + 16}px`, `${MIN_WIDTH}px`]);
+    expect(t.style.width).toBe(`${2 * MIN_WIDTH + 16}px`);
+    // Not less than MIN_WIDTH
+    key(t, 1, "ArrowLeft");
+    expect(widths(t)[1]).toBe(`${MIN_WIDTH}px`);
+    // A click on the border doesn't sort
+    handle.dispatchEvent(new document.defaultView.MouseEvent("click", { bubbles: true }));
+    expect(t.tHead.rows[0].cells[0].getAttribute("aria-sort")).toBe("none");
+  });
+
+  it("stay for the next table with the same columns, and a double click forgets them", () => {
+    const first = table(["Subject", "Value"], [[":a", "1"]]);
+    key(first, 1, "ArrowRight");
+    const again = table(["Subject", "Value"], [[":b", "2"]]);
+    expect(widths(again)).toEqual([`${MIN_WIDTH}px`, `${MIN_WIDTH + 16}px`]);
+    // Other columns: other widths
+    expect(table(["Subject", "Other"], [[":c", "3"]]).classList.contains("resized")).toBe(false);
+    again.tHead.rows[0].cells[0].querySelector(".col-resizer").dispatchEvent(new document.defaultView.MouseEvent("dblclick", { bubbles: true }));
+    expect(again.classList.contains("resized")).toBe(false);
+    expect(widths(again)).toEqual(["", ""]);
+    expect(table(["Subject", "Value"], [[":d", "4"]]).classList.contains("resized")).toBe(false);
   });
 });

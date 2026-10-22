@@ -385,7 +385,41 @@ table.report th, table.report td {
 }
 table.report th { color: var(--muted); font-weight: 600; border-top: none; }
 /* Headers that sort and filter the table (table-tools.js) */
-th.sortable { user-select: none; white-space: nowrap; }
+th.sortable { position: relative; user-select: none; white-space: nowrap; }
+/* The border of a column, which changes its width (table-tools.js) */
+.col-resizer {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  bottom: 0;
+  z-index: 1;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
+}
+.col-resizer::after {
+  content: "";
+  position: absolute;
+  top: 20%;
+  bottom: 20%;
+  left: 3px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--border);
+}
+.col-resizer:hover::after, .col-resizer.dragging::after, .col-resizer:focus-visible::after { top: 0; bottom: 0; background: var(--accent); }
+.col-resizer:focus-visible { outline: none; }
+th.sortable:last-child .col-resizer { right: 0; }
+/* A table with the widths of its columns: the text that doesn't fit is cut */
+table.resized { table-layout: fixed; }
+table.resized th, table.resized td { overflow: hidden; text-overflow: ellipsis; }
+table.resized th { white-space: nowrap; box-sizing: border-box; }
+/* The name of a column and the button of its filter: the name is cut, not
+   the button */
+th.sortable .th-inner { display: flex; align-items: baseline; }
+th.sortable .th-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+th.sortable .filter-button { flex: none; }
+table.resized .details { min-width: 0; }
 th.sortable .th-label { cursor: pointer; }
 th.sortable .th-label:hover, th.sortable .th-label:focus-visible { color: var(--text); }
 th.sortable .th-label::after { content: " ↕"; opacity: 0.35; font-weight: 400; }

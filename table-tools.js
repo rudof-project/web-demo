@@ -12,6 +12,13 @@
 // show), to choose the ones to show, a search box, and the sort orders. The
 // filters of all the columns apply together, and a line under the table says
 // how many rows it shows.
+//
+// Widths: the right border of the name of a column can be dragged to change
+// the width of the column (or moved with the arrow keys, when it has the
+// focus). Then the table keeps the widths of its columns, which grows or
+// makes it smaller, and the text that doesn't fit is cut. A double click on
+// a border gives the table its widths again. The widths stay for the next
+// table with the same columns (the table of a tab, run again).
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 const NUMBER = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
@@ -27,6 +34,12 @@ export function compareValues(a, b) {
 
 const NEXT = { none: "ascending", ascending: "descending", descending: "none" };
 const EMPTY = "(Empty)";
+
+// The widths of the columns of the tables that were changed, by their columns
+const savedWidths = new Map();
+// The least width of a column, and how much the arrow keys change it
+export const MIN_WIDTH = 40;
+const STEP = 16;
 
 function el(doc, tag, props = {}, ...children) {
   const e = Object.assign(doc.createElement(tag), props);
@@ -238,7 +251,72 @@ export function makeTableTools(table) {
       e.stopPropagation();
       openMenu(column, button);
     });
-    th.replaceChildren(name, button);
+    th.replaceChildren(el(doc, "div", { className: "th-inner" }, name, button), resizer(column, label));
   });
+
+  // Widths
+  const key = headers.map((th) => th.dataset.label).join("\u0000");
+  function setWidths(widths) {
+    if (!widths) {
+      table.classList.remove("resized");
+      table.style.width = "";
+      for (const th of headers) th.style.width = "";
+      savedWidths.delete(key);
+      return;
+    }
+    table.classList.add("resized");
+    headers.forEach((th, i) => (th.style.width = `${widths[i]}px`));
+    table.style.width = `${widths.reduce((a, b) => a + b, 0)}px`;
+    savedWidths.set(key, widths);
+  }
+  // The widths the columns have now
+  // (rounded up: a column a fraction of a pixel narrower than its name cuts it)
+  const currentWidths = () => savedWidths.get(key) ?? headers.map((th) => Math.max(MIN_WIDTH, Math.ceil(th.getBoundingClientRect().width)));
+  function resize(column, width) {
+    const widths = [...currentWidths()];
+    widths[column] = Math.max(MIN_WIDTH, Math.round(width));
+    setWidths(widths);
+  }
+
+  function resizer(column, label) {
+    const handle = el(doc, "span", { className: "col-resizer", tabIndex: 0, title: "Drag to change the width of the column. Double click: the widths as at the start." });
+    handle.setAttribute("role", "separator");
+    handle.setAttribute("aria-orientation", "vertical");
+    handle.setAttribute("aria-label", `Width of ${label}`);
+    handle.addEventListener("click", (e) => e.stopPropagation());
+    handle.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const start = e.clientX;
+      const width = currentWidths()[column];
+      handle.setPointerCapture?.(e.pointerId);
+      handle.classList.add("dragging");
+      const move = (m) => resize(column, width + m.clientX - start);
+      const up = () => {
+        handle.classList.remove("dragging");
+        handle.removeEventListener("pointermove", move);
+        handle.removeEventListener("pointerup", up);
+        handle.removeEventListener("pointercancel", up);
+      };
+      handle.addEventListener("pointermove", move);
+      handle.addEventListener("pointerup", up);
+      handle.addEventListener("pointercancel", up);
+    });
+    handle.addEventListener("dblclick", (e) => {
+      e.stopPropagation();
+      setWidths(undefined);
+    });
+    handle.addEventListener("keydown", (e) => {
+      const step = { ArrowLeft: -STEP, ArrowRight: STEP }[e.key];
+      if (!step) return;
+      e.preventDefault();
+      resize(column, currentWidths()[column] + step);
+    });
+    return handle;
+  }
+
+  // The widths of the last table with these columns
+  if (savedWidths.has(key)) setWidths(savedWidths.get(key));
   return table;
 }

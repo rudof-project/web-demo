@@ -351,6 +351,13 @@ in a spreadsheet ([`table-tools.js`](table-tools.js)):
   The filters of all the columns apply together, the button of a filtered
   column is marked, and a line under the table says how many rows it
   shows.
+- Dragging the right border of the name of a column changes its width (the
+  arrow keys too, when the border has the focus). Then the table keeps the
+  widths of its columns (`table-layout: fixed`): it grows, with a scroll bar,
+  or becomes smaller, and the text that doesn't fit is cut. The widths stay
+  for the next table with the same columns (the tab run again, or another
+  result format and back), until the page is reloaded. A double click on a
+  border gives the table its widths again.
 
 ### SHACL options
 

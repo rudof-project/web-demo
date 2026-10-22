@@ -96,3 +96,37 @@ test("the details in the table keep their lines, as in the Details format", asyn
   const lineHeight = await details.evaluate((d) => parseFloat(getComputedStyle(d).lineHeight));
   expect((await details.boundingBox()).height).toBeGreaterThan(1.5 * lineHeight);
 });
+
+test("the border of a column changes its width, as in a spreadsheet", async ({ page }) => {
+  await open(page, "#validate/shacl");
+  await page.locator("#shacl-validate").click();
+  const table = page.locator("#shacl-result table.report");
+  await expect(table).toBeVisible();
+  await table.scrollIntoViewIfNeeded();
+  const th = (i) => table.locator("th").nth(i);
+  const width = async (i) => (await th(i).boundingBox()).width;
+  const before = [await width(0), await width(1), await width(2)];
+  // Drag the border of the third column 100 px to the left
+  const handle = await th(2).locator(".col-resizer").boundingBox();
+  await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(handle.x + handle.width / 2 - 100, handle.y + handle.height / 2, { steps: 5 });
+  await page.mouse.up();
+  expect(Math.abs((await width(2)) - (before[2] - 100))).toBeLessThanOrEqual(2);
+  // The other columns keep their widths, and their names
+  expect(Math.abs((await width(0)) - before[0])).toBeLessThanOrEqual(1);
+  expect(Math.abs((await width(1)) - before[1])).toBeLessThanOrEqual(1);
+  expect(await th(0).locator(".th-label").evaluate((l) => l.scrollWidth <= l.clientWidth)).toBe(true);
+  await expect(th(2).locator(".filter-button")).toBeVisible();
+  // Sorting is still a click on the name
+  await th(1).locator(".th-label").click();
+  await expect(th(1)).toHaveAttribute("aria-sort", "ascending");
+  // The widths stay when the tab runs again
+  await page.locator("#shacl-validate").click();
+  await expect(table).toHaveClass(/resized/);
+  expect(Math.abs((await width(2)) - (before[2] - 100))).toBeLessThanOrEqual(2);
+  // A double click gives the table its widths again
+  await th(2).locator(".col-resizer").dblclick();
+  await expect(table).not.toHaveClass(/resized/);
+  expect(Math.abs((await width(2)) - before[2])).toBeLessThanOrEqual(2);
+});
