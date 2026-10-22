@@ -98,9 +98,13 @@ export const KEPT_PARAMS = ["manifestURL", "example"];
 
 const STATE_PARAMS = new Set(Object.values(PANELS).flatMap((p) => Object.keys(p.params)));
 
+// The parameter of an input given by a URL (input-source.js): schema-url…
+export const urlParam = (name) => `${name}-url`;
+const baseName = (name) => (name.endsWith("-url") && STATE_PARAMS.has(name.slice(0, -4)) ? name.slice(0, -4) : name);
+
 // Whether the parameters have inputs or options of a tab.
 export function hasState(params) {
-  return [...params.keys()].some((name) => STATE_PARAMS.has(name));
+  return [...params.keys()].some((name) => STATE_PARAMS.has(baseName(name)));
 }
 
 // The tab of parameters without a fragment: the first one with a parameter
@@ -109,7 +113,8 @@ export function hasState(params) {
 const DISTINCTIVE = [["to", "convert"], ["dctap", "dctap"], ["shape-map", "shex"], ["shapes", "shacl"], ["type-map", "pgschema"], ["query", "sparql"], ["endpoint", "sparql"], ["schema", "shex"], ["data", "rdf"]];
 
 export function panelOfParams(params) {
-  return DISTINCTIVE.find(([name]) => params.has(name))?.[1];
+  const names = new Set([...params.keys()].map(baseName));
+  return DISTINCTIVE.find(([name]) => names.has(name))?.[1];
 }
 
 // The parameters of a tab, as [name, value] pairs, with the values read by

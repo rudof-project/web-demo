@@ -91,3 +91,12 @@ describe("reading a URL", () => {
     ]);
   });
 });
+
+describe("inputs given by URLs", () => {
+  it("are inputs of a tab, by their parameters with -url", () => {
+    expect(hasState(new URLSearchParams("schema-url=es:E371"))).toBe(true);
+    expect(hasState(new URLSearchParams("manifestURL=x"))).toBe(false);
+    expect(panelOfParams(new URLSearchParams("query-url=https://e/q.rq"))).toBe("sparql");
+    expect(panelOfParams(new URLSearchParams("schema-url=es:E371&shape-map=wd:Q42@START"))).toBe("shex");
+  });
+});

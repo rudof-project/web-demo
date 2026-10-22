@@ -22,6 +22,33 @@ npm run preview     # serve dist/ at http://localhost:4173
 `dist/` is a static site: its paths are relative, so it can be published in
 any folder of any web server, as is.
 
+## Inputs from URLs
+
+As in [RDFShape](https://rdfshape.weso.es/dataInfo), the RDF data, the
+schemas and the queries can be given as **Text** (the editor) or by a
+**URL**: the switch next to their names ([`input-source.js`](input-source.js)).
+With URL, a field takes the place of the editor, and the page reads the URL
+when the tab runs (with `fetch`: its server must allow other sites to read
+it, CORS). Its text goes to the input, so rudof reads it as any other text,
+and the format menu takes the format of the extension of the file (`.ttl`,
+`.nt`, `.shex`…), when it has one. Under the field, the page says what it
+read.
+
+- In the tabs with an endpoint, the URL can be a prefixed name, with the
+  prefixes of the endpoint (and common prefixes): on Wikidata, `es:E371` is
+  `https://www.wikidata.org/wiki/Special:EntitySchemaText/E371`, the
+  EntitySchema E371. The field shows the URL of the prefixed name.
+- **Text** gives back the text that the input had, and **URL** the last URL.
+  **Edit as text** reads the URL and puts its text in the editor.
+- Permalinks have the URL of the input (`schema-url=es:E371`), not its text.
+- The relative imports of a ShEx schema from a URL are relative to the URL.
+- An example of a manifest, or a result used as input, puts its text in the
+  input, as text.
+
+The inputs with a URL: the RDF data of the RDF, ShEx, SHACL, DCTAP and SPARQL
+tabs, the ShEx schema, the shapes graph, the DCTAP profile, the PGSchema
+schema, the schema of the Schema tab and the SPARQL query.
+
 ## Editors
 
 The inputs of the demo are [CodeMirror 6](https://codemirror.net/) editors,
@@ -550,7 +577,8 @@ inputs and options of the tab shown, and the fragment names the tab:
 ?schema=PREFIX%20…&data=PREFIX%20…&shape-map=%3CObs1%3E%40START%0A&schema-format=shexc&…#validate/shex
 ```
 
-The **Permalink** button writes the inputs as they are now in the URL, and
+An input given by a URL is its URL, in the parameter of the input with
+`-url` (`schema-url=es:E371`). The **Permalink** button writes the inputs as they are now in the URL, and
 copies it. Opening the URL puts the inputs and options back in their tab.
 [`permalink.js`](permalink.js) has the parameters of each tab:
 

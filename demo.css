@@ -760,6 +760,26 @@ table.keys tr:target { background: var(--cm-selection-match); }
 .view-switch button + button { border-left: 1px solid var(--border); }
 .view-switch button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); }
 
+/* An input given by a URL (input-source.js): its field takes the place of
+   its editor (CodeMirror shows its editors with display: flex !important) */
+.field-head > :first-child:has(+ .source-switch) { margin-right: 0; }
+.field-head .source-switch { margin-right: auto; }
+.url-source > .cm-editor, .url-source > textarea, .url-source > .table-view-cells { display: none !important; }
+.url-box { display: flex; flex-direction: column; gap: 0.3rem; }
+.url-box[hidden] { display: none; }
+.url-row { display: flex; gap: 0.6rem; align-items: baseline; }
+.url-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: 13px/1.45 var(--mono);
+}
+.url-hint { font-family: var(--mono); overflow-wrap: anywhere; }
+
 /* The table view of a CSV input: the editor is hidden, the table is shown */
 /* (CodeMirror shows its editors with display: flex !important) */
 .field.table-view > .cm-editor { display: none !important; }

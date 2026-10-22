@@ -15,6 +15,7 @@ import { loadSettings, saveSettings, configWithSettings, settingsEndpoints, sett
 import { setupSettingsDialog } from "./settings-dialog.js";
 import { DATA_TABS, setupExtraData, addData, extraData, clearExtraData } from "./extra-data.js";
 import { parseBoxTable } from "./box-table.js";
+import { setupInputSources, setSource, setText, isUrlSource, urlOf, resolvedUrlOf, urlInputsIn, readUrlInputs, showResolved } from "./input-source.js";
 import { startLog, loggingFetch, logSummary, logTime, limitsText, renderQueries, isStopping } from "./endpoint-log.js";
 import { LANGUAGES, TARGETS, DEFAULT_TARGET, canConvert, readSchema as readAnySchema, readShexSchema, hasShexImports, hasRelativeImports, convertSchema, sourceLabel, targetLabel, asSource } from "./schema-convert.js";
 import { devDependencies } from "./package.json";
@@ -47,6 +48,28 @@ const last = {};
 // The tabs that can run on an endpoint (see Endpoints), and the endpoint of a
 // tab, if it doesn't run on the data of the page
 const ENDPOINT_TABS = ["shex", "shacl", "dctap", "sparql"];
+// The inputs that can also be given by a URL (input-source.js): the RDF
+// data, the schemas and the queries
+const URL_INPUTS = [
+  "rdf-data", "convert-schema", "shex-data", "shex-schema", "shacl-data", "shacl-shapes",
+  "dctap-data", "dctap-schema", "pgschema-schema", "sparql-data", "sparql-query",
+];
+// The prefixes of the prefixed names of the URL of an input: common ones,
+// and those of the endpoint of its tab, which win
+function urlPrefixes(id) {
+  const tab = id.split("-")[0];
+  const endpoint = ENDPOINT_TABS.includes(tab) ? endpointOf(tab) : "";
+  const url = endpoint ? endpointUrlOf(endpoint) : "";
+  return [...COMMON_PREFIXES, ...(url ? (settingsEndpointPrefixes.get(url) ?? endpointPrefixes.get(url) ?? []) : [])];
+}
+
+// Writes a text in an input (an example, a result used as input…): the
+// input is text then, and no more a URL
+function setInputText(id, text) {
+  if (URL_INPUTS.includes(id)) setText(document, id, text);
+  else $(id).value = text;
+}
+
 // The fetch of the requests to endpoints, which logs them: rudof's
 // (setFetch) and the page's (endpoint.js). Details of the log of a run on an
 // endpoint stays open for the next runs when it is open.
@@ -177,7 +200,9 @@ const inputValue = (id) => ($(id).type === "checkbox" ? String($(id).checked) : 
 function permalinkURL() {
   const { section, panel } = currentPanel();
   const url = new URL(location.href);
-  const pairs = stateParams(panel, inputValue, url.searchParams);
+  const ids = PANELS[panel].params;
+  // The inputs given by URLs: their URLs (schema-url=…), not their text
+  const pairs = stateParams(panel, inputValue, url.searchParams).map(([name, value]) => (isUrlSource(ids[name]) ? [`${name}-url`, urlOf(ids[name])] : [name, value]));
   // The RDF data added to the tab: data-2, data-2-format…
   if (DATA_TABS.includes(panel)) {
     extraData(panel).forEach(({ text, format }, i) => pairs.push([`data-${i + 2}`, text], [`data-${i + 2}-format`, format]));
@@ -224,6 +249,10 @@ function restoreInputs() {
     } else {
       input.value = value;
     }
+  }
+  // The inputs given by URLs
+  for (const [name, id] of Object.entries(PANELS[panel].params)) {
+    if (URL_INPUTS.includes(id) && params.has(`${name}-url`)) setSource(document, id, "url", { url: params.get(`${name}-url`) });
   }
   // The RDF data added to the tab, in their order
   if (DATA_TABS.includes(panel)) {
@@ -291,7 +320,7 @@ let convertLanguage = $("convert-language").value;
 function changeConvertLanguage() {
   const language = $("convert-language").value;
   const before = SCHEMA_EXAMPLES[convertLanguage];
-  if (!$("convert-schema").value.trim() || (before && $("convert-schema").value === before[0])) {
+  if (!isUrlSource("convert-schema") && (!$("convert-schema").value.trim() || (before && $("convert-schema").value === before[0]))) {
     $("convert-schema").value = SCHEMA_EXAMPLES[language][0];
   }
   convertLanguage = language;
@@ -370,7 +399,7 @@ $("convert-use-as-input").addEventListener("click", () => {
   changeConvertLanguage();
   $("convert-format").value = source.format;
   $("convert-format").dispatchEvent(new Event("change"));
-  $("convert-schema").value = text;
+  setInputText("convert-schema", text);
   $("convert-schema").focus();
 });
 
@@ -393,6 +422,7 @@ const convertTable = setupTableView({
 changeConvertLanguage();
 refreshKnownEndpoints();
 setupExtraData(document, { onChange: updatePermalink });
+setupInputSources(document, URL_INPUTS, { prefixesOf: urlPrefixes, onChange: updatePermalink });
 restoreInputs();
 showEndpointUse();
 showShaclOptions();
@@ -714,6 +744,8 @@ async function showEndpointPrefixes(prefix) {
   const name = knownEndpoints.find(([, url]) => url === endpoint)?.[0] ?? endpointName(endpoint);
   box.querySelector("summary").textContent = `Prefixes of ${name} (${prefixes.length})`;
   box.querySelector("pre").textContent = prefixes.map(([alias, iri]) => `PREFIX ${alias}: <${iri}>`).join("\n");
+  // The URLs of the inputs of the tab, with the prefixes of the endpoint
+  for (const id of urlInputsIn($(`panel-${prefix}`))) showResolved(document, id);
 }
 
 // The prefixes that the editors offer: those of the endpoint of their tab,
@@ -933,7 +965,11 @@ const READING_IMPORTS = "Reading the imported schemas…";
 // The base of the relative imports of a schema: the URL of its file, when it
 // is the schema of the example of a manifest loaded in the tab
 function importBase(validator, text) {
-  if (!hasRelativeImports(text) || loadedExample?.validator !== validator) return undefined;
+  if (!hasRelativeImports(text)) return undefined;
+  // The URL it was read from
+  const id = validator === "convert" ? "convert-schema" : "shex-schema";
+  if (isUrlSource(id)) return resolvedUrlOf(id);
+  if (loadedExample?.validator !== validator) return undefined;
   return loadedExample.example.inputs.schema?.url;
 }
 
@@ -1342,7 +1378,7 @@ CONSTRUCT { ?b :isKnownBy ?a } WHERE { ?a foaf:knows ?b }`,
 
 $("sparql-example").addEventListener("change", (e) => {
   if (!e.target.value) return;
-  $("sparql-query").value = SPARQL_EXAMPLES[e.target.value];
+  setInputText("sparql-query", SPARQL_EXAMPLES[e.target.value]);
   e.target.value = "";
   $("sparql-query").focus();
 });
@@ -1593,7 +1629,7 @@ for (const prefix of CONVERTERS) {
   $(`${prefix}-use-as-input`).addEventListener("click", () => {
     // The result has the RDF data added to the tab already
     if (prefix === "rdf") clearExtraData("rdf");
-    $(`${prefix}-data`).value = output();
+    setInputText(`${prefix}-data`, output());
     if (prefix === "rdf") {
       $("rdf-data-format").value = $("rdf-result-format").value;
       // The editor highlights the data in its new format
@@ -1781,6 +1817,15 @@ async function run(prefix) {
       })
     : hideEndpointLog(prefix);
   try {
+    // The inputs of the tab given by URLs (with the prefixes of its endpoint)
+    const panel = $(`${prefix}-result`).closest('[role="tabpanel"]');
+    if (urlInputsIn(panel).length) {
+      showResult(prefix, { verdict: "Reading the inputs from their URLs…", kind: "running", output: "" });
+      const tab = prefix.split("-")[0];
+      if (ENDPOINT_TABS.includes(tab) && endpointOf(tab)) await readEndpointPrefixes(endpointUrlOf(endpointOf(tab)));
+      await readUrlInputs(document, panel);
+      if (running[prefix] !== token) return;
+    }
     if (endpoint) showResult(prefix, { verdict: `Waiting for ${endpointName(endpoint)}…`, kind: "running", output: "" });
     // The limits of an endpoint that rudof knows are in its TOML file, read
     // with its prefixes
@@ -2044,7 +2089,7 @@ async function chooseExample(manifest, example) {
       // The editor highlights the text in its format
       select.dispatchEvent(new Event("change"));
     }
-    $(textarea).value = text;
+    setInputText(textarea, text);
   }
   showEndpointUse();
   // The result of the inputs before is not the result of these. The result
