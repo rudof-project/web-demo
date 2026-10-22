@@ -221,6 +221,37 @@ prefix sh: <http://www.w3.org/ns/shacl#>
     expect(small.queries.length).toBeGreaterThan(byShape.queries.length);
   });
 
+  test("an OR doesn't follow its second branch when the first one matches (rudof 0.3.33)", async ({ page }) => {
+    // wd:Q42 is a human (wd:Q5), and wd:Q5 has a tree of superclasses, which
+    // rudof 0.3.32 asked about one by one (366 queries)
+    const lines = ["wd:Q42 wdt:P31 wd:Q5 ."];
+    let n = 0;
+    for (const queue = [["Q5", 0]]; queue.length; ) {
+      const [c, depth] = queue.shift();
+      if (depth >= 5) continue;
+      for (let k = 0; k < 3; k++) {
+        n += 1;
+        lines.push(`wd:${c} wdt:P279 wd:S${n} .`);
+        queue.push([`S${n}`, depth + 1]);
+      }
+    }
+    const queries = await sparqlEndpoint(page, ENDPOINT, `prefix wd: <http://www.wikidata.org/entity/>\nprefix wdt: <http://www.wikidata.org/prop/direct/>\n${lines.join("\n")}`);
+    await open(page, "#validate/shex");
+    await page.evaluate(() => localStorage.setItem("rudof-demo-settings", JSON.stringify({ values: { "rdf.min_request_interval_ms": 0 }, toml: "" })));
+    await page.reload();
+    await expect(page.locator("#status")).toHaveClass(/ready/, { timeout: 30_000 });
+    await page.locator("#shex-endpoint").fill(ENDPOINT);
+    await setInput(page, "shex-schema", `prefix : <http://example.org/>
+prefix wd: <http://www.wikidata.org/entity/>
+prefix wdt: <http://www.wikidata.org/prop/direct/>
+:Person2 EXTRA wdt:P31 { wdt:P31 @:HumanOrSubclass }
+:HumanOrSubclass [ wd:Q5 ] OR EXTRA wdt:P279 { wdt:P279 @:HumanOrSubclass + }`);
+    await setInput(page, "shex-shapemap", "wd:Q42@:Person2");
+    await page.locator("#shex-validate").click();
+    await expect(result(page, "shex").locator(".verdict")).toHaveText("Conforms: 1 node validated on endpoint.example", { timeout: 60_000 });
+    expect(queries.length).toBeLessThanOrEqual(3);
+  });
+
   test("validations can get the RDF of the IRIs of the nodes (dereference)", async ({ page }) => {
     await page.route("http://example.org/alice", (route) =>
       route.fulfill({ body: '<http://example.org/alice> <http://example.org/name> "Alice" .', headers: { "content-type": "text/turtle", "access-control-allow-origin": "*" } }),
