@@ -194,10 +194,20 @@ queries, the last one first. The table has, for each query, when it was sent,
 the status of the answer, how long it took, its size, the nodes it asks about
 (rudof asks about several nodes of a shape map in one query, with `VALUES`)
 and the query. A click on a query shows all of it, the endpoint and the start
-of the answer (at most 4000 characters; JSON indented). **Stop** aborts the
-queries that wait, and stops the run. After the result, the switch
-**Result | Queries (n)** of the result goes from one to the other, also when
-the run fails or is stopped.
+of the answer (at most 4000 characters; JSON indented). The table shows the
+last 500 queries (it is drawn again at each one). After the result, the
+switch **Result | Queries (n)** of the result goes from one to the other,
+also when the run fails or is stopped.
+
+**Stop** aborts the queries that wait, and stops the run. rudof can't be
+stopped from JavaScript: the session goes on with the validation until it
+gives up. Until then, the requests of the stopped run fail at once, without
+going to the network (the summary says "stopping: rudof gives up" and how
+many requests were not sent): else rudof would go on asking the endpoint,
+and reading its answers, in the page, which can hang it. rudof gives up when
+its requests fail (after its retries, some seconds). A new run of the tab
+waits until then (at most 15 s), and says "Stopping the previous run…": the
+requests of the two runs could not be told apart.
 
 rudof has no logs in WebAssembly, so the page gets the requests from the
 function that rudof uses to send them (`setFetch`):

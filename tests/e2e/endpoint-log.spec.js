@@ -110,10 +110,55 @@ test.describe("with rudof with endpoints", () => {
     await expect(view(page, "shex").locator(".queries-stop")).toBeHidden();
     await switchTo(page, "shex", "result").click();
     await expect(page.locator("#shex-output")).toContainText("with 1 query waiting for an answer");
-    // The run can start again
+    // The run can start again, when rudof gives up the stopped one
     await page.locator("#shex-validate").click();
-    await expect(box(page, "shex").locator(".verdict")).toHaveText("Waiting for endpoint.example…");
+    await expect(box(page, "shex").locator(".verdict")).toHaveText("Waiting for endpoint.example…", { timeout: 20_000 });
     await expect(view(page, "shex")).toBeVisible();
+  });
+
+  test("after Stop, rudof sends no more requests, and a new run waits until it gives up", async ({ page }) => {
+    test.setTimeout(90_000);
+    // A tree of classes, as the subclasses of Wikidata: rudof would ask
+    // about each one
+    const lines = ["wd:Q42 wdt:P31 wd:C1 ."];
+    let n = 1;
+    for (const queue = [[1, 0]]; queue.length; ) {
+      const [c, depth] = queue.shift();
+      if (depth >= 6) continue;
+      for (let k = 0; k < 3; k++) {
+        n += 1;
+        lines.push(`wd:C${c} wdt:P279 wd:C${n} .`);
+        queue.push([n, depth + 1]);
+      }
+    }
+    const queries = await sparqlEndpoint(page, ENDPOINT, `prefix wd: <http://www.wikidata.org/entity/>\nprefix wdt: <http://www.wikidata.org/prop/direct/>\n${lines.join("\n")}`);
+    await open(page, "#validate/shex");
+    await page.evaluate(() => localStorage.setItem("rudof-demo-settings", JSON.stringify({ values: { "rdf.min_request_interval_ms": 0 }, toml: "" })));
+    await page.reload();
+    await expect(page.locator("#status")).toHaveClass(/ready/, { timeout: 30_000 });
+    await page.locator("#shex-endpoint").fill(ENDPOINT);
+    await setInput(page, "shex-schema", `prefix : <http://example.org/>
+prefix wd: <http://www.wikidata.org/entity/>
+prefix wdt: <http://www.wikidata.org/prop/direct/>
+:Person2 EXTRA wdt:P31 { wdt:P31 @:HumanOrSubclass }
+:HumanOrSubclass [ wd:Q5 ] OR EXTRA wdt:P279 { wdt:P279 @:HumanOrSubclass + }`);
+    await setInput(page, "shex-shapemap", "wd:Q42@:Person2");
+    await page.locator("#shex-validate").click();
+    await expect.poll(() => queries.length, { timeout: 30_000 }).toBeGreaterThan(20);
+    await view(page, "shex").locator(".queries-stop").click();
+    await expect(box(page, "shex").locator(".verdict")).toHaveText("Stopped");
+    // The requests sent before the click may still arrive; then none
+    await page.waitForTimeout(500);
+    const atStop = queries.length;
+    await expect(view(page, "shex").locator(".queries-summary")).toContainText(/stopping: rudof gives up/);
+    await page.waitForTimeout(3_000);
+    expect(queries.length).toBe(atStop);
+    expect(atStop).toBeLessThan(n);
+    // A new run waits until rudof gives up the stopped one
+    await page.locator("#shex-validate").click();
+    await expect(box(page, "shex").locator(".verdict")).toHaveText(/Stopping the previous run…|Waiting for endpoint\.example…/);
+    await expect(box(page, "shex").locator(".verdict")).toHaveText("Waiting for endpoint.example…", { timeout: 20_000 });
+    await view(page, "shex").locator(".queries-stop").click();
   });
 
   test("the settings of the endpoints change how rudof sends the queries", async ({ page }) => {

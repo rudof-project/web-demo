@@ -2,7 +2,7 @@
 
 import { describe, it, expect } from "vitest";
 import { JSDOM } from "jsdom";
-import { startLog, loggingFetch, logSummary, logTime, requestParts, nodesOf, limitsText, sizeText, answerText, renderQueries, ANSWER_LIMIT } from "../../endpoint-log.js";
+import { startLog, loggingFetch, logSummary, logTime, requestParts, nodesOf, limitsText, sizeText, answerText, renderQueries, isStopping, ANSWER_LIMIT, MAX_ROWS } from "../../endpoint-log.js";
 
 const QUERY_URL = (host, query) => `https://${host}/sparql?query=${encodeURIComponent(query)}`;
 
@@ -58,6 +58,37 @@ describe("the log of a run on an endpoint", () => {
     await expect(waiting).rejects.toThrow("stopped");
     expect(log.entries[0].error).toBe("Stopped");
     expect(log.stopped).toBe(true);
+    log.finish();
+  });
+
+  it("stops: the next requests of the stopped run fail at once, until rudof gives up", async () => {
+    const sent = [];
+    const fetch = loggingFetch(async (url) => (sent.push(url), new Response("{}")));
+    const log = startLog("https://a.example/sparql");
+    await fetch(QUERY_URL("a.example", "first"), { headers: {} });
+    log.stop();
+    expect(isStopping(log)).toBe(true);
+    // rudof goes on: its requests are not sent, and the log counts them
+    await expect(fetch(QUERY_URL("a.example", "next"), { headers: {} })).rejects.toThrow("The validation was stopped");
+    await expect(fetch("https://other.example/schema.shex", { headers: {} })).rejects.toThrow("The validation was stopped");
+    expect(sent).toHaveLength(1);
+    expect(log.blocked).toBe(2);
+    expect(logSummary(log)).toBe("1 query · 1 answered · 0 failed · stopping: rudof gives up, 2 requests not sent");
+    // A run on another endpoint sends its requests
+    const other = startLog("https://b.example/sparql");
+    await fetch(QUERY_URL("b.example", "b"), { headers: {} });
+    expect(sent).toHaveLength(2);
+    other.finish();
+    // rudof gave up: the requests are sent again
+    let done = false;
+    log.finished.then(() => (done = true));
+    log.finish();
+    await Promise.resolve();
+    expect(done).toBe(true);
+    expect(isStopping(log)).toBe(false);
+    expect(logSummary(log)).toBe("1 query · 1 answered · 0 failed · stopped, 2 requests not sent");
+    await fetch(QUERY_URL("a.example", "later"), { headers: {} });
+    expect(sent).toHaveLength(3);
   });
 
   it("keeps the requests to the host of its endpoint, or all when no run is on their host", async () => {
@@ -121,5 +152,17 @@ describe("the log of a run on an endpoint", () => {
     table = renderQueries(doc, log);
     expect(table.querySelector("tr.query-detail .query-full").textContent).toContain("VALUES ?s");
     expect(table.querySelector("tr.query-detail .query-answer").textContent).toBe('{\n  "head": {}\n}');
+  });
+
+  it("shows the last MAX_ROWS requests", async () => {
+    const doc = new JSDOM("").window.document;
+    const log = startLog("https://c.example/sparql");
+    const fetch = loggingFetch(async () => new Response("{}"));
+    for (let i = 0; i < MAX_ROWS + 3; i++) await fetch(QUERY_URL("c.example", `Q${i}`), { headers: {} });
+    log.finish();
+    const table = renderQueries(doc, log);
+    expect(table.querySelectorAll("tr.query-row")).toHaveLength(MAX_ROWS);
+    expect(table.querySelector("tr.query-row td").textContent).toBe(String(MAX_ROWS + 3));
+    expect(table.querySelector("tr.query-none").textContent).toBe("… and 3 earlier queries, which the table doesn't show");
   });
 });

@@ -15,7 +15,7 @@ import { loadSettings, saveSettings, configWithSettings, settingsEndpoints, sett
 import { setupSettingsDialog } from "./settings-dialog.js";
 import { DATA_TABS, setupExtraData, addData, extraData, clearExtraData } from "./extra-data.js";
 import { parseBoxTable } from "./box-table.js";
-import { startLog, loggingFetch, logSummary, logTime, limitsText, renderQueries } from "./endpoint-log.js";
+import { startLog, loggingFetch, logSummary, logTime, limitsText, renderQueries, isStopping } from "./endpoint-log.js";
 import { LANGUAGES, TARGETS, DEFAULT_TARGET, canConvert, readSchema as readAnySchema, readShexSchema, hasShexImports, hasRelativeImports, convertSchema, sourceLabel, targetLabel, asSource } from "./schema-convert.js";
 import { devDependencies } from "./package.json";
 
@@ -56,6 +56,8 @@ const pageFetch = loggingFetch();
 let settingsDialog;
 // The log of the last run of each tab on an endpoint: only it is drawn
 const currentLogs = {};
+// How long a new run waits for a stopped run of its tab to end
+const STOPPING_WAIT = 15_000;
 const endpointOf = (prefix) => $(`${prefix}-endpoint`).value.trim();
 // Whether a tab uses its RDF data with its endpoint
 const withData = (prefix) => Boolean($(`${prefix}-endpoint-data`)?.checked);
@@ -1713,7 +1715,10 @@ function showEndpointLog(prefix, endpoint, onStop) {
   const ticker = setInterval(() => log.end === undefined && draw(log), 500);
   view.querySelector(".queries-stop").onclick = () => {
     const waiting = log.entries.filter((e) => e.millis === undefined).length;
+    // rudof goes on until it gives up (log.finish), without sending requests
     log.stop();
+    clearInterval(ticker);
+    viewSwitch.hidden = false;
     onStop(waiting);
   };
   const finish = log.finish;
@@ -1751,6 +1756,14 @@ async function run(prefix) {
   if (!rudofModule || crashed) return;
   const { validate, serialize } = validators[prefix];
   const token = (running[prefix] = {});
+  // A stopped run of the tab ends first (at most STOPPING_WAIT): its
+  // requests and those of the new run can't be told apart
+  const previous = currentLogs[prefix];
+  if (previous && isStopping(previous)) {
+    showResult(prefix, { verdict: "Stopping the previous run…", kind: "running", output: "" });
+    await Promise.race([previous.finished, new Promise((resolve) => setTimeout(resolve, STOPPING_WAIT))]);
+    if (running[prefix] !== token) return;
+  }
   // A run on an endpoint has its log
   // (with rudof with endpoints, or the SPARQL tab, which sends the query)
   const endpoint = ENDPOINT_TABS.includes(prefix) && (rudofEndpoints || prefix === "sparql") && endpointOf(prefix);

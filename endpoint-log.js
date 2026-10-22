@@ -8,11 +8,21 @@
 // rudof has one fetch function for all its sessions, so a request goes to
 // the logs of the runs on the host of its URL (or of all the runs, when no
 // run is on that host).
+//
+// rudof can't be stopped from JavaScript: a stopped run goes on until rudof
+// gives up. Until then (finish), its new requests fail at once, without
+// going to the network: else rudof would go on asking the endpoint, and
+// reading its answers, in the page.
 
 // The text of the answers that a log keeps, at most
 export const ANSWER_LIMIT = 4000;
 
 const active = new Set();
+// The runs that were stopped, until rudof gives up
+const stopping = new Set();
+
+// Why a request of a stopped run fails
+const stoppedError = () => new DOMException("The validation was stopped", "AbortError");
 
 function hostOf(url) {
   try {
@@ -26,27 +36,37 @@ function hostOf(url) {
 // request is sent or answered.
 export function startLog(endpoint, { onChange, now = () => performance.now() } = {}) {
   const controller = new AbortController();
+  let finished;
   const log = {
+    // When rudof has the result, or gave up after the run was stopped
+    finished: new Promise((resolve) => (finished = resolve)),
     endpoint,
     host: hostOf(endpoint),
     start: now(),
     end: undefined,
     entries: [],
+    // The requests that a stopped run tried to send
+    blocked: 0,
     signal: controller.signal,
     stopped: false,
     now,
     changed: () => onChange?.(log),
-    // The run has its result, or is stopped: its requests are not logged
-    // any more
+    // The run has its result, or rudof gave up after it was stopped
     finish() {
       if (log.end === undefined) log.end = now();
       active.delete(log);
+      stopping.delete(log);
+      finished();
       log.changed();
     },
+    // The requests that wait are aborted, and the next ones fail
     stop() {
       log.stopped = true;
-      controller.abort(new DOMException("The validation was stopped", "AbortError"));
-      log.finish();
+      if (log.end === undefined) log.end = now();
+      active.delete(log);
+      stopping.add(log);
+      controller.abort(stoppedError());
+      log.changed();
     },
   };
   active.add(log);
@@ -58,6 +78,15 @@ function logsOf(url) {
   const host = hostOf(url);
   const same = [...active].filter((log) => log.host && log.host === host);
   return same.length ? same : [...active];
+}
+
+// The stopped runs that a request to a URL is of: those on its host, when
+// no running run is on it, or all of them, when no run is running
+function stoppedOf(url) {
+  const host = hostOf(url);
+  if ([...active].some((log) => log.host && log.host === host)) return [];
+  const same = [...stopping].filter((log) => log.host && log.host === host);
+  return same.length || active.size ? same : [...stopping];
 }
 
 // The SPARQL query of a request (GET, with the SPARQL protocol), and the
@@ -87,6 +116,15 @@ export function nodesOf(query) {
 // The fetch function for setFetch
 export function loggingFetch(baseFetch = (...args) => fetch(...args)) {
   return async (url, init = {}) => {
+    // A request of a stopped run
+    const stopped = stoppedOf(url);
+    if (stopped.length) {
+      for (const log of stopped) {
+        log.blocked += 1;
+        log.changed();
+      }
+      throw stoppedError();
+    }
     const logs = logsOf(url);
     const now = logs[0]?.now ?? (() => performance.now());
     const entry = { ...requestParts(url), accept: init.headers?.Accept ?? init.headers?.accept, sent: now(), status: undefined, millis: undefined };
@@ -132,8 +170,19 @@ export function logSummary(log) {
   const parts = [plural(sent, "query", "queries"), `${answered} answered`];
   if (waiting || log.end === undefined) parts.push(`${waiting} waiting`);
   parts.push(`${failed} failed`);
+  if (log.stopped) parts.push(stoppingText(log));
   return parts.join(" · ");
 }
+
+// What a stopped run does: rudof goes on until it gives up, without sending
+// its requests
+export function stoppingText(log) {
+  const blocked = log.blocked ? `, ${plural(log.blocked, "request", "requests")} not sent` : "";
+  return stopping.has(log) ? `stopping: rudof gives up${blocked}` : `stopped${blocked}`;
+}
+
+// Whether rudof still runs a stopped run
+export const isStopping = (log) => stopping.has(log);
 
 // The time of a run so far, or all of it: "12.4 s"
 export const logTime = (log) => `${(((log.end ?? log.now()) - log.start) / 1000).toFixed(1)} s`;
@@ -174,6 +223,10 @@ export function answerText({ answer, size }) {
   return answer;
 }
 
+// The requests that the table shows at most, the last ones: the table is
+// drawn again at each request
+export const MAX_ROWS = 500;
+
 const COLUMNS = ["#", "Sent", "Status", "Time", "Size", "Nodes", "Query"];
 
 // The requests of a log as a table, the last one first. A click on a request
@@ -187,7 +240,9 @@ export function renderQueries(doc, log) {
   };
   log.open ??= new Set();
   const rows = [];
+  const first = Math.max(0, log.entries.length - MAX_ROWS);
   log.entries.forEach((entry, i) => {
+    if (i < first) return;
     const [state, kind] = stateOf(entry);
     const open = log.open.has(i);
     const row = el(
@@ -214,6 +269,7 @@ export function renderQueries(doc, log) {
     rows.push(group);
   });
   const body = el("tbody", {}, ...rows.reverse().flat());
+  if (first) body.append(el("tr", { className: "query-none" }, el("td", { colSpan: COLUMNS.length }, `… and ${plural(first, "earlier query", "earlier queries")}, which the table doesn't show`)));
   if (!log.entries.length) body.append(el("tr", { className: "query-none" }, el("td", { colSpan: COLUMNS.length }, "No queries yet: rudof prepares the run.")));
   const table = el("table", { className: "queries" }, el("thead", {}, el("tr", {}, ...COLUMNS.map((c) => el("th", {}, c)))), body);
   const toggle = (row) => {
