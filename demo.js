@@ -16,7 +16,7 @@ import { setupSettingsDialog } from "./settings-dialog.js";
 import { DATA_TABS, setupExtraData, addData, extraData, clearExtraData } from "./extra-data.js";
 import { parseBoxTable } from "./box-table.js";
 import { startLog, loggingFetch, logSummary, logTime, limitsText, renderQueries } from "./endpoint-log.js";
-import { LANGUAGES, TARGETS, DEFAULT_TARGET, canConvert, readSchema as readAnySchema, convertSchema, sourceLabel, targetLabel, asSource } from "./schema-convert.js";
+import { LANGUAGES, TARGETS, DEFAULT_TARGET, canConvert, readSchema as readAnySchema, readShexSchema, hasShexImports, hasRelativeImports, convertSchema, sourceLabel, targetLabel, asSource } from "./schema-convert.js";
 import { devDependencies } from "./package.json";
 
 // The exact version of package.json (the one the tests use), so that updating
@@ -313,8 +313,18 @@ $("convert-to").addEventListener("change", () => {
 function readConvertSource() {
   const start = performance.now();
   const source = convertSource();
+  const result = () => ({ kind: "ok", millis: performance.now() - start, verdict: convertVerdict(), source });
+  // A ShEx schema with imports: rudof gets them first, in a new session
+  if (source.language === "shex" && hasShexImports(source.text, source.format)) {
+    source.base = importBase("convert", source.text);
+    const fresh = freshSession();
+    return waiting(
+      Promise.resolve(readAnySchema(fresh, source)).then(() => ({ ...result(), session: fresh })),
+      READING_IMPORTS,
+    );
+  }
   readAnySchema(session("convert"), source);
-  return { kind: "ok", millis: performance.now() - start, verdict: convertVerdict(), source };
+  return result();
 }
 
 function convertVerdict() {
@@ -871,10 +881,13 @@ function readTabData(rudof, prefix, merge = false) {
 // its URL by the name PAGE_ENDPOINT, with these prefixes, which its shape
 // maps can use. An endpoint can also be the name of one that rudof knows
 // (such as wikidata), with the prefixes that rudof gives it.
-function dataSession(prefix, { config, prefixes } = {}) {
+// With `fresh`, the session on the RDF data of the tab is a new one too: a
+// session that waits for the schemas that a schema imports can't do anything
+// else either.
+function dataSession(prefix, { config, prefixes, fresh = false } = {}) {
   const endpoint = endpointOf(prefix);
   if (!endpoint) {
-    const rudof = session(prefix);
+    const rudof = fresh ? new rudofModule.Rudof() : session(prefix);
     rudof.resetAll();
     configure(rudof, config);
     readTabData(rudof, prefix);
@@ -912,12 +925,49 @@ function validation({ rudof, endpoint }, validate, validateAsync, result) {
   );
 }
 
+// What the result says while rudof gets the schemas that a schema imports
+const READING_IMPORTS = "Reading the imported schemas…";
+
+// The base of the relative imports of a schema: the URL of its file, when it
+// is the schema of the example of a manifest loaded in the tab
+function importBase(validator, text) {
+  if (!hasRelativeImports(text) || loadedExample?.validator !== validator) return undefined;
+  return loadedExample.example.inputs.schema?.url;
+}
+
+// A new session with the settings, for the schemas with imports
+function freshSession(config) {
+  const rudof = new rudofModule.Rudof(rudofConfig(config));
+  configStamps.set(rudof, settingsStamp);
+  return rudof;
+}
+
+// A promise that the result shows while it waits, with its text
+function waiting(promise, text) {
+  promise.waiting = text;
+  return promise;
+}
+
 function validateShex() {
   const start = performance.now();
-  const data = dataSession("shex", { prefixes: schemaPrefixes($("shex-schema").value) });
-  data.rudof.readShex($("shex-schema").value, $("shex-schema-format").value);
-  data.rudof.readShapemap($("shex-shapemap").value);
-  return validation(data, () => data.rudof.validateShex(), () => data.rudof.validateShexAsync(), (report) => shexResult(report, start));
+  const schema = $("shex-schema").value;
+  const format = $("shex-schema-format").value;
+  // With imports, rudof gets them first (readShexAsync), in a new session
+  const imports = hasShexImports(schema, format);
+  const data = dataSession("shex", { prefixes: schemaPrefixes(schema), fresh: imports });
+  const validate = () => {
+    data.rudof.readShapemap($("shex-shapemap").value);
+    return validation(data, () => data.rudof.validateShex(), () => data.rudof.validateShexAsync(), (report) => shexResult(report, start));
+  };
+  if (!imports) {
+    data.rudof.readShex(schema, format);
+    return validate();
+  }
+  const read = readShexSchema(data.rudof, schema, format, importBase("shex", schema));
+  return waiting(
+    read.then(validate).then((result) => ({ ...result, session: data.rudof })),
+    READING_IMPORTS,
+  );
 }
 
 function shexResult(report, start) {
@@ -1450,8 +1500,17 @@ function readSchema(language) {
   const rudof = session(`${language}-schema`);
   const start = performance.now();
   rudof.resetAll();
-  if (language === "shex") rudof.readShex($("shex-schema").value, $("shex-schema-format").value);
-  else {
+  if (language === "shex") {
+    const schema = $("shex-schema").value;
+    const format = $("shex-schema-format").value;
+    if (hasShexImports(schema, format)) {
+      // With its imports, in a new session (see validateShex)
+      const fresh = freshSession();
+      const result = () => ({ kind: "ok", millis: performance.now() - start, verdict: schemaVerdict(language), session: fresh });
+      return waiting(readShexSchema(fresh, schema, format, importBase("shex", schema)).then(result), READING_IMPORTS);
+    }
+    rudof.readShex(schema, format);
+  } else {
     // The shapes of the RDF data, when there is no shapes graph
     if (shapesOfData()) readTabData(rudof, "shacl");
     readShaclShapes(rudof);
@@ -1718,7 +1777,7 @@ async function run(prefix) {
     }
     let result = validate();
     if (result instanceof Promise) {
-      if (!endpoint) showResult(prefix, { verdict: "Waiting for the endpoint…", kind: "running", output: "" });
+      if (!endpoint) showResult(prefix, { verdict: result.waiting ?? "Waiting for the endpoint…", kind: "running", output: "" });
       result = await result;
       if (running[prefix] !== token) return;
     }

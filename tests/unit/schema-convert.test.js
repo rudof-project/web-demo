@@ -5,7 +5,7 @@
 import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { Rudof, RudofConfig } from "@rudof/rudof";
-import { LANGUAGES, TARGETS, CONVERSIONS, DEFAULT_TARGET, canConvert, readSchema, convertSchema, sourceLabel, targetLabel, asSource } from "../../schema-convert.js";
+import { LANGUAGES, TARGETS, CONVERSIONS, DEFAULT_TARGET, canConvert, readSchema, convertSchema, sourceLabel, targetLabel, asSource, hasShexImports, hasRelativeImports, readShexSchema, IMPORTS_NEED_ENDPOINTS } from "../../schema-convert.js";
 import { dctapConfig } from "../../dctap.js";
 
 const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
@@ -31,6 +31,35 @@ function convert(language, to, format) {
 const available = Object.keys(LANGUAGES).flatMap((language) =>
   CONVERSIONS[language].flatMap((to) => TARGETS[to].formats.filter(([, , ok]) => ok).map(([format]) => [language, to, format])),
 );
+
+describe("the imports of ShEx schemas", () => {
+  it("are found in ShExC, ShExJ and ShExR", () => {
+    expect(hasShexImports("prefix : <http://e/>\nIMPORT <http://e/book.shex>\n:A {}", "shexc")).toBe(true);
+    expect(hasShexImports("prefix : <http://e/>\nimport<book.shex>", "shexc")).toBe(true);
+    expect(hasShexImports("prefix : <http://e/>\n:A { :importance . }", "shexc")).toBe(false);
+    expect(hasShexImports('{"type": "Schema", "imports": ["http://e/book.shex"]}', "shexj")).toBe(true);
+    expect(hasShexImports('{"type": "Schema", "imports": []}', "shexj")).toBe(false);
+    expect(hasShexImports("not JSON", "shexj")).toBe(false);
+    expect(hasShexImports("[] a shex:Schema ; shex:imports <http://e/book.shex> .", "turtle")).toBe(true);
+  });
+
+  it("can be relative to the base of the schema", () => {
+    expect(hasRelativeImports("IMPORT <book.shex>")).toBe(true);
+    expect(hasRelativeImports("IMPORT <https://e/book.shex>")).toBe(false);
+  });
+
+  it("need readShexAsync, which only rudof with endpoints has", () => {
+    // The web build of rudof: a schema without imports is read as before
+    const rudof = new Rudof();
+    expect(readShexSchema(rudof, "prefix : <http://e/>\n:A {}", "shexc")).toBeUndefined();
+    expect(() => readShexSchema(rudof, "prefix : <http://e/>\nIMPORT <http://e/b.shex>\n:A {}", "shexc")).toThrow(IMPORTS_NEED_ENDPOINTS);
+    // With readShexAsync: a promise, with the base of the imports
+    const calls = [];
+    const promise = readShexSchema({ readShexAsync: async (...args) => calls.push(args) }, "IMPORT <b.shex>", "shexc", "https://e/a.shex");
+    expect(promise).toBeInstanceOf(Promise);
+    expect(calls).toEqual([["IMPORT <b.shex>", "shexc", "https://e/a.shex"]]);
+  });
+});
 
 describe("the conversions rudof can do", () => {
   it.each(available)("%s → %s (%s)", (language, to, format) => {

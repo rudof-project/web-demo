@@ -107,13 +107,48 @@ export function targetLabel({ to, format }) {
   return formats.length > 1 ? `${label} (${formatLabel(formats, format)})` : label;
 }
 
+// Whether a ShEx schema imports other schemas: IMPORT <iri> in ShExC,
+// "imports" in ShExJ, shex:imports in ShExR (RDF)
+export function hasShexImports(text, format) {
+  if (format === "shexc") return /^\s*import\s*</im.test(text);
+  if (format === "shexj") {
+    try {
+      const imports = JSON.parse(text).imports;
+      return Array.isArray(imports) && imports.length > 0;
+    } catch {
+      return false;
+    }
+  }
+  return /shex:imports\b|ns\/shex#imports>/.test(text);
+}
+
+// Whether a ShExC schema imports a schema by a relative IRI, which is
+// resolved against the base of the schema
+export const hasRelativeImports = (text) => /^\s*import\s*<(?![a-z][\w+.-]*:)/im.test(text);
+
+// Why the schemas that a schema imports can't be read: rudof gets them with
+// readShexAsync, which only rudof with endpoints has (it needs JSPI)
+export const IMPORTS_NEED_ENDPOINTS =
+  "This schema imports other schemas (IMPORT). rudof can get them only in browsers with JSPI (Chrome and Edge 137 or later), with rudof with endpoints, which this page could not load.";
+
+// Reads a ShEx schema in a rudof session: with its imports (a promise, when
+// it has imports), which rudof gets with fetch. `base` resolves relative
+// imports.
+export function readShexSchema(rudof, text, format, base) {
+  if (!hasShexImports(text, format)) return rudof.readShex(text, format);
+  if (typeof rudof.readShexAsync !== "function") throw new Error(IMPORTS_NEED_ENDPOINTS);
+  return rudof.readShexAsync(text, format, base);
+}
+
 // Reads a schema in a rudof session (to check it, and to convert it after):
-// source is { language, format, text, config }, where config is the
-// configuration of rudof for DCTAP (its prefixes, see dctap.js).
-export function readSchema(rudof, { language, format, text, config }) {
+// source is { language, format, text, config, base }, where config is the
+// configuration of rudof for DCTAP (its prefixes, see dctap.js), and base the
+// base of the imports of a ShEx schema. A promise when a ShEx schema has
+// imports.
+export function readSchema(rudof, { language, format, text, config, base }) {
   rudof.resetAll();
   if (config) rudof.updateConfig(config);
-  if (language === "shex") rudof.readShex(text, format);
+  if (language === "shex") return readShexSchema(rudof, text, format, base);
   else if (language === "shacl") rudof.readShacl(text, format);
   else if (language === "dctap") rudof.readDctap(text, "csv");
   else if (language === "pgschema") rudof.readPgschema(text);
@@ -138,6 +173,9 @@ export function convertSchema(rudof, shexSession, source, { to, format }) {
   if (to === "shacl") return rudof.serializeShacl(format);
   if (to === "dctap") return rudof.serializeDctap(format === "dctap-json" ? "json" : "internal");
   if (to === "pgschema") return rudof.serializePgschema("compact");
+  // A ShEx schema to ShEx or UML: from the schema read (with its imports)
+  if (source.language === "shex" && to === "uml") return { plantuml: rudof.serializeCurrentShex("plantuml") };
+  if (source.language === "shex" && to === "shex") return rudof.serializeCurrentShex(format);
   // ShEx, and what rudof makes from ShEx
   const shexj = toShexj(rudof, source);
   if (to === "sparql") return shexSession.convertSchemas(shexj, "shex", "sparql", "shexj", "internal");

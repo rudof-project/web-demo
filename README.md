@@ -94,6 +94,29 @@ can't be chosen. A DCTAP profile has its prefixes and its table view, as in
 the DCTAP tab of Validate. **Use as input** reads the result as the schema,
 when it is a schema in a format the tab reads.
 
+## ShEx imports
+
+A ShEx schema can import other schemas (`IMPORT <iri>` in ShExC, `imports`
+in ShExJ). Since rudof 0.3.31, rudof with endpoints gets them with `fetch`
+(`readShexAsync`, which goes through `setFetch` too), so the page reads a
+schema with imports with it ([`schema-convert.js`](schema-convert.js),
+`readShexSchema`): in the ShEx tab (validations, also on endpoints, and
+**Convert schema**) and in the Schema tab. Schemas without imports are read
+as before (`readShex`). While rudof gets the imports, the result says
+"Reading the imported schemas…". A schema with imports is read in a new
+session: a session that waits can't do anything else.
+
+- The servers of the imported schemas must allow other sites to read them
+  ([CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)).
+- Relative imports (`IMPORT <book.shex>`) are relative to the file of the
+  schema, when it is the schema of an example of a manifest.
+- What rudof writes keeps the imports (`IMPORT`, `imports`): ShEx in other
+  formats, and UML diagrams, are written from the schema read, with its
+  imports. Conversions that read the schema again (ShEx to SPARQL) can't get
+  the imports yet.
+- Only rudof with endpoints has `readShexAsync` (it needs JSPI): in Firefox
+  and Safari, the page says that the imports need it.
+
 ## DCTAP
 
 The DCTAP tab of Validate reads a
