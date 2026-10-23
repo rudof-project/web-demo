@@ -16,7 +16,7 @@ import { loadSettings, saveSettings, configWithSettings, settingsEndpoints, sett
 import { setupSettingsDialog } from "./settings-dialog.js";
 import { DATA_TABS, setupExtraData, addData, extraData, clearExtraData } from "./extra-data.js";
 import { parseBoxTable } from "./box-table.js";
-import { setupInputSources, setSource, setText, isUrlSource, urlOf, resolvedUrlOf, urlInputsIn, readUrlInputs, showResolved } from "./input-source.js";
+import { setupInputSources, setSource, setText, isUrlSource, urlOf, resolvedUrlOf, urlInputsIn, readUrlInput, readUrlInputs, showResolved } from "./input-source.js";
 import { startLog, loggingFetch, logSummary, logTime, limitsText, renderQueries, isStopping } from "./endpoint-log.js";
 import { LANGUAGES, TARGETS, DEFAULT_TARGET, canConvert, readSchema as readAnySchema, readShexSchema, hasShexImports, hasRelativeImports, convertSchema, sourceLabel, targetLabel, asSource } from "./schema-convert.js";
 import { devDependencies } from "./package.json";
@@ -55,6 +55,10 @@ const URL_INPUTS = [
   "rdf-data", "convert-schema", "shex-data", "shex-schema", "shacl-data", "shacl-shapes",
   "dctap-data", "dctap-schema", "pgschema-schema", "sparql-data", "sparql-query",
 ];
+// The inputs that can be shown as a diagram (Visualize): the RDF data, and
+// the ShEx schema
+const VISUAL_INPUTS = { "rdf-data": "rdf", "shex-data": "rdf", "shacl-data": "rdf", "dctap-data": "rdf", "sparql-data": "rdf", "shex-schema": "shex" };
+
 // The prefixes of the prefixed names of the URL of an input: common ones,
 // and those of the endpoint of its tab, which win
 function urlPrefixes(id) {
@@ -67,6 +71,7 @@ function urlPrefixes(id) {
 // Writes a text in an input (an example, a result used as input…): the
 // input is text then, and no more a URL
 function setInputText(id, text) {
+  if (id in VISUAL_INPUTS) setVisual(id, false);
   if (URL_INPUTS.includes(id)) setText(document, id, text);
   else $(id).value = text;
 }
@@ -424,6 +429,7 @@ changeConvertLanguage();
 refreshKnownEndpoints();
 setupExtraData(document, { onChange: updatePermalink });
 setupInputSources(document, URL_INPUTS, { prefixesOf: urlPrefixes, onChange: updatePermalink });
+setupVisualInputs();
 restoreInputs();
 showEndpointUse();
 showShaclOptions();
@@ -550,15 +556,100 @@ function loadPlantuml() {
   return plantuml;
 }
 
-async function plantumlSvg(source) {
-  const { renderToString } = await loadPlantuml();
-  return new Promise((resolve, reject) =>
-    renderToString(source.split(/\r\n|\r|\n/), resolve, (message) => reject(new Error(message))),
-  );
+// PlantUML draws one diagram at a time: two at once, and one never ends
+let plantumlQueue = Promise.resolve();
+
+function plantumlSvg(source) {
+  const svg = plantumlQueue.then(async () => {
+    const { renderToString } = await loadPlantuml();
+    return new Promise((resolve, reject) =>
+      renderToString(source.split(/\r\n|\r|\n/), resolve, (message) => reject(new Error(message))),
+    );
+  });
+  plantumlQueue = svg.catch(() => {});
+  return svg;
 }
 
 // The diagram being drawn in each result box, so that only the last one is shown.
 const diagrams = new WeakMap();
+
+// Inputs as diagrams: Visualize, next to the RDF data and the ShEx schema,
+// shows the input as the diagram that PlantUML draws of it (rudof writes it
+// in PlantUML: serializeData and serializeCurrentShex), in place of its
+// editor, and Edit shows the editor again. The RDF data is that of the tab,
+// with the RDF data added to it; an input given by a URL is read first.
+function setupVisualInputs() {
+  for (const [id, kind] of Object.entries(VISUAL_INPUTS)) {
+    const textarea = $(id);
+    const field = textarea.closest(".field");
+    const head = field.querySelector(".field-head");
+    const button = Object.assign(document.createElement("button"), {
+      type: "button",
+      className: "secondary small visualize",
+      id: `${id}-visualize`,
+      textContent: "Visualize",
+      title: kind === "rdf" ? "Show the RDF data as a diagram" : "Show the ShEx schema as a UML diagram",
+    });
+    button.addEventListener("click", () => setVisual(id, !field.classList.contains("visual")));
+    head.insertBefore(button, head.querySelector("select") ?? null);
+    const box = document.createElement("div");
+    box.className = "input-visual";
+    box.id = `${id}-visual`;
+    box.hidden = true;
+    box.innerHTML = `<div class="diagram-tools"><button type="button" class="link" data-action="source">Show PlantUML source</button><a class="link" data-action="download" download="${id}.svg">Download SVG</a></div><pre class="visual-source" hidden></pre><div class="diagram-image"></div>`;
+    const sourceButton = box.querySelector('[data-action="source"]');
+    sourceButton.addEventListener("click", () => {
+      const pre = box.querySelector(".visual-source");
+      pre.hidden = !pre.hidden;
+      sourceButton.textContent = pre.hidden ? "Show PlantUML source" : "Hide PlantUML source";
+    });
+    field.querySelector(".field-head").after(box);
+    // Text or URL: the input, to edit
+    $(`${id}-source`)?.addEventListener("click", () => setVisual(id, false));
+  }
+}
+
+// Shows an input as a diagram, or its editor
+async function setVisual(id, visual) {
+  const field = $(id).closest(".field");
+  const box = $(`${id}-visual`);
+  const button = $(`${id}-visualize`);
+  if (!box) return;
+  field.classList.toggle("visual", visual);
+  box.hidden = !visual;
+  button.textContent = visual ? "Edit" : "Visualize";
+  button.title = visual ? "Edit the input again" : VISUAL_INPUTS[id] === "rdf" ? "Show the RDF data as a diagram" : "Show the ShEx schema as a UML diagram";
+  button.setAttribute("aria-pressed", String(visual));
+  if (!visual) {
+    diagrams.set(box, null); // a diagram still being drawn is not shown
+    return;
+  }
+  const image = box.querySelector(".diagram-image");
+  const note = (text, className = "diagram-status") => image.replaceChildren(Object.assign(document.createElement("p"), { className, textContent: text }));
+  const token = {};
+  diagrams.set(box, token);
+  box.querySelector(".visual-source").textContent = "";
+  try {
+    note("Reading the input…");
+    if (isUrlSource(id)) await readUrlInput(document, id);
+    const rudof = session(`${id}-visual`);
+    rudof.resetAll();
+    let source;
+    if (VISUAL_INPUTS[id] === "rdf") {
+      readTabData(rudof, id.replace(/-data$/, ""));
+      source = rudof.serializeData("plantuml");
+    } else {
+      const schema = $(id).value;
+      await readShexSchema(rudof, schema, $(`${id}-format`).value, importBase("shex", schema));
+      source = rudof.serializeCurrentShex("plantuml");
+    }
+    if (diagrams.get(box) !== token) return;
+    box.querySelector(".visual-source").textContent = source;
+    await drawDiagram(box, source);
+  } catch (e) {
+    if (diagrams.get(box) === token) note(`Could not visualize it: ${e.message ?? e}`, "diagram-status error");
+  }
+}
 
 async function drawDiagram(box, source) {
   const image = box.querySelector(".diagram-image");

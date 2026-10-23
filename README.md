@@ -49,6 +49,23 @@ The inputs with a URL: the RDF data of the RDF, ShEx, SHACL, DCTAP and SPARQL
 tabs, the ShEx schema, the shapes graph, the DCTAP profile, the PGSchema
 schema, the schema of the Schema tab and the SPARQL query.
 
+## Inputs as diagrams
+
+**Visualize**, next to the format menu of the RDF data (of the RDF, ShEx,
+SHACL, DCTAP and SPARQL tabs) and of the ShEx schema, shows the input as a
+diagram in place of its editor. rudof writes the diagram in PlantUML
+(`serializeData` and `serializeCurrentShex`), and PlantUML draws it, as for
+the UML diagrams of the results. The button is then **Edit**, which shows the
+editor again.
+
+- The RDF data is that of the tab, with the RDF data added to it. An input
+  given by a URL is read first. The relative imports of a ShEx schema are
+  read too.
+- **Show PlantUML source** shows the source of the diagram, and **Download
+  SVG** saves the diagram.
+- When the input has an error, the box says it.
+- An example, or a result used as input, shows the editor again.
+
 ## Editors
 
 The inputs of the demo are [CodeMirror 6](https://codemirror.net/) editors,

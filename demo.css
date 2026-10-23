@@ -635,6 +635,17 @@ a.link:not([href]) { color: var(--muted); pointer-events: none; }
 .diagram-image { overflow: auto; padding: 0.75rem; max-height: 40rem; }
 .diagram-image img { display: block; max-width: 100%; height: auto; background: #fff; border-radius: 4px; padding: 0.5rem; }
 .diagram-status { margin: 0; color: var(--muted); font-size: 0.9em; }
+/* An input as a diagram (Visualize): the diagram takes the place of its
+   editor (and of the RDF data added to it) */
+button.visualize { padding: 0.15rem 0.6rem; font-size: 0.85em; }
+button.visualize[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.field.visual > .cm-editor, .field.visual > textarea, .field.visual > .url-box,
+.field.visual > .table-view-cells, .field.visual > .extra-data-list, .field.visual > .add-data { display: none !important; }
+.input-visual { display: flex; flex-direction: column; min-height: 16rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+.input-visual[hidden] { display: none; }
+.input-visual .diagram-image { flex: 1; }
+.input-visual .visual-source { margin: 0; padding: 0.6rem 0.75rem; max-height: 16rem; overflow: auto; border-bottom: 1px solid var(--border); font: 12px/1.4 var(--mono); white-space: pre; }
+.input-visual .visual-source[hidden] { display: none; }
 .diagram-status.error { color: var(--fail-text); }
 /* In the RDF converter the box has a fixed height: the diagram scrolls */
 .result.converted .diagram { flex: 1; min-height: 0; display: flex; flex-direction: column; }
