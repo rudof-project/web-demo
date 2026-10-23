@@ -682,17 +682,26 @@ for (const diagram of document.querySelectorAll(".diagram")) {
 
 let crashed = false;
 
+// A stack overflow: "Maximum call stack size exceeded" (Chrome, Safari),
+// "too much recursion" (Firefox)
+const isStackOverflow = (e) => e instanceof RangeError || e?.name === "InternalError";
+
 function showError(prefix, e) {
-  // A panic in Rust aborts the WebAssembly module, which can't be used again.
-  if (e instanceof WebAssembly.RuntimeError) {
+  // A panic in Rust aborts the WebAssembly module, and a stack overflow in
+  // it leaves its objects in use: it can't be used again. The page loads
+  // rudof again.
+  if (e instanceof WebAssembly.RuntimeError || isStackOverflow(e)) {
     crashed = true;
-    setStatus("error", "rudof stopped working: reload the page to continue");
-    for (const b of document.querySelectorAll('button[id$="-validate"]')) b.disabled = true;
+    const why = isStackOverflow(e)
+      ? `rudof ran out of stack (${e.message}). A cause can be a cycle of shape references with no triple constraint between them, ` +
+        "such as :A @:B AND { … } and :B @:A AND { … }, which ShEx doesn't allow."
+      : `rudof crashed (${e.message}).`;
     showResult(prefix, {
       verdict: "Internal error",
       kind: "error",
-      output: `rudof crashed (${e.message}). Please reload the page, and report the input at\nhttps://github.com/rudof-project/rudof/issues`,
+      output: `${why}\nPlease report the input at https://github.com/rudof-project/rudof/issues`,
     });
+    restartRudof();
     return;
   }
   showResult(prefix, {
@@ -2287,6 +2296,34 @@ async function loadRudof(url) {
   return module;
 }
 
+// The URL of the module of rudof that the page uses, and the times it was
+// loaded again
+let rudofUrl;
+let restarts = 0;
+
+// Loads a new instance of rudof, after it crashed: the same URL with another
+// fragment is another module, with its own WebAssembly memory (its files come
+// from the cache). The sessions and the results of the old one are dropped.
+async function restartRudof() {
+  for (const b of document.querySelectorAll('button[id$="-validate"]')) b.disabled = true;
+  setStatus("loading", "rudof stopped working: loading it again…");
+  try {
+    restarts += 1;
+    const module = await loadRudof(`${rudofUrl}#restart-${restarts}`);
+    module.setFetch?.(pageFetch);
+    rudofModule = module;
+    for (const name of Object.keys(sessions)) delete sessions[name];
+    for (const prefix of Object.keys(last)) delete last[prefix];
+    crashed = false;
+    setStatus("ready", `rudof ${new rudofModule.Rudof().getVersion()} ready${rudofEndpoints ? ", with endpoints" : ""} (loaded again after an error)`);
+    for (const b of document.querySelectorAll('button[id$="-validate"]')) b.disabled = false;
+  } catch (e) {
+    console.error(e);
+    setStatus("error", "rudof stopped working: reload the page to continue");
+  }
+  updateConvertButtons();
+}
+
 try {
   let url = RUDOF_ENDPOINTS_MODULE;
   if (HAS_JSPI) {
@@ -2301,6 +2338,7 @@ try {
     url = RUDOF_MODULE;
     rudofModule = await loadRudof(url);
   }
+  rudofUrl = url;
   rudofEndpoints = typeof rudofModule.Rudof.prototype.useEndpoint === "function";
   // The requests of rudof to endpoints are logged (endpoint-log.js)
   rudofModule.setFetch?.(pageFetch);

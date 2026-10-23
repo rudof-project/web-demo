@@ -1,7 +1,7 @@
 // The results of validations and queries: in viewers, highlighted in their
 // format, and CSV results as text or as a table.
 
-import { test, expect, open } from "./fixtures.js";
+import { test, expect, open, setInput } from "./fixtures.js";
 
 const viewer = (page, prefix) => page.locator(`.cm-viewer[data-viewer-for="${prefix}-output"]`);
 
@@ -93,4 +93,25 @@ test.describe("CSV results", () => {
     await toggle(page, "pgschema").getByRole("button", { name: "CSV" }).click();
     await expect(viewer(page, "pgschema")).toBeVisible();
   });
+});
+
+// A cycle of shape references with no triple constraint between them, which
+// ShEx doesn't allow: rudof 0.3.33 runs out of stack. The page says it, and
+// loads rudof again, so that the tabs can run again.
+test("rudof is loaded again after it runs out of stack", async ({ page }) => {
+  await open(page, "#validate/shex");
+  await setInput(page, "shex-schema", "prefix : <http://example.org/>\nprefix xsd: <http://www.w3.org/2001/XMLSchema#>\n:User @:Person AND { :name xsd:string ; :knows . + }\n:Person @:User AND { :knows @:Person * }");
+  await setInput(page, "shex-data", 'prefix : <http://example.org/>\n:a :name "Alice" ; :knows :c .\n:b :name "Bob" ; :knows :c .\n:c :name "Carol" ; :knows :a .');
+  await setInput(page, "shex-shapemap", ":a@:User, :b@:User, :c@:User");
+  await page.locator("#shex-validate").click();
+  await expect(page.locator("#shex-result")).toHaveAttribute("data-kind", "error");
+  await expect(page.locator("#shex-result")).toContainText("rudof ran out of stack");
+  await expect(page.locator("#status")).toHaveText(/ready.*\(loaded again after an error\)/);
+  // The same validation says it again, and not "recursive use of an object"
+  await page.locator("#shex-validate").click();
+  await expect(page.locator("#status")).toHaveText(/ready/);
+  await expect(page.locator("#shex-result")).toContainText("rudof ran out of stack");
+  await setInput(page, "shex-schema", "prefix : <http://example.org/>\n:User { :name . }");
+  await page.locator("#shex-validate").click();
+  await expect(page.locator("#shex-result")).toHaveAttribute("data-kind", "ok");
 });
