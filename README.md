@@ -427,10 +427,7 @@ When rudof crashes (a panic, or it runs out of stack), its WebAssembly module
 can't be used again. The result says what happened, and the page loads a new
 instance of rudof (the same module, from the cache), so that the tabs can run
 again without a reload; the status says "loaded again after an error". The
-results shown before can't be reformatted. A cause of a stack overflow can be
-a ShEx schema with a cycle of shape references and no triple constraint
-between them (`:A @:B AND { … }` and `:B @:A AND { … }`), which ShEx doesn't
-allow.
+results shown before can't be reformatted.
 
 ### SHACL options
 

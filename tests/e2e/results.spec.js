@@ -1,6 +1,9 @@
 // The results of validations and queries: in viewers, highlighted in their
 // format, and CSV results as text or as a table.
 
+import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import { test, expect, open, setInput } from "./fixtures.js";
 
 const viewer = (page, prefix) => page.locator(`.cm-viewer[data-viewer-for="${prefix}-output"]`);
@@ -95,23 +98,52 @@ test.describe("CSV results", () => {
   });
 });
 
-// A cycle of shape references with no triple constraint between them, which
-// ShEx doesn't allow: rudof 0.3.33 runs out of stack. The page says it, and
-// loads rudof again, so that the tabs can run again.
+// rudof crashes: a panic, or a stack overflow, after which its WebAssembly
+// instance can't be used again (rudof 0.3.33 ran out of stack with a cycle of
+// shape references, such as :A @:A AND { :p . }). The test makes the
+// validations of rudof throw a RangeError while crashRudof is true: the page
+// says it, and loads rudof again, so that the tabs can run again.
 test("rudof is loaded again after it runs out of stack", async ({ page }) => {
+  const rudofPackage = dirname(createRequire(import.meta.url).resolve("@rudof/rudof/package.json"));
+  await page.route(/^https:\/\/cdn\.jsdelivr\.net\/npm\/@rudof\/rudof@[^/]+\/(endpoints\/)?web\/rudof_wasm\.js$/, async (route) => {
+    const build = route.request().url().includes("/endpoints/") ? "endpoints/web" : "web";
+    const code = await readFile(join(rudofPackage, build, "rudof_wasm.js"), "utf8");
+    const crash = `
+for (const name of ["validateShex", "validateShexAsync"]) {
+  const validate = Rudof.prototype[name];
+  if (!validate) continue;
+  Rudof.prototype[name] = function (...args) {
+    if (globalThis.crashRudof) throw new RangeError("Maximum call stack size exceeded");
+    return validate.apply(this, args);
+  };
+}`;
+    await route.fulfill({ body: code + crash, contentType: "text/javascript" });
+  });
   await open(page, "#validate/shex");
-  await setInput(page, "shex-schema", "prefix : <http://example.org/>\nprefix xsd: <http://www.w3.org/2001/XMLSchema#>\n:User @:Person AND { :name xsd:string ; :knows . + }\n:Person @:User AND { :knows @:Person * }");
-  await setInput(page, "shex-data", 'prefix : <http://example.org/>\n:a :name "Alice" ; :knows :c .\n:b :name "Bob" ; :knows :c .\n:c :name "Carol" ; :knows :a .');
-  await setInput(page, "shex-shapemap", ":a@:User, :b@:User, :c@:User");
+  await page.evaluate(() => (globalThis.crashRudof = true));
   await page.locator("#shex-validate").click();
   await expect(page.locator("#shex-result")).toHaveAttribute("data-kind", "error");
-  await expect(page.locator("#shex-result")).toContainText("rudof ran out of stack");
+  await expect(page.locator("#shex-result")).toContainText("rudof ran out of stack (Maximum call stack size exceeded)");
   await expect(page.locator("#status")).toHaveText(/ready.*\(loaded again after an error\)/);
   // The same validation says it again, and not "recursive use of an object"
   await page.locator("#shex-validate").click();
   await expect(page.locator("#status")).toHaveText(/ready/);
   await expect(page.locator("#shex-result")).toContainText("rudof ran out of stack");
-  await setInput(page, "shex-schema", "prefix : <http://example.org/>\n:User { :name . }");
+  // The validation of the example runs again: some nodes conform, and others don't
+  await page.evaluate(() => (globalThis.crashRudof = false));
   await page.locator("#shex-validate").click();
-  await expect(page.locator("#shex-result")).toHaveAttribute("data-kind", "ok");
+  await expect(page.locator("#shex-result")).toHaveAttribute("data-kind", "fail");
+  await expect(page.locator("#shex-result .verdict")).toHaveText("Does not conform: 1 of 3 nodes failed");
+});
+
+// rudof 0.3.33 ran out of stack with a cycle of shape references (with no
+// triple constraint between them) and two nodes or more; 0.3.35 validates it
+test("a cycle of shape references doesn't crash rudof (rudof 0.3.35)", async ({ page }) => {
+  await open(page, "#validate/shex");
+  await setInput(page, "shex-schema", "prefix : <http://example.org/>\nprefix xsd: <http://www.w3.org/2001/XMLSchema#>\n:User @:Person AND { :name xsd:string ; :knows . + }\n:Person @:User AND { :knows @:Person * }");
+  await setInput(page, "shex-data", 'prefix : <http://example.org/>\n:a :name "Alice" ; :knows :c .\n:b :name "Bob" ; :knows :c .\n:c :name "Carol" ; :knows :a .');
+  await setInput(page, "shex-shapemap", ":a@:User, :b@:User, :c@:User");
+  await page.locator("#shex-validate").click();
+  await expect(page.locator("#shex-result .verdict")).toHaveText(/^Conforms: 3 nodes validated/);
+  await expect(page.locator("#status")).not.toHaveText(/loaded again/);
 });

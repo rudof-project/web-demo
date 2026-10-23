@@ -692,10 +692,7 @@ function showError(prefix, e) {
   // rudof again.
   if (e instanceof WebAssembly.RuntimeError || isStackOverflow(e)) {
     crashed = true;
-    const why = isStackOverflow(e)
-      ? `rudof ran out of stack (${e.message}). A cause can be a cycle of shape references with no triple constraint between them, ` +
-        "such as :A @:B AND { … } and :B @:A AND { … }, which ShEx doesn't allow."
-      : `rudof crashed (${e.message}).`;
+    const why = isStackOverflow(e) ? `rudof ran out of stack (${e.message}).` : `rudof crashed (${e.message}).`;
     showResult(prefix, {
       verdict: "Internal error",
       kind: "error",
