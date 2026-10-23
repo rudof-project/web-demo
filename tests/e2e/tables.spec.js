@@ -161,3 +161,25 @@ test("the columns of the table of the DCTAP profile change their widths too", as
   await page.locator('#panel-dctap [data-view="table"]').first().click();
   expect(Math.abs((await width(1)) - (before[1] + 60))).toBeLessThanOrEqual(2);
 });
+
+test("the IRIs of the results are links, also those written as prefixed names", async ({ page }) => {
+  await open(page, "#query/sparql");
+  await setInput(page, "sparql-data", "prefix wd: <http://www.wikidata.org/entity/>\nprefix wdt: <http://www.wikidata.org/prop/direct/>\nwd:Q42 wdt:P31 wd:Q5685 .\nwd:Q42 <http://example.org/name> \"Douglas\" .");
+  await setInput(page, "sparql-query", "PREFIX wd: <http://www.wikidata.org/entity/>\nSELECT ?s ?o WHERE { ?s ?p ?o }");
+  await page.locator("#sparql-validate").click();
+  const table = page.locator("#sparql-result table.report");
+  const link = table.locator("a.iri", { hasText: "wd:Q5685" });
+  await expect(link).toHaveAttribute("href", "http://www.wikidata.org/entity/Q5685");
+  await expect(link).toHaveAttribute("target", "_blank");
+  // Literals are text
+  await expect(table.locator("td", { hasText: "Douglas" }).locator("a")).toHaveCount(0);
+  // The validations too: the prefixes of their inputs
+  await open(page, "#validate/shex");
+  await page.locator("#shex-validate").click();
+  const report = page.locator("#shex-result table.report");
+  await expect(report.locator("a.iri", { hasText: ":alice" }).first()).toHaveAttribute("href", "http://example.org/alice");
+  await expect(report.locator("a.iri", { hasText: ":Person" }).first()).toHaveAttribute("href", "http://example.org/Person");
+  // Sorting reads the text of the cells, as before
+  await report.locator("th").first().locator(".th-label").click();
+  await expect(report.locator("tbody tr td:first-child")).toHaveText([":alice", ":bob", ":carol"]);
+});

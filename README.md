@@ -278,8 +278,13 @@ The endpoints that rudof knows have their own limits in their TOML files
 endpoints of the settings (`[rdf.endpoints.<name>]`). The page gives them to
 rudof with the description of the endpoint (`endpointConfig`), so they win
 over the settings, as in rudof: Wikidata keeps 1100 ms when the settings say
-0. The result shows the limits of each run (and, in the SHACL tab, how SHACL
-gets the data).
+0. The result shows the limits that apply to each run: the time between two
+queries, the requests at the same time and the nodes in one query in the
+ShEx and DCTAP tabs; the time between two queries and how SHACL gets the data
+in the SHACL tab; the time between two queries in the SPARQL tab (one query).
+A limit that the endpoint sets itself is marked so ("1 query every 1.1 s at
+most (set by Wikidata)"); the others are those of the settings, or the
+defaults of rudof.
 
 SELECT results show in the table (with the prefixes of the query), as JSON
 or as CSV. The graphs of CONSTRUCT and DESCRIBE can be written in every RDF
@@ -385,6 +390,15 @@ in a spreadsheet ([`table-tools.js`](table-tools.js)):
   for the next table with the same columns (the tab run again, or another
   result format and back), until the page is reloaded. A double click on a
   border gives the table its widths again.
+
+The IRIs of the results are links, which open in another tab
+([`iri-links.js`](iri-links.js)): in the tables of validations, of SPARQL
+solutions and of CSV results, a cell `wd:Q5685` is a link to
+`http://www.wikidata.org/entity/Q5685`. The prefixed names are read with the
+prefixes declared in the inputs of the tab (its data, schema, shape map…),
+those of its endpoint, and common prefixes. Only http and https IRIs are
+links; literals and blank nodes are text, and sorting and filters read the
+text of the cells, as before.
 
 The other tables of the page have these borders too (`makeResizable` of
 [`table-tools.js`](table-tools.js)): the table view of the DCTAP profile

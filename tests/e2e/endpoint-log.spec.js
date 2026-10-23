@@ -190,7 +190,8 @@ prefix wdt: <http://www.wikidata.org/prop/direct/>
     await shexOnEndpoint(page, WIKIDATA, ":alice@:Person, :bob@:Person");
     await expect(result(page, "shex").locator(".verdict")).toHaveText(/^Conforms: 2 nodes validated/, { timeout: 30_000 });
     await switchTo(page, "shex", "queries").click();
-    await expect(view(page, "shex").locator(".queries-limits")).toContainText(/Limits: 1 query every 1\.1 s at most · 1 at a time · 1 node per query \(those of .+\)/);
+    // Only the limit that Wikidata sets is marked so
+    await expect(view(page, "shex").locator(".queries-limits")).toContainText("Limits: 1 query every 1.1 s at most (set by Wikidata) · 1 at a time · 1 node per query");
     const [a, b] = await sentAt(page, "shex");
     expect(b - a).toBeGreaterThanOrEqual(1);
   });
@@ -283,6 +284,8 @@ prefix wdt: <http://www.wikidata.org/prop/direct/>
     await expect(result(page, "sparql").locator(".verdict")).toHaveText(/^3 results/, { timeout: 30_000 });
     await expect(switchTo(page, "sparql", "queries")).toHaveText("Queries (1)");
     await switchTo(page, "sparql", "queries").click();
+    // One query: only the time between queries applies
+    await expect(view(page, "sparql").locator(".queries-limits span")).toHaveText("Limits: 1 query every 1.1 s at most");
     await expect(rows(page, "sparql").locator(".query-text")).toContainText("SELECT ?s WHERE");
   });
 });

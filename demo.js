@@ -9,7 +9,8 @@ import { dctapConfig, columnClass, parsePrefixes, BASIC_PREFIXES, BASE_CONFIG } 
 import { setupTableView } from "./table-view.js";
 import { parseCsv } from "./csv.js";
 import { makeTableTools } from "./table-tools.js";
-import { COMMON_PREFIXES, endpointFileURL, endpointToml } from "./prefixes.js";
+import { COMMON_PREFIXES, endpointFileURL, endpointToml, declaredPrefixes } from "./prefixes.js";
+import { iriLink, iriCode } from "./iri-links.js";
 import { setPrefixSource } from "./prefix-completion.js";
 import { loadSettings, saveSettings, configWithSettings, settingsEndpoints, settingsConfig, pageSetting, limitsOf } from "./settings.js";
 import { setupSettingsDialog } from "./settings-dialog.js";
@@ -488,7 +489,7 @@ try {
   // not remembered
 }
 
-function csvTable(text) {
+function csvTable(text, prefixes = []) {
   const [header = [], ...rows] = parseCsv(text);
   const el = (tag, props = {}, ...children) => {
     const e = Object.assign(document.createElement(tag), props);
@@ -499,7 +500,7 @@ function csvTable(text) {
     "table",
     { className: "report csv-result" },
     el("thead", {}, el("tr", {}, ...header.map((h) => el("th", {}, h)))),
-    el("tbody", {}, ...rows.map((row) => el("tr", {}, ...row.map((cell) => el("td", {}, el("code", {}, cell)))))),
+    el("tbody", {}, ...rows.map((row) => el("tr", {}, ...row.map((cell) => el("td", {}, iriCode(document, cell, prefixes)))))),
   ));
 }
 
@@ -515,7 +516,7 @@ function showCsvView(box, prefix, text = box.dataset.csvText === "true") {
   box.classList.toggle("csv-as-table", asTable);
   const table = box.querySelector(".csv-output");
   table.hidden = !asTable;
-  table.replaceChildren(...(asTable ? [csvTable(box.querySelector(".output").textContent)] : []));
+  table.replaceChildren(...(asTable ? [csvTable(box.querySelector(".output").textContent, tabPrefixes(box.id.replace(/-result$/, "")))] : []));
 }
 
 for (const button of document.querySelectorAll(".csv-switch button")) {
@@ -889,11 +890,14 @@ function endpointLimitsOf(endpoint) {
     // a name
   }
   const pick = (key, fallback) => own[key] ?? (Number.isInteger(general[key]) ? general[key] : fallback);
+  // The limits that the endpoint sets itself (the others are the settings,
+  // or the defaults of rudof)
+  const names = { min_request_interval_ms: "interval", max_concurrent_requests: "concurrent", max_nodes_per_query: "nodes" };
   return {
     interval: pick("min_request_interval_ms", local ? 0 : 1100),
     concurrent: pick("max_concurrent_requests", 1),
     nodes: pick("max_nodes_per_query", 20),
-    own: Object.keys(own).length > 0,
+    own: new Set(Object.keys(own).map((key) => names[key])),
   };
 }
 
@@ -1025,7 +1029,18 @@ function shexResult(report, start) {
 // of each row (Status of ShEx, Severity of SHACL) is marked.
 const CONFORMS = new Set(["OK", "Conforms"]);
 
-function validationTable(text) {
+// The prefixes that the results of a tab are written with: those declared
+// in its inputs (its data, schema, shape map…), which win, those of its
+// endpoint, and common ones
+function tabPrefixes(tab) {
+  const panel = $(`panel-${tab}`);
+  const declared = panel ? [...panel.querySelectorAll("textarea")].flatMap((t) => declaredPrefixes(t.value)) : [];
+  const endpoint = ENDPOINT_TABS.includes(tab) ? endpointOf(tab) : "";
+  return [...COMMON_PREFIXES, ...(endpoint ? prefixesOfEndpoint(endpointUrlOf(endpoint)) : []), ...declared];
+}
+
+// `prefixes`: those of its IRIs, which are links
+function validationTable(text, prefixes = []) {
   const parsed = parseBoxTable(text);
   if (!parsed) return text; // no results: rudof says so in text
   const el = (tag, props = {}, ...children) => {
@@ -1042,7 +1057,7 @@ function validationTable(text) {
       ...row.map((cell, i) => {
         if (i === verdict) return el("td", { className: "verdict-cell" }, cell);
         if (i === details) return el("td", {}, el("div", { className: "details" }, cell));
-        return el("td", {}, el("code", {}, cell));
+        return el("td", {}, iriCode(document, cell, prefixes));
       }),
     ),
   );
@@ -1053,7 +1068,7 @@ function validationTable(text) {
 
 function serializeShex() {
   const format = $("shex-result-format").value;
-  if (format === "table") return validationTable(session("shex").serializeShexValidationResults("details"));
+  if (format === "table") return validationTable(session("shex").serializeShexValidationResults("details"), tabPrefixes("shex"));
   return session("shex").serializeShexValidationResults(format);
 }
 
@@ -1085,7 +1100,7 @@ function validateDctap() {
 
 function serializeDctap() {
   const format = $("dctap-result-format").value;
-  if (format === "table") return validationTable(session("dctap").serializeShexValidationResults("details"));
+  if (format === "table") return validationTable(session("dctap").serializeShexValidationResults("details"), tabPrefixes("dctap"));
   return session("dctap").serializeShexValidationResults(format);
 }
 
@@ -1220,7 +1235,7 @@ function shaclResult(report, start) {
 
 function serializeShacl() {
   const format = $("shacl-result-format").value;
-  if (format === "table") return validationTable(session("shacl").serializeShaclValidationResults("details"));
+  if (format === "table") return validationTable(session("shacl").serializeShaclValidationResults("details"), tabPrefixes("shacl"));
   return session("shacl").serializeShaclValidationResults(format);
 }
 
@@ -1479,7 +1494,9 @@ function termCell(term, prefixes) {
     if (lang) note = `@${lang}`;
     else if (datatype && !plain.includes(datatype)) note = qualify(datatype);
   }
-  const code = Object.assign(document.createElement("code"), { textContent: text, title: term });
+  const code = Object.assign(document.createElement("code"), { title: term });
+  // An IRI is a link (of the http and https IRIs)
+  code.append(iri && /^https?:\/\//i.test(iri[1]) ? iriLink(document, iri[1], text) : text);
   // Sorted by the value, without its note
   td.dataset.sort = text;
   td.append(code);
@@ -1731,7 +1748,7 @@ function showEndpointLog(prefix, endpoint, onStop) {
     const limits = endpointLimitsOf(endpoint);
     const strategy = (strategyOf(prefix) === "dereference" ? " · the RDF of the IRIs of the nodes (dereference)" : "") + shaclFetchText(prefix);
     view.querySelector(".queries-limits span").textContent = rudofEndpoints
-      ? `Limits: ${limitsText(limits)}${strategy}${limits.own ? ` (those of ${endpointName(endpoint)})` : ""}`
+      ? `Limits: ${limitsText(limits, { parts: limitsOfTab(prefix), owner: knownEndpoints.find(([, url]) => url === endpointUrlOf(endpoint))?.[0] ?? endpointName(endpoint) })}${strategy}`
       : "The page sends the query to the endpoint itself.";
     view.querySelector(".queries-options").hidden = !rudofEndpoints;
     // The request that has the focus keeps it
@@ -1770,6 +1787,16 @@ function showEndpointLog(prefix, endpoint, onStop) {
   };
   draw(log);
   return log;
+}
+
+// The limits that apply to the requests of a tab: the SPARQL tab sends one
+// query; SHACL gets the data as its settings say (shaclFetchText); the
+// nodes of a query are those of a shape map, which dereferencing gets one
+// by one
+function limitsOfTab(prefix) {
+  if (prefix === "sparql" || prefix === "shacl") return ["interval"];
+  if (strategyOf(prefix) === "dereference") return ["interval", "concurrent"];
+  return ["interval", "concurrent", "nodes"];
 }
 
 // How SHACL gets the data of the endpoint (the settings of [shacl])

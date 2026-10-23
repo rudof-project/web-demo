@@ -471,6 +471,9 @@ caption.table-status { caption-side: bottom; text-align: left; padding: 0.4rem 0
 table.report th, table.report td.verdict-cell { white-space: nowrap; }
 /* The lines of the text of the cells, as rudof writes them */
 table.report td > code { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* The IRIs of the results, as links (iri-links.js) */
+a.iri { color: var(--accent); text-decoration: none; }
+a.iri:hover, a.iri:focus-visible { text-decoration: underline; }
 table.report td.verdict-cell { font-weight: 600; }
 table.report tr.ok td.verdict-cell { color: var(--ok-text); }
 table.report tr.fail td.verdict-cell { color: var(--fail-text); }

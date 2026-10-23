@@ -121,6 +121,11 @@ describe("the log of a run on an endpoint", () => {
     expect(limitsText({ interval: 1100, concurrent: 1, nodes: 20 })).toBe("1 query every 1.1 s at most · 1 at a time · 20 nodes per query");
     expect(limitsText({ interval: 250, concurrent: 4, nodes: 1 })).toBe("1 query every 250 ms at most · 4 at a time · 1 node per query");
     expect(limitsText({ interval: 0, concurrent: 1, nodes: 20 })).toMatch(/^no wait between queries/);
+    // Some of them, and those that the endpoint sets itself
+    expect(limitsText({ interval: 1100, concurrent: 1, nodes: 20, own: new Set(["interval"]) }, { owner: "Wikidata" })).toBe(
+      "1 query every 1.1 s at most (set by Wikidata) · 1 at a time · 20 nodes per query",
+    );
+    expect(limitsText({ interval: 1100, concurrent: 1, nodes: 20, own: new Set(["interval"]) }, { parts: ["interval"], owner: "Wikidata" })).toBe("1 query every 1.1 s at most (set by Wikidata)");
     expect([sizeText(512), sizeText(12345), sizeText(2_500_000)]).toEqual(["512 B", "12.3 kB", "2.5 MB"]);
     expect(answerText({ answer: '{"head":{}}', size: 11 })).toBe('{\n  "head": {}\n}');
     // Not all of it: as it is

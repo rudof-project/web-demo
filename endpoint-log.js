@@ -190,10 +190,16 @@ export const isStopping = (log) => stopping.has(log);
 export const logTime = (log) => `${(((log.end ?? log.now()) - log.start) / 1000).toFixed(1)} s`;
 
 // The limits of the requests to an endpoint, as text:
-// { interval, concurrent, nodes } in ms, requests and nodes
-export function limitsText({ interval, concurrent, nodes }) {
-  const every = interval ? `1 query every ${interval >= 1000 ? `${(interval / 1000).toFixed(1)} s` : `${interval} ms`} at most` : "no wait between queries";
-  return `${every} · ${concurrent} at a time · ${plural(nodes, "node", "nodes")} per query`;
+// { interval, concurrent, nodes } in ms, requests and nodes. `parts`: the
+// limits to say; `own`: those that the endpoint sets itself, which are
+// marked with the name of the endpoint (owner).
+export function limitsText({ interval, concurrent, nodes, own = new Set() }, { parts = ["interval", "concurrent", "nodes"], owner } = {}) {
+  const texts = {
+    interval: interval ? `1 query every ${interval >= 1000 ? `${(interval / 1000).toFixed(1)} s` : `${interval} ms`} at most` : "no wait between queries",
+    concurrent: `${concurrent} at a time`,
+    nodes: `${plural(nodes, "node", "nodes")} per query`,
+  };
+  return parts.map((part) => texts[part] + (own.has(part) && owner ? ` (set by ${owner})` : "")).join(" · ");
 }
 
 // A size in characters: "512 B", "12.3 kB", "1.2 MB"
