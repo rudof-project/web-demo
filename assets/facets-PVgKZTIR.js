@@ -1,0 +1,6 @@
+var e=`CREATE NODE TYPE ( ItemType : Item {
+    code: STRING CHECK REGEX "^[A-Z]{3}[0-9]{2}$",
+    price: INTEGER CHECK >= 1 AND <= 500,
+    stock: INTEGER CHECK > 0 AND < 100
+})
+`;export{e as default};

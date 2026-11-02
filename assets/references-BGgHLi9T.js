@@ -1,0 +1,13 @@
+var e=`CREATE NODE TYPE ( PersonType : Person {
+    name: STRING,
+    OPTIONAL age: INTEGER CHECK > 17
+}) ;
+CREATE NODE TYPE ( OrgType : Org {
+    label: STRING
+}) ;
+CREATE NODE TYPE ( CityType : City {
+    name: STRING
+}) ;
+CREATE EDGE TYPE (:@PersonType) -[WorksForType : worksFor]-> (:@OrgType) ;
+CREATE EDGE TYPE (:@OrgType) -[LocatedInType : locatedIn]-> (:@CityType)
+`;export{e as default};
