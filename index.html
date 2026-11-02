@@ -15,11 +15,11 @@
       if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
     } catch {}
   </script>
-  <script type="module" crossorigin src="./assets/main-KGnMO7hd.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/header-BXwSyrTG.js">
+  <script type="module" crossorigin src="./assets/main-DLZT5R5I.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/header-CkSoSk0J.js">
   <link rel="modulepreload" crossorigin href="./assets/dist-CjNGdU0X.js">
   <link rel="modulepreload" crossorigin href="./assets/dctap-DBredz1z.js">
-  <link rel="stylesheet" crossorigin href="./assets/header-DpKtJd2d.css">
+  <link rel="stylesheet" crossorigin href="./assets/header-BtQsECZD.css">
 </head>
 
 <body>
@@ -79,7 +79,7 @@
     <p class="intro">
       Convert RDF data and property graphs between formats, validate them with
       <strong>ShEx</strong>, <strong>SHACL</strong>, <strong>DCTAP</strong> or <strong>PGSchema</strong>,
-      and query RDF data with <strong>SPARQL</strong>.
+      query RDF data with <strong>SPARQL</strong>, and compare RDF graphs and schemas.
       Everything runs in your browser: rudof is compiled to WebAssembly, and
       nothing you type is sent anywhere, except the queries to the SPARQL endpoint you give.
       <span id="status" class="status loading" role="status">Loading rudof…</span>
@@ -117,6 +117,7 @@
         <button role="tab" id="tab-validate" aria-controls="panel-validate" aria-selected="false"
           tabindex="-1">Validate</button>
         <button role="tab" id="tab-query" aria-controls="panel-query" aria-selected="false" tabindex="-1">Query</button>
+        <button role="tab" id="tab-compare" aria-controls="panel-compare" aria-selected="false" tabindex="-1">Compare</button>
       </div>
       <label class="inline layout-choice" title="How the boxes of each tab are placed">Layout
         <select id="layout"></select>
@@ -954,6 +955,154 @@ ORDER BY ?name</textarea>
           <pre class="output" id="sparql-output" data-viewer="Query result" data-format-select="sparql-result-format"></pre>
           <div class="csv-output" hidden></div>
           <div class="table-output" hidden></div>
+        </div>
+      </section>
+    </section>
+
+    <!-- Compare: two RDF graphs, or two schemas (compare.js) -->
+    <section id="panel-compare" role="tabpanel" aria-labelledby="tab-compare" class="section" hidden>
+      <div class="tabs subtabs" role="tablist" aria-label="What is compared">
+        <button role="tab" id="tab-compare-data" aria-controls="panel-compare-data" aria-selected="true">Data</button>
+        <button role="tab" id="tab-compare-schemas" aria-controls="panel-compare-schemas" aria-selected="false" tabindex="-1">Schemas</button>
+      </div>
+
+      <!-- Two RDF graphs -->
+      <section id="panel-compare-data" role="tabpanel" aria-labelledby="tab-compare-data" class="panel">
+        <div class="toolbar compare-options">
+          <label class="inline">Data
+            <select id="compare-data-kind" aria-label="Kind of data"></select>
+          </label>
+          <label class="inline" title="How the blank nodes of a graph may be mapped to the terms of the other graph">Blank nodes
+            <select id="compare-data-mode" aria-label="Mapping of blank nodes"></select>
+          </label>
+        </div>
+        <div class="inputs two">
+          <div class="field">
+            <div class="field-head">
+              <label for="compare-data-1">First RDF data</label>
+              <select id="compare-data-1-format" aria-label="Format of the first RDF data">
+                <option value="turtle">Turtle</option>
+                <option value="ntriples">N-Triples</option>
+                <option value="rdfxml">RDF/XML</option>
+                <option value="jsonld">JSON-LD</option>
+                <option value="trig">TriG</option>
+                <option value="n3">N3</option>
+                <option value="nquads">N-Quads</option>
+              </select>
+            </div>
+            <textarea id="compare-data-1" data-editor data-format-select="compare-data-1-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
+prefix foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
+
+:alice a foaf:Person ;
+       foaf:name "Alice" ;
+       foaf:knows :bob, [ foaf:name "Carol" ] .
+
+:bob   a foaf:Person ;
+       foaf:name "Bob" .</textarea>
+          </div>
+          <div class="field">
+            <div class="field-head">
+              <label for="compare-data-2">Second RDF data</label>
+              <select id="compare-data-2-format" aria-label="Format of the second RDF data">
+                <option value="turtle">Turtle</option>
+                <option value="ntriples">N-Triples</option>
+                <option value="rdfxml">RDF/XML</option>
+                <option value="jsonld">JSON-LD</option>
+                <option value="trig">TriG</option>
+                <option value="n3">N3</option>
+                <option value="nquads">N-Quads</option>
+              </select>
+            </div>
+            <textarea id="compare-data-2" data-editor data-format-select="compare-data-2-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
+prefix foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
+
+:alice a foaf:Person ;
+       foaf:name "Alice" ;
+       foaf:knows :bob, _:carol .
+
+_:carol foaf:name "Carol" .
+
+:bob   a foaf:Person ;
+       foaf:name "Bob" ;
+       foaf:age 34 .</textarea>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button class="primary" id="compare-data-validate" disabled>Compare</button>
+          <button class="secondary" id="compare-data-swap" title="Swap the first and the second RDF data">Swap</button>
+          <label class="inline">Result format
+            <select id="compare-data-result-format">
+              <option value="table">Table</option>
+              <option value="report">Report</option>
+              <option value="json">JSON</option>
+            </select>
+          </label>
+          <span class="shortcut">Ctrl + Enter</span>
+        </div>
+        <div class="result" id="compare-data-result" hidden>
+          <div class="result-head"><span class="verdict"></span><span class="timing"></span></div>
+          <pre class="output" id="compare-data-output" data-viewer="Comparison" data-format-select="compare-data-result-format"></pre>
+          <div class="table-output" hidden></div>
+        </div>
+      </section>
+
+      <!-- Two schemas -->
+      <section id="panel-compare-schemas" role="tabpanel" aria-labelledby="tab-compare-schemas" class="panel" hidden>
+        <div class="toolbar compare-options">
+          <label class="inline">Language
+            <select id="compare-schemas-language" aria-label="Language of the schemas"></select>
+          </label>
+          <span class="hint">rudof compares two shapes, property by property. It doesn't say yet whether the schemas are
+            equivalent, or one contains the other.</span>
+        </div>
+        <div class="inputs two">
+          <div class="field">
+            <div class="field-head">
+              <label for="compare-schemas-1">First schema</label>
+              <select id="compare-schemas-1-format" aria-label="Format of the first schema"></select>
+            </div>
+            <textarea id="compare-schemas-1" data-editor data-format-select="compare-schemas-1-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
+prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
+
+:Person {
+  :name      xsd:string ;
+  :birthDate xsd:date ? ;
+  :knows     @:Person *
+}</textarea>
+            <label class="inline compare-shape">Shape
+              <input type="text" id="compare-schemas-1-label" spellcheck="false" autocomplete="off" placeholder="The first one" aria-label="Shape of the first schema">
+            </label>
+          </div>
+          <div class="field">
+            <div class="field-head">
+              <label for="compare-schemas-2">Second schema</label>
+              <select id="compare-schemas-2-format" aria-label="Format of the second schema"></select>
+            </div>
+            <textarea id="compare-schemas-2" data-editor data-format-select="compare-schemas-2-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
+prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
+
+:Person {
+  :name   xsd:string ;
+  :email  xsd:string ;
+  :knows  @:Person *
+}</textarea>
+            <label class="inline compare-shape">Shape
+              <input type="text" id="compare-schemas-2-label" spellcheck="false" autocomplete="off" placeholder="The first one" aria-label="Shape of the second schema">
+            </label>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button class="primary" id="compare-schemas-validate" disabled>Compare</button>
+          <button class="secondary" id="compare-schemas-swap" title="Swap the first and the second schema">Swap</button>
+          <!-- One format for now: the report of rudof -->
+          <select id="compare-schemas-result-format" aria-label="Result format" hidden>
+            <option value="report">Report</option>
+          </select>
+          <span class="shortcut">Ctrl + Enter</span>
+        </div>
+        <div class="result" id="compare-schemas-result" hidden>
+          <div class="result-head"><span class="verdict"></span><span class="timing"></span></div>
+          <pre class="output" id="compare-schemas-output"></pre>
         </div>
       </section>
     </section>
