@@ -1037,3 +1037,14 @@ table.csv-result td code { font-size: 12px; white-space: pre-wrap; overflow-wrap
 .compare-differences > p { margin: 0.6rem 0.75rem; }
 ul.compare-bnodes { margin: 0 0.75rem 0.75rem; padding-left: 1.2rem; }
 ul.compare-bnodes code { font-size: 0.9em; }
+
+/* Generate: the schema, the configuration and the result keep a height of
+   their own (their handle, or Full screen, makes them bigger), since the
+   data generated can be long */
+.cm-editor[data-editor-for="gen-schema"], .cm-editor[data-editor-for="gen-config"] { height: 18rem; min-height: 7.5rem; }
+#gen-result { height: 22rem; min-height: 8rem; }
+
+/* "Generate data", next to the label of the data of the other tabs */
+.field-head > label:first-child:has(+ .gen-data) { margin-right: 0; }
+.field-head > .gen-data { margin-right: auto; font-size: 0.85em; }
+.field-head > .gen-data:disabled { color: var(--muted); cursor: default; }

@@ -3,8 +3,9 @@
 This repo contains the source code of the Web demo based on rudof-lib WebAssembly features
 
 The demo converts RDF data and property graphs between formats, validates them
-with ShEx, SHACL, DCTAP or PGSchema, queries RDF data with SPARQL, and
-compares RDF graphs and schemas, all in the browser. rudof ([`@rudof/rudof`](https://www.npmjs.com/package/@rudof/rudof))
+with ShEx, SHACL, DCTAP or PGSchema, generates synthetic data from a SHACL, ShEx
+or PGSchema schema, queries RDF data with SPARQL, and compares RDF graphs and
+schemas, all in the browser. rudof ([`@rudof/rudof`](https://www.npmjs.com/package/@rudof/rudof))
 and PlantUML are loaded from jsDelivr when the page runs; everything else is
 built from this repo.
 
@@ -225,6 +226,48 @@ profile shows it as a table ([`table-view.js`](table-view.js), with
 [`csv.js`](csv.js)), whose cells can be edited: Enter goes to the cell below,
 **Add row** and × add and delete rows, and each change is written back to
 the CSV, which stays the input. The browser remembers the view.
+
+## Generate
+
+The **Generate** section (between Validate and Query) generates synthetic
+data from a schema with `generate` of rudof (since rudof 0.3.37), and
+validates it with the same schema right away. It has a tab for each schema
+language, **SHACL**, **ShEx** and **PGSchema**, which share their panel
+(`data-panel="gen"`): the tab chooses the language (`data-select`,
+`data-value`), and the permalink keeps it (`#generate/gen-shex`).
+[`generate.js`](generate.js) has the examples, the kinds of data and the
+views of the result.
+
+- **Example**: six models, each written in the three languages
+  ([`examples/generate/`](examples/generate/)): references, keys, facets,
+  labels, LUBM and LDBC SNB. They are written over the RDF encoding of a
+  property graph, so the three schemas generate the same graph, and SHACL
+  and ShEx also get the property graph. **Your own schema** is a small
+  template to edit.
+- **Kind of data** writes the generator's configuration (TOML, version 2),
+  which can be edited before **Generate**: valid data, dense or sparse data,
+  a target coherence, or data **with errors** (20% of the entities broken,
+  one constraint each).
+- **Show**: a summary (nodes, the property graph's nodes and edges, the
+  report, what the validator rejects, the nodes of each shape), the RDF data
+  (Turtle), the property graph and its type map, the ShapeMap, the error
+  report and the validation. With errors, the report says which nodes a
+  correct validator must reject (*direct*, the broken node, and *induced*, a
+  node that refers to it) and which changes leave the data valid (*trap*).
+  The verdict compares it with what the validator rejects. **Download**
+  saves the view shown.
+- **Validate with SHACL / ShEx / PGSchema** validates the data here, with
+  the example's schema in that language. **Open in SHACL / ShEx / PGSchema**
+  copies the data and that schema to the tab of Validate instead. PGSchema
+  needs a property graph, and a schema of your own has no other language.
+- The schema, the configuration and the result have a height of their own
+  (their handle, or Full screen, makes them bigger): the data can be long.
+
+The other tabs have a **Generate data** link next to their data: 20
+entities from the schema of the tab (ShEx in ShExC, SHACL in Turtle,
+PGSchema, with the ShapeMap or the type map), or, in the Data and Query
+tabs, from the first example of Generate. Each click generates another
+graph.
 
 ## SPARQL endpoints
 

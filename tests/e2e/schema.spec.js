@@ -8,7 +8,7 @@ const verdict = (page) => page.locator("#convert-result .verdict");
 
 test("is a section between Data and Validate", async ({ page }) => {
   await open(page, "#schema/convert");
-  await expect(page.locator(".tabs:not(.subtabs) > [role=tab]")).toHaveText(["Data", "Schema", "Validate", "Query", "Compare"]);
+  await expect(page.locator(".tabs:not(.subtabs) > [role=tab]")).toHaveText(["Data", "Schema", "Validate", "Generate", "Query", "Compare"]);
   await expect(page.locator("#panel-convert")).toBeVisible();
   await expect(editor(page, "convert-schema")).toHaveAttribute("data-format", "shexc");
 });

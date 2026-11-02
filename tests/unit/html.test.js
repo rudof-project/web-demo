@@ -19,7 +19,7 @@ describe("index.html", () => {
   });
 
   it("has input textareas", () => {
-    expect(textareas.length).toBe(24);
+    expect(textareas.length).toBe(26);
   });
 
   it("gives every textarea a unique id", () => {
@@ -71,6 +71,8 @@ describe("index.html", () => {
       "compare-data-2": "compare-data-2-format",
       "compare-schemas-1": "compare-schemas-1-format",
       "compare-schemas-2": "compare-schemas-2-format",
+      "gen-schema": "gen-language",
+      "gen-config": "toml",
       "settings-toml": "toml",
     });
   });

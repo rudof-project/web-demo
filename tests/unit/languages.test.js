@@ -43,8 +43,9 @@ describe("formats and languages", () => {
       "internal", "shex", "shacl", " ", "|",
       // The recursion semantics of SHACL
       "lfp", "gfp", "none",
-      // The report of a comparison
-      "report"];
+      // The report of a comparison, and the tables of the Generate tab: its
+      // summary, the error report and the validation of the generated data
+      "report", "summary", "validation"];
     for (const format of [...new Set([...values, ...fixed])].filter((f) => !outputs.includes(f))) {
       expect(FORMATS, format).toHaveProperty(format);
     }

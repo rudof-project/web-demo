@@ -78,7 +78,7 @@
     <p class="intro">
       Convert RDF data and property graphs between formats, validate them with
       <strong>ShEx</strong>, <strong>SHACL</strong>, <strong>DCTAP</strong> or <strong>PGSchema</strong>,
-      query RDF data with <strong>SPARQL</strong>, and compare RDF graphs and schemas.
+      generate synthetic data from their schemas, query RDF data with <strong>SPARQL</strong>, and compare RDF graphs and schemas.
       Everything runs in your browser: rudof is compiled to WebAssembly, and
       nothing you type is sent anywhere, except the queries to the SPARQL endpoint you give.
       <span id="status" class="status loading" role="status">Loading rudof…</span>
@@ -115,6 +115,8 @@
         <button role="tab" id="tab-schema" aria-controls="panel-schema" aria-selected="false" tabindex="-1">Schema</button>
         <button role="tab" id="tab-validate" aria-controls="panel-validate" aria-selected="false"
           tabindex="-1">Validate</button>
+        <button role="tab" id="tab-generate" aria-controls="panel-generate" aria-selected="false"
+          tabindex="-1">Generate</button>
         <button role="tab" id="tab-query" aria-controls="panel-query" aria-selected="false" tabindex="-1">Query</button>
         <button role="tab" id="tab-compare" aria-controls="panel-compare" aria-selected="false" tabindex="-1">Compare</button>
       </div>
@@ -138,6 +140,7 @@
           <div class="field">
             <div class="field-head">
               <label for="rdf-data">RDF data</label>
+              <button type="button" class="link gen-data" id="rdf-generate-data" data-target="rdf" title="Synthetic data from an example of the Generate tab (persons, organisations and cities), with rudof generate" disabled>Generate data</button>
               <select id="rdf-data-format" aria-label="Input format">
                 <option value="turtle">Turtle</option>
                 <option value="ntriples">N-Triples</option>
@@ -202,6 +205,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
           <div class="field">
             <div class="field-head">
               <label for="pg-data">Property graph</label>
+              <button type="button" class="link gen-data" id="pg-generate-data" data-target="pg" title="Synthetic data from an example of the Generate tab (persons, organisations and cities), with rudof generate" disabled>Generate data</button>
               <span class="format-tag" title="The only property graph format supported for now">YARS-PG</span>
             </div>
             <textarea id="pg-data" data-editor data-language="yarspg" spellcheck="false">(n1 {Person} [
@@ -353,6 +357,7 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
           <div class="field">
             <div class="field-head">
               <label for="shex-data">RDF data</label>
+              <button type="button" class="link gen-data" id="shex-generate-data" data-target="shex" title="Synthetic data from the ShEx schema of this tab (ShExC), with rudof generate" disabled>Generate data</button>
               <span class="hint" id="shex-data-unused" hidden>Not used: the validation runs on the endpoint</span>
               <select id="shex-data-format" aria-label="RDF data format">
                 <option value="turtle">Turtle</option>
@@ -477,6 +482,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
           <div class="field">
             <div class="field-head">
               <label for="shacl-data">RDF data</label>
+              <button type="button" class="link gen-data" id="shacl-generate-data" data-target="shacl" title="Synthetic data from the shapes of this tab (Turtle), with rudof generate" disabled>Generate data</button>
               <span class="hint" id="shacl-data-unused" hidden>Not used: the validation runs on the endpoint</span>
               <select id="shacl-data-format" aria-label="RDF data format">
                 <option value="turtle">Turtle</option>
@@ -774,6 +780,7 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
           <div class="field">
             <div class="field-head">
               <label for="pgschema-data">Property graph</label>
+              <button type="button" class="link gen-data" id="pgschema-generate-data" data-target="pgschema" title="Synthetic data from the PGSchema of this tab, with rudof generate" disabled>Generate data</button>
               <span class="format-tag" title="The only property graph format supported for now">YARS-PG</span>
             </div>
             <textarea id="pgschema-data" data-editor data-language="yarspg" spellcheck="false">(n1 {Person} [
@@ -861,6 +868,83 @@ e2: EnrolledInType</textarea>
       </section>
     </section>
 
+    <!-- Generate: synthetic data from a ShEx, SHACL or PGSchema schema -->
+    <section id="panel-generate" role="tabpanel" aria-labelledby="tab-generate" class="section" hidden>
+      <!-- The three tabs share their panel: each chooses the language of the schema -->
+      <div class="tabs subtabs" role="tablist" aria-label="Schema language">
+        <button role="tab" id="tab-gen-shacl" aria-controls="panel-gen" data-panel="gen" data-select="gen-language" data-value="turtle" aria-selected="true">SHACL</button>
+        <button role="tab" id="tab-gen-shex" aria-controls="panel-gen" data-panel="gen" data-select="gen-language" data-value="shexc" aria-selected="false" tabindex="-1">ShEx</button>
+        <button role="tab" id="tab-gen-pgschema" aria-controls="panel-gen" data-panel="gen" data-select="gen-language" data-value="pgschema" aria-selected="false" tabindex="-1">PGSchema</button>
+      </div>
+
+      <section id="panel-gen" role="tabpanel" aria-labelledby="tab-gen-shacl" class="panel">
+        <div class="toolbar">
+          <label class="inline">Example
+            <select id="gen-example"></select>
+          </label>
+          <label class="inline">Kind of data
+            <select id="gen-scenario"></select>
+          </label>
+          <span class="hint">The examples say the same in SHACL, ShEx and PGSchema, and generate the same graph.</span>
+        </div>
+        <div class="inputs two">
+          <div class="field">
+            <div class="field-head">
+              <label for="gen-schema">Schema</label>
+              <select id="gen-language" aria-label="Schema language" hidden>
+                <option value="turtle">SHACL (Turtle)</option>
+                <option value="shexc">ShEx (ShExC)</option>
+                <option value="pgschema">PGSchema</option>
+              </select>
+            </div>
+            <textarea id="gen-schema" data-editor data-format-select="gen-language" spellcheck="false"></textarea>
+          </div>
+          <div class="field">
+            <div class="field-head">
+              <label for="gen-config">Generator configuration</label>
+              <span class="format-tag" title="rudof generate's configuration, version 2; the kind of data writes it">TOML</span>
+            </div>
+            <textarea id="gen-config" data-editor data-language="toml" spellcheck="false"></textarea>
+          </div>
+        </div>
+        <div class="toolbar">
+          <label class="inline">Entities <input id="gen-entities" type="number" min="1" max="100000" value="60"></label>
+          <label class="inline">Seed <input id="gen-seed" type="number" min="0" value="7"></label>
+          <button class="primary" id="gen-validate" disabled>Generate</button>
+          <label class="inline">Show
+            <select id="gen-result-format">
+              <option value="summary">Summary</option>
+              <option value="turtle">RDF data (Turtle)</option>
+              <option value="yarspg">Property graph</option>
+              <option value="typemap">Type map</option>
+              <option value="shapemap">ShapeMap</option>
+              <option value="report">Error report</option>
+              <option value="validation">Validation</option>
+            </select>
+          </label>
+          <span class="shortcut">Ctrl + Enter</span>
+        </div>
+        <div class="result" id="gen-result" hidden>
+          <div class="result-head"><span class="verdict"></span><span class="timing"></span></div>
+          <pre class="output" id="gen-output" data-viewer="Generated data" data-format-select="gen-result-format"></pre>
+          <div class="table-output" hidden></div>
+        </div>
+        <div class="toolbar schema-tools">
+          <button class="secondary" id="gen-check-shacl" disabled>Validate with SHACL</button>
+          <button class="secondary" id="gen-check-shex" disabled>Validate with ShEx</button>
+          <button class="secondary" id="gen-check-pgschema" disabled>Validate with PGSchema</button>
+          <button class="secondary" id="gen-download" disabled>Download</button>
+          <span class="hint">Here, with the schema of the example in that language.</span>
+        </div>
+        <div class="toolbar schema-tools">
+          <button class="secondary" id="gen-to-shacl" disabled>Open in SHACL</button>
+          <button class="secondary" id="gen-to-shex" disabled>Open in ShEx</button>
+          <button class="secondary" id="gen-to-pgschema" disabled>Open in PGSchema</button>
+          <span class="hint">In the tabs of Validate, with the data and the schema.</span>
+        </div>
+      </section>
+    </section>
+
     <!-- Query: SPARQL over RDF data (GQL or Cypher over property graphs later) -->
     <section id="panel-query" role="tabpanel" aria-labelledby="tab-query" class="section" hidden>
       <div class="tabs subtabs" role="tablist" aria-label="Query language">
@@ -886,6 +970,7 @@ e2: EnrolledInType</textarea>
           <div class="field">
             <div class="field-head">
               <label for="sparql-data">RDF data</label>
+              <button type="button" class="link gen-data" id="sparql-generate-data" data-target="sparql" title="Synthetic data from an example of the Generate tab (persons, organisations and cities), with rudof generate" disabled>Generate data</button>
               <span class="hint" id="sparql-data-unused" hidden>Not used: the query runs on the endpoint</span>
               <select id="sparql-data-format" aria-label="RDF data format">
                 <option value="turtle">Turtle</option>

@@ -80,6 +80,19 @@ export const PANELS = {
     section: "validate",
     params: { schema: "pgschema-schema", data: "pgschema-data", "type-map": "pgschema-typemap", "result-format": "pgschema-result-format" },
   },
+  gen: {
+    section: "generate",
+    params: {
+      "gen-example": "gen-example",
+      "schema-format": "gen-language",
+      schema: "gen-schema",
+      "data-kind": "gen-scenario",
+      config: "gen-config",
+      entities: "gen-entities",
+      seed: "gen-seed",
+      "result-format": "gen-result-format",
+    },
+  },
   sparql: {
     section: "query",
     params: {
