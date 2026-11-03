@@ -2,7 +2,7 @@
 // querying (SPARQL) RDF data and property graphs with the @rudof/rudof npm
 // package (rudof compiled to WebAssembly), loaded from jsDelivr.
 
-import { PANELS, hasState, panelOfParams, stateParams, queryString, inputsOfParams } from "./permalink.js";
+import { PANELS, hasState, panelOfParams, stateParams, queryString, inputsOfParams, permalinkQuery, unpackParams, PACKED_PARAM } from "./permalink.js";
 import { setupLayout } from "./layout.js";
 import { queryEndpoint, queryPrefixes, solutionsCsv, endpointError, endpointConfig, PAGE_ENDPOINT, KNOWN_ENDPOINTS } from "./endpoint.js";
 import { dctapConfig, columnClass, parsePrefixes, BASIC_PREFIXES, BASE_CONFIG } from "./dctap.js";
@@ -201,7 +201,17 @@ function selectTabFromHash() {
 // the tab shown (see permalink.js), and the Permalink button copies the URL.
 // When the page opens, they are put back in their tab.
 
-const params = new URLSearchParams(location.search);
+// The inputs of a long permalink are compressed (permalink.js)
+const params = (() => {
+  const given = new URLSearchParams(location.search);
+  try {
+    return unpackParams(given);
+  } catch (e) {
+    console.warn("The inputs of the permalink can't be read (is the link complete?):", e);
+    given.delete(PACKED_PARAM);
+    return given;
+  }
+})();
 
 // A result format of SPARQL that is only there after a query is run
 let pendingSparqlFormat;
@@ -225,7 +235,7 @@ function permalinkURL() {
   if (DATA_TABS.includes(panel)) {
     extraData(panel).forEach(({ text, format }, i) => pairs.push([`data-${i + 2}`, text], [`data-${i + 2}-format`, format]));
   }
-  url.search = queryString(pairs);
+  url.search = permalinkQuery(pairs);
   url.hash = `${section}/${tab}`;
   return url.href;
 }
@@ -447,9 +457,8 @@ setupCompare();
 setupGenerate();
 restoreInputs();
 // The examples of Generate, and the first one, unless a permalink gave the
-// schema (the example and the kind of data of a permalink are chosen when
-// the menus have them)
-setupGenerateExamples(location.hash.startsWith("#generate") ? { example: params.get("gen-example") ?? undefined, kind: params.get("data-kind") ?? undefined } : {});
+// schema
+setupGenerateExamples();
 showEndpointUse();
 showShaclOptions();
 showShapesFromData();
@@ -1928,86 +1937,71 @@ async function generateText(input) {
 let generateEntry;
 let generateLoaded;
 
-// The example of the Example and Kind of data menus
-async function chosenGenerateEntry() {
-  const { sections } = await generateManifest();
-  const section = sections.find((s) => s.id === $("gen-example").value) ?? sections[0];
-  return section.kinds.find((e) => e.kind === $("gen-scenario").value) ?? section.kinds[0];
+// Says which example the tab has: its section (the example) and its label
+// (the kind of data), or that the schema is not one of an example
+function showGenerateExample() {
+  const entry = generateEntry;
+  const name = entry ? [entry.sections?.at(-1), entry.label].filter(Boolean).join(" · ") : "";
+  $("gen-example-name").textContent = name ? `Example: ${name}.` : "A schema of your own.";
 }
 
 // The schema of the example in the language of the tab, and its
-// configuration (or only its configuration)
-async function loadGenerateEntry({ schema = true } = {}) {
+// configuration
+async function loadGenerateEntry() {
   const entry = generateEntry;
   if (!entry) return;
   const format = $("gen-language").value;
   const language = GENERATE_LANGUAGES[format];
   try {
     const config = await generateText(entry.inputs.config ?? { text: "version = 2\n" });
-    const text = schema && entry.inputs[language] ? await generateText(entry.inputs[language]) : undefined;
+    const text = entry.inputs[language] ? await generateText(entry.inputs[language]) : "";
     // Another example or language may have been chosen meanwhile
     if (entry !== generateEntry || format !== $("gen-language").value) return;
-    if (schema) {
-      setInputText("gen-schema", text ?? "");
-      generateLoaded = { entry, language, schema: text ?? "" };
-    }
+    setInputText("gen-schema", text);
+    generateLoaded = { entry, language, schema: text };
     setInputText("gen-config", config);
+    showGenerateExample();
   } catch (e) {
     showResult("gen", { verdict: "Could not load the example", kind: "error", output: e.message ?? String(e) });
   }
 }
 
-// The menus of the examples and of the kinds of data: the sections of the
-// manifest, and the entries of the section chosen. `wanted`: the values to
-// choose, from a permalink.
-function showGenerateKinds(section, kind) {
-  setOptions($("gen-scenario"), section.kinds.map((e) => Object.assign(option(e.kind, e.label), { title: e.dataLabel ?? "" })), kind);
-}
-
-async function setupGenerateExamples(wanted = {}) {
+// The examples of the tab: the first one, or, when a permalink gave the
+// schema, the example that has it (and the kind of data of its
+// configuration), so that the other languages have it too
+async function setupGenerateExamples() {
   try {
     const { sections } = await generateManifest();
-    setOptions($("gen-example"), sections.map((s) => Object.assign(option(s.id, s.title), { title: s.comment ?? "" })), wanted.example ?? sections[0].id);
-    const section = sections.find((s) => s.id === $("gen-example").value);
-    showGenerateKinds(section, wanted.kind ?? section.kinds[0].kind);
-    generateEntry = await chosenGenerateEntry();
-    // The schema of a permalink stays, and is the example's when it is the same
-    if (!$("gen-schema").value.trim()) await loadGenerateEntry();
-    else {
-      const language = GENERATE_LANGUAGES[$("gen-language").value];
-      const own = generateEntry.inputs[language] && (await generateText(generateEntry.inputs[language]));
-      if (own === $("gen-schema").value) generateLoaded = { entry: generateEntry, language, schema: own };
+    // An example of a manifest was chosen meanwhile
+    if (generateEntry) return;
+    const schema = $("gen-schema").value;
+    if (!schema.trim()) {
+      generateEntry = sections[0].kinds[0];
+      await loadGenerateEntry();
+      return;
     }
+    const language = GENERATE_LANGUAGES[$("gen-language").value];
+    for (const { kinds } of sections) {
+      if (!kinds[0].inputs[language] || (await generateText(kinds[0].inputs[language])) !== schema) continue;
+      const configs = await Promise.all(kinds.map((e) => generateText(e.inputs.config ?? { text: "version = 2\n" })));
+      generateEntry = kinds[configs.indexOf($("gen-config").value)] ?? kinds[0];
+      generateLoaded = { entry: generateEntry, language, schema };
+      break;
+    }
+    showGenerateExample();
   } catch (e) {
-    setOptions($("gen-example"), [option("", "No examples", false)]);
+    $("gen-example-name").textContent = "No examples.";
     showResult("gen", { verdict: "Could not load the examples", kind: "error", output: e.message ?? String(e) });
   }
 }
 
 function setupGenerate() {
-  setOptions($("gen-example"), [option("", "Loading the examples…", false)]);
-  setOptions($("gen-scenario"), [option("", "Loading…", false)]);
-  // Another example: its kinds of data, its schema and its configuration
-  $("gen-example").addEventListener("change", async () => {
-    $("gen-example").querySelector('option[value="manifest"]')?.remove();
-    const { sections } = await generateManifest();
-    const section = sections.find((s) => s.id === $("gen-example").value);
-    if (!section) return;
-    showGenerateKinds(section, $("gen-scenario").value);
-    generateEntry = await chosenGenerateEntry();
-    loadGenerateEntry();
-  });
+  // Another language: the schema of the example in it
   $("gen-language").addEventListener("change", () => loadGenerateEntry());
   // The language of a permalink selects its tab
   $("gen-language").addEventListener("change", () => {
     const tab = document.querySelector(`#panel-generate [role="tab"][data-value="${$("gen-language").value}"]`);
     if (tab && tab.getAttribute("aria-selected") !== "true") selectTab(tab);
-  });
-  // Another kind of data: its configuration, and the schema stays
-  $("gen-scenario").addEventListener("change", async () => {
-    if (!$("gen-scenario").value) return;
-    generateEntry = await chosenGenerateEntry();
-    loadGenerateEntry({ schema: false });
   });
   // The generated data validated here with the schema of its example in
   // another language
@@ -2554,26 +2548,9 @@ function showSections(manifest, tree, chosen) {
 }
 
 // An example of action: generate in the Generate tab: its schema in its
-// language, its configuration, and its entities and seed. The menus choose
-// it when it is an example of the tab (the same entry of its manifest), or
-// say that it comes from the manifest.
+// language, its configuration, and its entities and seed
 async function chooseGenerateExample(example) {
-  const { sections } = await generateManifest();
-  const same = (e) => e.kind === example.kind && JSON.stringify(e.inputs) === JSON.stringify(example.inputs);
-  const section = sections.find((s) => s.kinds.some(same));
-  $("gen-example").querySelector('option[value="manifest"]')?.remove();
-  if (section) {
-    $("gen-example").value = section.id;
-    showGenerateKinds(section, example.kind);
-    $("gen-scenario").value = example.kind;
-    generateEntry = section.kinds.find(same);
-  } else {
-    const option = new Option(`From the manifest: ${example.label}`, "manifest");
-    $("gen-example").prepend(option);
-    $("gen-example").value = "manifest";
-    if ([...$("gen-scenario").options].some((o) => o.value === example.kind)) $("gen-scenario").value = example.kind;
-    generateEntry = example;
-  }
+  generateEntry = example;
   for (const name of ["entities", "seed"]) {
     if (example.inputs[name]?.text) $(`gen-${name}`).value = example.inputs[name].text;
   }

@@ -280,24 +280,27 @@ under them the **Generator configuration**, and the result is below.
 - The examples are in a manifest,
   [`examples/generate/manifest.yml`](examples/generate/manifest.yml), with
   the schemas next to it, which the build publishes with the page. Each
-  section is an example (its `id` names it in permalinks), and each entry
-  of a section a kind of data (`kind`), with `action: generate`, the schema
-  in each language (`shaclURL`, `shexURL`, `pgschemaURL`) and the
-  configuration of the generator (`config`). The **Examples** menu opens it
-  too (**Generate examples**): an entry of it opens the Generate tab, with
-  the example and the kind of data chosen. An example of `action: generate`
-  of another manifest also goes to the tab (**From the manifest** in the
-  Example menu); help.html documents the keys.
-- **Example**: the sections of the manifest, six models, each written in the
-  three languages: references, keys, facets, labels, LUBM and LDBC SNB. They
-  are written over the RDF encoding of a property graph, so the three
-  schemas generate the same graph, and SHACL and ShEx also get the property
-  graph. **Your own schema** is a small template to edit.
-- **Kind of data**: the entries of the section, which write the generator's
-  configuration (TOML, version 2), which can be edited before **Generate**:
-  valid data, dense or sparse data, a target coherence, or data **with
-  errors** (20% of the entities broken, one constraint each). Another kind
-  of data keeps the schema.
+  section is an example (with an `id`), and each entry of a section a kind
+  of data (`kind`), with `action: generate`, the schema in each language
+  (`shaclURL`, `shexURL`, `pgschemaURL`) and the configuration of the
+  generator (`config`). The **Examples** menu opens it (**Generate
+  examples**), and so does the link above the boxes: an entry of it opens
+  the Generate tab, with its schema and its configuration. An example of
+  `action: generate` of another manifest also goes to the tab; help.html
+  documents the keys.
+- The examples are six models, each written in the three languages:
+  references, keys, facets, labels, LUBM and LDBC SNB. They are written over
+  the RDF encoding of a property graph, so the three schemas generate the
+  same graph, and SHACL and ShEx also get the property graph. **Your own
+  schema** is a small template to edit. The kinds of data write the
+  generator's configuration (TOML, version 2), which can be edited before
+  **Generate**: valid data, dense or sparse data, a target coherence, or data
+  **with errors** (20% of the entities broken, one constraint each).
+- The line above the boxes says which example and kind of data the tab has
+  (the first one of the manifest at first). A permalink has the schema and
+  the configuration: when it opens, the example is the one with this schema
+  (and the kind of data the one with this configuration), so its other
+  languages are there too.
 - **Generated data** has the RDF data (Turtle), or, from a PGSchema, the
   property graph (YARS-PG); its menu shows the other one when the data has
   it (the examples of SHACL and ShEx have a property graph too). It can be
@@ -773,6 +776,15 @@ of its parameters (ShEx for `shape-map` or `schema`), so links in the style of
 shex.js (`?schema=…&data=…&shape-map=…`) open the ShEx tab. When a URL has an
 `example` and inputs too, the inputs of the URL are used: they are the example
 as it was edited.
+
+Servers refuse URLs that are too long (*414 URI Too Long*), and the inputs
+can be long (the schemas of Generate are up to 9,000 characters, 13,500 in a
+URL). When the query of a permalink is longer than 2,000 characters, its
+inputs go in one parameter, `z`: their query, compressed with deflate
+([fflate](https://github.com/101arrowz/fflate)) and written in base64url,
+about ten times shorter. `manifestURL` and `example` stay as they are.
+Opening the URL expands them; a link that was cut, and can't be expanded,
+opens the page without its inputs.
 
 The inputs are sent to the server of the page with the URL, and servers limit
 the length of URLs (often to about 8 KB), so very long inputs may not fit in

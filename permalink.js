@@ -1,6 +1,14 @@
 // Permalinks: the inputs and options of the tab shown, in the query of the
 // URL, e.g. ?schema=…&data=…&shape-map=…#validate/shex. demo.js writes them
 // after each operation, and reads them when the page opens.
+//
+// Servers refuse URLs that are too long (414 URI Too Long), and the inputs
+// of a tab can be long (the schemas of Generate). When the query is longer
+// than PACK_OVER characters, the inputs go in one parameter, z: their query,
+// compressed (deflate) and written in base64url. The kept parameters (the
+// manifest and its example) stay as they are.
+
+import { deflateSync, inflateSync, strToU8, strFromU8 } from "fflate";
 
 // The parameters of each tab, and the id of the input or select each one is
 // read from and written to. The tab is in the fragment of the URL; a URL
@@ -83,10 +91,8 @@ export const PANELS = {
   gen: {
     section: "generate",
     params: {
-      "gen-example": "gen-example",
       "schema-format": "gen-language",
       schema: "gen-schema",
-      "data-kind": "gen-scenario",
       config: "gen-config",
       entities: "gen-entities",
       seed: "gen-seed",
@@ -141,7 +147,46 @@ const baseName = (name) => (name.endsWith("-url") && STATE_PARAMS.has(name.slice
 
 // Whether the parameters have inputs or options of a tab.
 export function hasState(params) {
-  return [...params.keys()].some((name) => STATE_PARAMS.has(baseName(name)));
+  return params.has(PACKED_PARAM) || [...params.keys()].some((name) => STATE_PARAMS.has(baseName(name)));
+}
+
+// Long permalinks: the parameter of the compressed inputs, and the length of
+// the query from which they are compressed
+export const PACKED_PARAM = "z";
+export const PACK_OVER = 2000;
+
+function toBase64url(bytes) {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function fromBase64url(text) {
+  const binary = atob(text.replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(binary, (c) => c.charCodeAt(0));
+}
+
+// A text compressed, in base64url, and back
+export const packText = (text) => toBase64url(deflateSync(strToU8(text), { level: 9 }));
+export const unpackText = (packed) => strFromU8(inflateSync(fromBase64url(packed)));
+
+// The query of a permalink with these parameters ([name, value]): as it is,
+// or with the inputs compressed when it is long
+export function permalinkQuery(pairs) {
+  const query = queryString(pairs);
+  if (query.length <= PACK_OVER) return query;
+  const kept = pairs.filter(([name]) => KEPT_PARAMS.includes(name));
+  const inputs = pairs.filter(([name]) => !KEPT_PARAMS.includes(name));
+  return queryString([[PACKED_PARAM, packText(queryString(inputs))], ...kept]);
+}
+
+// The parameters of a permalink, with its compressed inputs expanded.
+// Throws when they can't be read (a link cut, or changed).
+export function unpackParams(params) {
+  if (!params.has(PACKED_PARAM)) return params;
+  const expanded = new URLSearchParams(unpackText(params.get(PACKED_PARAM)));
+  for (const [name, value] of params) if (name !== PACKED_PARAM) expanded.append(name, value);
+  return expanded;
 }
 
 // The tab of parameters without a fragment: the first one with a parameter

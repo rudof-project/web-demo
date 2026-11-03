@@ -982,15 +982,10 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
       </div>
 
       <section id="panel-gen" role="tabpanel" aria-labelledby="tab-gen-shacl" class="panel">
-        <div class="toolbar">
-          <label class="inline">Example
-            <select id="gen-example"></select>
-          </label>
-          <label class="inline">Kind of data
-            <select id="gen-scenario"></select>
-          </label>
-          <span class="hint">The examples say the same in SHACL, ShEx and PGSchema, and generate the same graph.</span>
-        </div>
+        <!-- The example of the tab, from its manifest (Examples › Generate examples) -->
+        <p class="hint gen-example-line"><span id="gen-example-name">Loading the examples…</span>
+          <a id="gen-examples-link" href="./?manifestURL=examples%2Fgenerate%2Fmanifest.yml#generate/gen-shacl">Choose
+            another example</a>: they say the same in SHACL, ShEx and PGSchema, and generate the same graph.</p>
         <div class="inputs two">
           <div class="field">
             <select data-head id="gen-language" aria-label="Schema language" hidden>

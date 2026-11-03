@@ -1044,3 +1044,4 @@ ul.compare-bnodes code { font-size: 0.9em; }
 .cm-editor[data-editor-for="gen-schema"], .cm-editor[data-editor-for="gen-data"] { height: 22rem; min-height: 7.5rem; }
 .cm-editor[data-editor-for="gen-config"] { height: 10rem; min-height: 5rem; }
 #gen-result { height: 22rem; min-height: 8rem; }
+.gen-example-line { margin: 0 0 0.75rem; }

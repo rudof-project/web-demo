@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { JSDOM } from "jsdom";
 import { expandInputs } from "../../inputs.js";
-import { PANELS, KEPT_PARAMS, hasState, panelOfParams, stateParams, queryString, inputsOfParams } from "../../permalink.js";
+import { PANELS, KEPT_PARAMS, hasState, panelOfParams, stateParams, queryString, inputsOfParams, permalinkQuery, unpackParams, packText, unpackText, PACKED_PARAM, PACK_OVER } from "../../permalink.js";
 
 const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
 const { document } = new JSDOM(html).window;
@@ -102,5 +102,44 @@ describe("inputs given by URLs", () => {
     expect(hasState(new URLSearchParams("manifestURL=x"))).toBe(false);
     expect(panelOfParams(new URLSearchParams("query-url=https://e/q.rq"))).toBe("sparql");
     expect(panelOfParams(new URLSearchParams("schema-url=es:E371&shape-map=wd:Q42@START"))).toBe("shex");
+  });
+});
+
+describe("long permalinks", () => {
+  const LUBM = readFileSync(new URL("../../examples/generate/lubm.ttl", import.meta.url), "utf8");
+
+  it("compress a text, and give it back", () => {
+    for (const text of ["", "a b", "prefix : <http://example.org/> # é ✓ 漢字", LUBM]) expect(unpackText(packText(text))).toBe(text);
+    expect(packText(LUBM)).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(packText(LUBM).length).toBeLessThan(LUBM.length / 5);
+  });
+
+  it("are as they are when they are short", () => {
+    const pairs = [["schema", ":S { :p . }"], ["manifestURL", "m.yml"]];
+    expect(permalinkQuery(pairs)).toBe(queryString(pairs));
+  });
+
+  it("have their inputs compressed when they are long, and the manifest and its example as they are", () => {
+    const pairs = [["schema", LUBM], ["schema-format", "turtle"], ["config", "version = 2\n"], ["manifestURL", "examples/generate/manifest.yml"], ["example", "21"]];
+    expect(queryString(pairs).length).toBeGreaterThan(PACK_OVER);
+    const query = permalinkQuery(pairs);
+    expect(query.length).toBeLessThan(PACK_OVER);
+    const params = new URLSearchParams(query);
+    expect([...params.keys()]).toEqual([PACKED_PARAM, "manifestURL", "example"]);
+    expect(hasState(params)).toBe(true);
+    // Read back: the same parameters
+    const read = unpackParams(params);
+    expect([...read]).toEqual(pairs);
+    expect(hasState(read)).toBe(true);
+    expect(inputsOfParams("gen", read)).toEqual(expect.arrayContaining([["gen-schema", LUBM], ["gen-language", "turtle"]]));
+  });
+
+  it("can't be read when the compressed inputs are cut", () => {
+    const query = permalinkQuery([["schema", LUBM]]);
+    const cut = new URLSearchParams(query.slice(0, query.length / 2));
+    expect(() => unpackParams(cut)).toThrow();
+    // Without them, the parameters are as they are
+    const plain = new URLSearchParams("schema=x");
+    expect(unpackParams(plain)).toBe(plain);
   });
 });

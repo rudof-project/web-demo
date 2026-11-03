@@ -7,11 +7,25 @@ import { test, expect, open, editor, setInput } from "./fixtures.js";
 const verdict = (page) => page.locator("#gen-result .verdict");
 const TABS = { turtle: "shacl", shexc: "shex", pgschema: "pgschema" };
 
-async function generate(page, { example = "references", language = "turtle", scenario = "valid" } = {}) {
+// The examples are the entries of the manifest of Generate: a section for
+// each example, an entry for each kind of data
+const EXAMPLES = ["references", "keys", "facets", "labels", "lubm", "ldbc-snb", "custom"];
+const KINDS = ["valid", "dense", "sparse", "coherence", "errors"];
+
+// Opens an example of the manifest (as Examples › Generate examples does),
+// in a language
+async function chooseExample(page, { example = "references", language = "turtle", scenario = "valid" } = {}) {
+  const index = EXAMPLES.indexOf(example) * KINDS.length + KINDS.indexOf(scenario) + 1;
+  await page.goto(`./?manifestURL=examples%2Fgenerate%2Fmanifest.yml&example=${index}#generate/gen-shacl`);
+  await expect(page.locator("#status")).toHaveClass(/ready/, { timeout: 30_000 });
+  await expect(page.locator("#gen-example-name")).toContainText(`· ${KIND_LABELS[scenario]}`);
   await page.locator(`#tab-gen-${TABS[language]}`).click();
-  await page.locator("#gen-example").selectOption(example);
-  await page.locator("#gen-scenario").selectOption(scenario);
   await expect(editor(page, "gen-schema")).toHaveAttribute("data-format", language);
+}
+const KIND_LABELS = { valid: "Valid data", errors: "With errors (20%) and their report" };
+
+async function generate(page, options) {
+  await chooseExample(page, options);
   await page.locator("#gen-validate").click();
   await expect(page.locator("#gen-result")).not.toHaveAttribute("data-kind", "running");
 }
@@ -19,7 +33,9 @@ async function generate(page, { example = "references", language = "turtle", sce
 test("has a tab for each schema language, which loads the example in it", async ({ page }) => {
   await open(page, "#generate/gen-shacl");
   await expect(page.locator("#panel-generate .subtabs > [role=tab]")).toHaveText(["SHACL", "ShEx", "PGSchema"]);
-  await expect(page.locator("#gen-example")).toHaveValue("references");
+  // The first example of the manifest
+  await expect(page.locator("#gen-example-name")).toHaveText("Example: Persons, organisations and cities (references) · Valid data.");
+  await expect(page.locator("#gen-examples-link")).toHaveAttribute("href", "./?manifestURL=examples%2Fgenerate%2Fmanifest.yml#generate/gen-shacl");
   await expect(editor(page, "gen-schema")).toContainText("sh:NodeShape");
   await expect(editor(page, "gen-config")).toContainText("version = 2");
   await page.locator("#tab-gen-pgschema").click();
@@ -135,9 +151,7 @@ for (const [target, validator] of [["shacl", "SHACL"], ["shex", "ShEx"], ["pgsch
 }
 
 test("a schema of your own has no other language, nor a property graph", async ({ page }) => {
-  await open(page, "#generate/gen-shacl");
-  await page.locator("#tab-gen-shex").click();
-  await page.locator("#gen-example").selectOption("custom");
+  await chooseExample(page, { example: "custom", language: "shexc" });
   await expect(editor(page, "gen-schema")).toContainText(":Person {");
   // The template, edited
   await setInput(page, "gen-schema", (await page.locator("#gen-schema").inputValue()).replace(":label xsd:string", ":label xsd:string ;\n  :size xsd:integer ?"));
@@ -153,46 +167,48 @@ test("a schema of your own has no other language, nor a property graph", async (
   await expect(page.locator("#gen-data-view")).toHaveValue("turtle");
 });
 
-test("a permalink keeps the language, the example and the kind of data", async ({ page }) => {
-  await open(page, "#generate/gen-shacl");
+test("a permalink keeps the language, the schema and the configuration, and finds their example", async ({ page }) => {
   // Written after each run, as in the other tabs
   await generate(page, { example: "keys", language: "shexc", scenario: "errors" });
   const url = page.url();
-  expect(url).toContain("gen-example=keys");
   expect(url).toContain("#generate/gen-shex");
+  expect(url).toContain("schema-format=shexc");
   await page.goto("about:blank");
-  await page.goto(url);
+  // Without the manifest: the example is the one with this schema
+  await page.goto(url.replace(/&manifestURL=[^&#]*&example=\d+/, ""));
   await expect(page.locator("#status")).toHaveClass(/ready/, { timeout: 30_000 });
   await expect(page.locator("#tab-gen-shex")).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator("#gen-example")).toHaveValue("keys");
+  await expect(page.locator("#gen-example-name")).toHaveText("Example: Keys and values (required, optional, lists, dates) · With errors (20%) and their report.");
   await expect(editor(page, "gen-config")).toContainText("[violations]");
   await expect(editor(page, "gen-schema")).toHaveAttribute("data-format", "shexc");
+  // Its other languages too
+  await page.locator("#gen-validate").click();
+  await expect(page.locator("#gen-check-shacl")).toBeEnabled();
+});
+
+test("a permalink of a long schema has its inputs compressed, and opens them", async ({ page }) => {
+  await generate(page, { example: "lubm" });
+  const schema = await page.locator("#gen-schema").inputValue();
+  expect(schema.length).toBeGreaterThan(8000);
+  const url = new URL(page.url());
+  // The inputs in z, the manifest and its example as they are
+  expect([...url.searchParams.keys()]).toEqual(["z", "manifestURL", "example"]);
+  expect(url.href.length).toBeLessThan(3000);
+  await page.goto("about:blank");
+  await page.goto(url.href);
+  await expect(page.locator("#status")).toHaveClass(/ready/, { timeout: 30_000 });
+  await expect(page.locator("#gen-schema")).toHaveValue(schema);
+  await expect(page.locator("#gen-example-name")).toHaveText("Example: LUBM university (12 node types, 35 edge types) · Valid data.");
+  await expect(page.locator("#tab-gen-shacl")).toHaveAttribute("aria-selected", "true");
 });
 
 test.describe("the examples, from the manifest of Generate", () => {
-  test("are the sections of the manifest, and the kinds of data its entries", async ({ page }) => {
+  test("a schema that is not one of an example is your own", async ({ page }) => {
     await open(page, "#generate/gen-shacl");
-    await expect(page.locator("#gen-example option")).toHaveText([
-      "Persons, organisations and cities (references)",
-      "Keys and values (required, optional, lists, dates)",
-      "Value facets (pattern, ranges)",
-      "Several labels (Person & Employee)",
-      "LUBM university (12 node types, 35 edge types)",
-      "LDBC Social Network (11 node types, cycles)",
-      "Your own schema (a template)",
-    ]);
-    await expect(page.locator("#gen-scenario option")).toHaveText([
-      "Valid data",
-      "Dense: every optional property, maximal cardinality",
-      "Sparse: optional properties on 10% of the nodes",
-      "Coherence 0.85 (searched over the fill)",
-      "With errors (20%) and their report",
-    ]);
-    // Another kind of data: its configuration, and the schema stays
-    await setInput(page, "gen-schema", "# my schema");
-    await page.locator("#gen-scenario").selectOption("dense");
-    await expect(editor(page, "gen-config")).toContainText('cardinality = "max"');
-    await expect(page.locator("#gen-schema")).toHaveValue("# my schema");
+    await expect(page.locator("#gen-example-name")).toContainText("Example: ");
+    await page.goto("./?schema=%23%20mine&schema-format=turtle#generate/gen-shacl");
+    await expect(page.locator("#status")).toHaveClass(/ready/, { timeout: 30_000 });
+    await expect(page.locator("#gen-example-name")).toHaveText("A schema of your own.");
   });
 
   test("Examples opens the manifest, whose examples go to the Generate tab", async ({ page }) => {
@@ -205,8 +221,7 @@ test.describe("the examples, from the manifest of Generate", () => {
     const keys = page.locator(".manifest-tree > li > details").nth(1);
     await keys.locator("summary").click();
     await keys.getByRole("button", { name: "With errors (20%) and their report" }).click();
-    await expect(page.locator("#gen-example")).toHaveValue("keys");
-    await expect(page.locator("#gen-scenario")).toHaveValue("errors");
+    await expect(page.locator("#gen-example-name")).toHaveText("Example: Keys and values (required, optional, lists, dates) · With errors (20%) and their report.");
     await expect(editor(page, "gen-config")).toContainText("[violations]");
     await expect(editor(page, "gen-schema")).toContainText("sh:NodeShape");
     await expect(page).toHaveURL(/example=10.*#generate\/gen-shacl$/);
@@ -233,8 +248,7 @@ test.describe("the examples, from the manifest of Generate", () => {
     await expect(page.locator("#status")).toHaveClass(/ready/, { timeout: 30_000 });
     await page.locator("#manifest-examples").selectOption({ label: "A person" });
     await expect(page.locator("#tab-gen-shex")).toHaveAttribute("aria-selected", "true");
-    await expect(page.locator("#gen-example")).toHaveValue("manifest");
-    await expect(page.locator("#gen-example option:checked")).toHaveText("From the manifest: A person");
+    await expect(page.locator("#gen-example-name")).toHaveText("Example: A person.");
     await expect(page.locator("#gen-schema")).toHaveValue(/:Person \{ :name \. \}/);
     await expect(page.locator("#gen-config")).toHaveValue("version = 2\n");
     await expect(page.locator("#gen-entities")).toHaveValue("5");
@@ -243,8 +257,5 @@ test.describe("the examples, from the manifest of Generate", () => {
     await expect(page.locator("#gen-result")).toHaveAttribute("data-kind", "ok");
     // It has no other language
     await expect(page.locator("#gen-check-shacl")).toBeDisabled();
-    // An example of the tab again
-    await page.locator("#gen-example").selectOption("references");
-    await expect(page.locator('#gen-example option[value="manifest"]')).toHaveCount(0);
   });
 });
