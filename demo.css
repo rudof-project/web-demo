@@ -639,8 +639,8 @@ a.link:not([href]) { color: var(--muted); pointer-events: none; }
    editor (and of the RDF data added to it) */
 button.visualize { padding: 0.15rem 0.6rem; font-size: 0.85em; }
 button.visualize[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
-.field.visual > .cm-editor, .field.visual > textarea, .field.visual > .url-box,
-.field.visual > .table-view-cells, .field.visual > .extra-data-list, .field.visual > .add-data { display: none !important; }
+.visual > .cm-editor, .visual > textarea, .visual > .url-box,
+.visual > .table-view-cells, .visual > .extra-data-list, .visual > .add-data { display: none !important; }
 .input-visual { display: flex; flex-direction: column; min-height: 16rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
 .input-visual[hidden] { display: none; }
 .input-visual .diagram-image { flex: 1; }
@@ -1043,8 +1043,3 @@ ul.compare-bnodes code { font-size: 0.9em; }
    data generated can be long */
 .cm-editor[data-editor-for="gen-schema"], .cm-editor[data-editor-for="gen-config"] { height: 18rem; min-height: 7.5rem; }
 #gen-result { height: 22rem; min-height: 8rem; }
-
-/* "Generate data", next to the label of the data of the other tabs */
-.field-head > label:first-child:has(+ .gen-data) { margin-right: 0; }
-.field-head > .gen-data { margin-right: auto; font-size: 0.85em; }
-.field-head > .gen-data:disabled { color: var(--muted); cursor: default; }

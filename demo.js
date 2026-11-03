@@ -21,6 +21,7 @@ import { startLog, loggingFetch, logSummary, logTime, limitsText, renderQueries,
 import { LANGUAGES, TARGETS, DEFAULT_TARGET, canConvert, readSchema as readAnySchema, readShexSchema, hasShexImports, hasRelativeImports, convertSchema, sourceLabel, targetLabel, asSource } from "./schema-convert.js";
 import { DATA_MODES, DATA_KINDS, SCHEMA_LANGUAGES, SHEX_FORMATS, dataVerdict, differencesView, compactTerm, shapeIri } from "./compare.js";
 import { GENERATE_EXAMPLES, GENERATE_TARGETS, SCENARIOS, exampleSchema, scenarioConfig, generateData, validateWith, serializeGenerated, generatedFile } from "./generate.js";
+import { INPUT_KINDS, inputsOf, visualOf } from "./inputs.js";
 import { devDependencies } from "./package.json";
 
 // The exact version of package.json (the one the tests use), so that updating
@@ -51,19 +52,11 @@ const last = {};
 // The tabs that can run on an endpoint (see Endpoints), and the endpoint of a
 // tab, if it doesn't run on the data of the page
 const ENDPOINT_TABS = ["shex", "shacl", "dctap", "sparql"];
-// The inputs that can also be given by a URL (input-source.js): the RDF
-// data, the schemas and the queries
-const URL_INPUTS = [
-  "rdf-data", "convert-schema", "shex-data", "shex-schema", "shacl-data", "shacl-shapes",
-  "dctap-data", "dctap-schema", "pgschema-schema", "sparql-data", "sparql-query",
-  "compare-data-1", "compare-data-2", "compare-schemas-1", "compare-schemas-2",
-];
-// The inputs that can be shown as a diagram (Visualize): the RDF data, and
-// the ShEx schemas
-const VISUAL_INPUTS = {
-  "rdf-data": "rdf", "shex-data": "rdf", "shacl-data": "rdf", "dctap-data": "rdf", "sparql-data": "rdf", "shex-schema": "shex",
-  "compare-data-1": "rdf", "compare-data-2": "rdf", "compare-schemas-1": "shex", "compare-schemas-2": "shex",
-};
+// The inputs of RDF data, schemas and queries (inputs.js): all of them can
+// also be given by a URL (input-source.js), and those that can be drawn have
+// Visualize: the RDF data, and the ShEx schemas
+const URL_INPUTS = inputsOf(document, ...INPUT_KINDS);
+const VISUAL_INPUTS = Object.fromEntries(URL_INPUTS.map((id) => [id, visualOf($(id))]).filter(([, kind]) => kind));
 
 // The prefixes of the prefixed names of the URL of an input: common ones,
 // and those of the endpoint of its tab, which win
@@ -597,14 +590,15 @@ const diagrams = new WeakMap();
 // Inputs as diagrams: Visualize, next to the RDF data and the ShEx schema,
 // shows the input as the diagram that PlantUML draws of it (rudof writes it
 // in PlantUML: serializeData and serializeCurrentShex), in place of its
-// editor, and Edit shows the editor again. The RDF data is that of the tab,
-// with the RDF data added to it (in Compare, each input alone); an input
-// given by a URL is read first.
+// editor, and Edit shows the editor again. The RDF data of a tab is drawn
+// with the RDF data added to it; the other RDF inputs (Compare, the target
+// declarations of SHACL) alone. An input given by a URL is read first.
 function setupVisualInputs() {
   for (const [id, kind] of Object.entries(VISUAL_INPUTS)) {
     const textarea = $(id);
-    const field = textarea.closest(".field");
-    const head = field.querySelector(".field-head");
+    // The field of the input (inputs.js): a .field, or a .sub-field in one
+    const field = textarea.parentElement;
+    const head = field.querySelector(":scope > .field-head");
     const button = Object.assign(document.createElement("button"), {
       type: "button",
       className: "secondary small visualize",
@@ -625,7 +619,7 @@ function setupVisualInputs() {
       pre.hidden = !pre.hidden;
       sourceButton.textContent = pre.hidden ? "Show PlantUML source" : "Hide PlantUML source";
     });
-    field.querySelector(".field-head").after(box);
+    head.after(box);
     // Text or URL: the input, to edit
     $(`${id}-source`)?.addEventListener("click", () => setVisual(id, false));
   }
@@ -633,7 +627,7 @@ function setupVisualInputs() {
 
 // Shows an input as a diagram, or its editor
 async function setVisual(id, visual) {
-  const field = $(id).closest(".field");
+  const field = $(id).parentElement;
   const box = $(`${id}-visual`);
   const button = $(`${id}-visualize`);
   if (!box) return;
@@ -658,8 +652,9 @@ async function setVisual(id, visual) {
     rudof.resetAll();
     let source;
     if (VISUAL_INPUTS[id] === "rdf") {
-      if (id.startsWith("compare-")) rudof.readData($(id).value, $(`${id}-format`).value);
-      else readTabData(rudof, id.replace(/-data$/, ""));
+      const tab = id.match(/^(\w+)-data$/)?.[1];
+      if (DATA_TABS.includes(tab)) readTabData(rudof, tab);
+      else rudof.readData($(id).value, $(`${id}-format`).value);
       source = rudof.serializeData("plantuml");
     } else {
       const schema = $(id).value;
@@ -1930,44 +1925,6 @@ function setupGenerate() {
     a.click();
     URL.revokeObjectURL(a.href);
   });
-  for (const button of document.querySelectorAll("button.gen-data")) {
-    button.addEventListener("click", () => generateDataInto(button.dataset.target));
-  }
-}
-
-// "Generate data" in the data of the other tabs: synthetic data from the
-// schema of the tab, or, in the tabs without a schema, from the first example
-// of Generate. Its format: what rudof generate reads.
-const GENERATE_DATA = {
-  shex: { schema: "shex-schema", format: ["shex-schema-format", "shexc", "ShExC"], language: "shex" },
-  shacl: { schema: "shacl-shapes", format: ["shacl-shapes-format", "turtle", "Turtle"], language: "shacl" },
-  pgschema: { schema: "pgschema-schema", language: "pgschema" },
-  rdf: { language: "shacl" },
-  sparql: { language: "shacl" },
-  pg: { language: "pgschema" },
-};
-
-async function generateDataInto(target) {
-  if (!rudofModule || crashed) return;
-  const { schema: schemaId, format, language } = GENERATE_DATA[target];
-  try {
-    if (typeof rudofModule.generate !== "function") throw new Error("This version of rudof cannot generate data: generate comes with rudof 0.3.37.");
-    if (format && $(format[0]).value !== format[1]) throw new Error(`Generate data reads the schema in ${format[2]}: choose that format, or convert the schema first.`);
-    const schema = schemaId ? $(schemaId).value : await exampleSchema("references", GENERATE_TARGETS[language]);
-    // A new graph on each click
-    const generated = rudofModule.generate(schema, language, undefined, 20, Math.floor(Math.random() * 1_000_000));
-    if (language === "pgschema") {
-      setInputText(`${target}-data`, generated.propertyGraph);
-      if (target === "pgschema") setInputText("pgschema-typemap", generated.typeMap);
-    } else {
-      setInputText(`${target}-data`, generated.data);
-      $(`${target}-data-format`).value = "turtle";
-      $(`${target}-data-format`).dispatchEvent(new Event("change"));
-      if (target === "shex") setInputText("shex-shapemap", generated.shapemap.trim());
-    }
-  } catch (e) {
-    showResult(target, { verdict: "Could not generate data", kind: "error", output: e.message ?? String(e) });
-  }
 }
 
 const validators = {
@@ -2588,7 +2545,7 @@ async function restartRudof() {
     for (const prefix of Object.keys(last)) delete last[prefix];
     crashed = false;
     setStatus("ready", `rudof ${new rudofModule.Rudof().getVersion()} ready${rudofEndpoints ? ", with endpoints" : ""} (loaded again after an error)`);
-    for (const b of document.querySelectorAll('button[id$="-validate"], button.gen-data')) b.disabled = false;
+    for (const b of document.querySelectorAll('button[id$="-validate"]')) b.disabled = false;
   } catch (e) {
     console.error(e);
     setStatus("error", "rudof stopped working: reload the page to continue");
@@ -2620,7 +2577,7 @@ try {
   // About says the version of rudof that the page uses
   $("about-rudof-version").textContent = `${version}${rudofEndpoints ? ", with endpoints" : ""}`;
   $("status").title = `@rudof/rudof from ${url}` + (endpointsError ? `\n(rudof with endpoints could not be loaded: ${endpointsError})` : "");
-  for (const b of document.querySelectorAll('button[id$="-validate"], button.gen-data')) b.disabled = false;
+  for (const b of document.querySelectorAll('button[id$="-validate"]')) b.disabled = false;
   setupEndpoints();
   setupSettings();
 } catch (e) {

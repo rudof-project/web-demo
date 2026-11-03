@@ -8,6 +8,17 @@
 // schema it read in another format. What rudof can't do yet is in
 // CONVERSIONS, marked as not available, so that the page can show it.
 
+// The formats of RDF data: [value, label]
+export const RDF_FORMATS = [
+  ["turtle", "Turtle"],
+  ["ntriples", "N-Triples"],
+  ["rdfxml", "RDF/XML"],
+  ["jsonld", "JSON-LD"],
+  ["trig", "TriG"],
+  ["n3", "N3"],
+  ["nquads", "N-Quads"],
+];
+
 // The languages of schemas, and their formats to read: [value, label]
 export const LANGUAGES = {
   shex: {
@@ -22,18 +33,7 @@ export const LANGUAGES = {
       ["nquads", "ShExR (N-Quads)"],
     ],
   },
-  shacl: {
-    label: "SHACL",
-    formats: [
-      ["turtle", "Turtle"],
-      ["ntriples", "N-Triples"],
-      ["rdfxml", "RDF/XML"],
-      ["jsonld", "JSON-LD"],
-      ["trig", "TriG"],
-      ["n3", "N3"],
-      ["nquads", "N-Quads"],
-    ],
-  },
+  shacl: { label: "SHACL", formats: RDF_FORMATS },
   dctap: { label: "DCTAP", formats: [["dctap", "CSV"]] },
   pgschema: { label: "PGSchema", formats: [["pgschema", "PGSchemaC"]] },
 };

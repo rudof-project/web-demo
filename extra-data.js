@@ -4,6 +4,7 @@
 // validates or queries them.
 
 import { setupEditors, editorFor } from "./codemirror-setup.js";
+import { expandInput } from "./inputs.js";
 
 export const DATA_TABS = ["rdf", "shex", "shacl", "dctap", "sparql"];
 
@@ -31,22 +32,17 @@ export function addData(doc, prefix, { text = "", format, onChange } = {}) {
   const main = doc.getElementById(`${prefix}-data-format`);
   added += 1;
   const id = `${prefix}-data-more${added}`;
-  const select = el(doc, "select", { id: `${id}-format` }, ...[...main.options].map((o) => new Option(o.text, o.value)));
-  select.setAttribute("aria-label", "RDF data format");
-  select.value = format && [...select.options].some((o) => o.value === format) ? format : main.value;
-  const textarea = el(doc, "textarea", { id, spellcheck: false, className: "medium", placeholder: "More RDF data, merged with the data above" });
-  textarea.dataset.editor = "";
-  textarea.dataset.formatSelect = select.id;
-  textarea.value = text;
+  // The input of RDF data of the page (inputs.js), with Remove in its head
   const remove = el(doc, "button", { type: "button", className: "link remove-data", title: "Remove this RDF data" }, "Remove");
-  const block = el(
-    doc,
-    "div",
-    { className: "extra-data" },
-    el(doc, "div", { className: "field-head" }, el(doc, "label", { htmlFor: id }, "RDF data"), remove, select),
-    textarea,
-  );
+  remove.dataset.head = "";
+  const textarea = el(doc, "textarea", { id, className: "medium", placeholder: "More RDF data, merged with the data above" });
+  Object.assign(textarea.dataset, { input: "rdf", label: "RDF data" });
+  textarea.value = text;
+  const block = el(doc, "div", { className: "extra-data" }, remove, textarea);
   doc.getElementById(`${prefix}-extra-data`).append(block);
+  expandInput(textarea);
+  const select = doc.getElementById(`${id}-format`);
+  select.value = format && [...select.options].some((o) => o.value === format) ? format : main.value;
   const entry = { block, textarea, select };
   extras.get(prefix).push(entry);
   setupEditors(block);

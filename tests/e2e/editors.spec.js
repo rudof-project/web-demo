@@ -35,6 +35,33 @@ test.describe("the page", () => {
   });
 });
 
+// The inputs of RDF data, schemas and queries are one component (inputs.js):
+// each one has its label, Text | URL, and Visualize when it can be drawn
+const COMPONENT_INPUTS = {
+  rdf: ["rdf-data", "shex-data", "shacl-data", "shacl-targets", "dctap-data", "sparql-data", "compare-data-1", "compare-data-2"],
+  schema: ["convert-schema", "shex-schema", "shacl-shapes", "dctap-schema", "pgschema-schema", "compare-schemas-1", "compare-schemas-2", "gen-schema"],
+  query: ["sparql-query"],
+};
+const DRAWN = ["shex-schema", "compare-schemas-1", "compare-schemas-2"];
+
+test("the inputs of RDF data, schemas and queries have the same head", async ({ page }) => {
+  await open(page);
+  const heads = await page.evaluate(() =>
+    Object.fromEntries(
+      [...document.querySelectorAll("textarea[data-input]")].map((t) => {
+        const head = t.parentElement.querySelector(":scope > .field-head");
+        return [t.id, { kind: t.dataset.input, label: head.querySelector(":scope > label")?.htmlFor, url: Boolean(head.querySelector(`#${t.id}-source`)), visualize: Boolean(head.querySelector(`#${t.id}-visualize`)) }];
+      }),
+    ),
+  );
+  for (const [kind, ids] of Object.entries(COMPONENT_INPUTS)) {
+    for (const id of ids) {
+      expect(heads[id], id).toEqual({ kind, label: id, url: true, visualize: kind === "rdf" || DRAWN.includes(id) });
+    }
+  }
+  expect(Object.keys(heads).sort()).toEqual(Object.values(COMPONENT_INPUTS).flat().sort());
+});
+
 test.describe("editing", () => {
   test("typing changes the input", async ({ page }) => {
     await open(page);

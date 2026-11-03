@@ -3,10 +3,13 @@
 import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { JSDOM } from "jsdom";
+import { expandInputs } from "../../inputs.js";
 import { PANELS, KEPT_PARAMS, hasState, panelOfParams, stateParams, queryString, inputsOfParams } from "../../permalink.js";
 
 const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
 const { document } = new JSDOM(html).window;
+// The fields of the inputs, as inputs.js makes them when the page loads
+expandInputs(document);
 
 describe("PANELS", () => {
   it("has a tab of the page for each panel, in its section", () => {

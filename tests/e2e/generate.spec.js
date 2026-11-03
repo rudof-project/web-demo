@@ -123,30 +123,3 @@ test("a permalink keeps the language, the example and the kind of data", async (
   await expect(editor(page, "gen-config")).toContainText("[violations]");
   await expect(editor(page, "gen-schema")).toHaveAttribute("data-format", "shexc");
 });
-
-test.describe("Generate data, in the data of the other tabs", () => {
-  for (const [fragment, target, validator] of [["validate/shex", "shex", "ShEx"], ["validate/shacl", "shacl", "SHACL"], ["validate/pgschema", "pgschema", "PGSchema"]]) {
-    test(`generates data from the schema of ${validator}, which validates`, async ({ page }) => {
-      await open(page, `#${fragment}`);
-      await page.locator(`#${target}-generate-data`).click();
-      await page.locator(`#${target}-validate`).click();
-      await expect(page.locator(`#${target}-result`)).toHaveAttribute("data-kind", "ok");
-    });
-  }
-
-  for (const [fragment, target, text] of [["data/rdf", "rdf", "rudof.example/pg/type/"], ["data/pg", "pg", "PersonType"], ["query/sparql", "sparql", "rudof.example/pg/type/"]]) {
-    test(`generates the data of ${fragment} from an example`, async ({ page }) => {
-      await open(page, `#${fragment}`);
-      await page.locator(`#${target}-generate-data`).click();
-      await expect(editor(page, `${target}-data`)).toContainText(text);
-    });
-  }
-
-  test("says when the schema is not in the format it reads", async ({ page }) => {
-    await open(page, "#validate/shex");
-    await page.locator("#shex-schema-format").selectOption("shexj");
-    await page.locator("#shex-generate-data").click();
-    await expect(page.locator("#shex-result")).toHaveAttribute("data-kind", "error");
-    await expect(page.locator("#shex-result .verdict")).toHaveText("Could not generate data");
-  });
-});

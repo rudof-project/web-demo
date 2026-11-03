@@ -4,9 +4,13 @@
 import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { JSDOM } from "jsdom";
+import { expandInputs } from "../../inputs.js";
 
 const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
 const { document } = new JSDOM(html).window;
+// The fields of the inputs of RDF data, schemas and queries, as inputs.js
+// makes them when the page loads
+expandInputs(document);
 const textareas = [...document.querySelectorAll("textarea")];
 
 describe("index.html", () => {
@@ -16,6 +20,10 @@ describe("index.html", () => {
     const demo = scripts.findIndex((src) => /(^|\/)demo\.js$/.test(src ?? ""));
     expect(setup).toBeGreaterThanOrEqual(0);
     expect(setup).toBeLessThan(demo);
+    // The fields of the inputs are made before their editors
+    const inputs = scripts.findIndex((src) => /(^|\/)inputs\.js$/.test(src ?? ""));
+    expect(inputs).toBeGreaterThanOrEqual(0);
+    expect(inputs).toBeLessThan(setup);
   });
 
   it("has input textareas", () => {

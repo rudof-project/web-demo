@@ -23,6 +23,41 @@ npm run preview     # serve dist/ at http://localhost:4173
 `dist/` is a static site: its paths are relative, so it can be published in
 any folder of any web server, as is.
 
+## The inputs of RDF data, schemas and queries
+
+The inputs that ask for RDF data, a schema or a query are one component
+([`inputs.js`](inputs.js)), so that they look and work the same in all the
+tabs. `index.html` writes only their textarea, with the kind of the input,
+its label and its example:
+
+```html
+<div class="field">
+  <span class="hint" id="shex-data-unused" data-head hidden>Not used: …</span>
+  <textarea id="shex-data" data-input="rdf" data-label="RDF data">…</textarea>
+</div>
+```
+
+`inputs.js` runs before the editors are made (`codemirror-setup.js`), and
+makes the head of each input: its label, the elements of the field marked
+`data-head`, and the menu of its formats (`<id>-format`) or the name of its
+only format. Then each one has **Text | URL** (below), and **Visualize** when
+it can be drawn (the RDF data and the ShEx schemas).
+
+- `data-input="rdf"`: RDF data, in the RDF formats (`RDF_FORMATS` of
+  [`schema-convert.js`](schema-convert.js)): the RDF data of the RDF, ShEx,
+  SHACL, DCTAP and SPARQL tabs, the target declarations of SHACL, the two of
+  Compare, and the RDF data added to a tab (**+ Add RDF data**).
+- `data-input="schema"`: a schema, in the formats of its language
+  (`data-language`: `shex`, `shacl`, `dctap` or `pgschema`; `LANGUAGES` of
+  `schema-convert.js`): the schemas of the Validate tabs. When the page
+  chooses the language (the Schema tab, Generate, Compare), the menu is
+  empty and the page fills it, or the textarea names a menu of its own
+  (`data-format-select`).
+- `data-input="query"`: a query (`data-language="sparql"`): the SPARQL query.
+
+The other inputs (property graphs, shape maps, type maps, the prefixes of a
+DCTAP profile, the configuration of Generate) are editors as before.
+
 ## Inputs from URLs
 
 As in [RDFShape](https://rdfshape.weso.es/dataInfo), the RDF data, the
@@ -46,23 +81,24 @@ read.
 - An example of a manifest, or a result used as input, puts its text in the
   input, as text.
 
-The inputs with a URL: the RDF data of the RDF, ShEx, SHACL, DCTAP and SPARQL
-tabs, the ShEx schema, the shapes graph, the DCTAP profile, the PGSchema
-schema, the schema of the Schema tab and the SPARQL query.
+All the inputs of RDF data, schemas and queries (see [The inputs of RDF
+data, schemas and queries](#the-inputs-of-rdf-data-schemas-and-queries)) can
+be given by a URL.
 
 ## Inputs as diagrams
 
-**Visualize**, next to the format menu of the RDF data (of the RDF, ShEx,
-SHACL, DCTAP and SPARQL tabs, and the two of Compare) and of the ShEx schemas
-(of the ShEx tab, and the two of Compare), shows the input as a
+**Visualize**, next to the format menu of the inputs of RDF data (the RDF
+data of the RDF, ShEx, SHACL, DCTAP and SPARQL tabs, the target declarations
+of SHACL, and the two of Compare) and of ShEx schemas (of the ShEx tab, and
+the two of Compare), shows the input as a
 diagram in place of its editor. rudof writes the diagram in PlantUML
 (`serializeData` and `serializeCurrentShex`), and PlantUML draws it, as for
 the UML diagrams of the results. The button is then **Edit**, which shows the
 editor again.
 
-- The RDF data is that of the tab, with the RDF data added to it; in
-  Compare, each input alone. An input given by a URL is read first. The
-  relative imports of a ShEx schema are read too.
+- The RDF data of a tab is drawn with the RDF data added to it; the other
+  inputs of RDF data (Compare, the target declarations) alone. An input given
+  by a URL is read first. The relative imports of a ShEx schema are read too.
 - **Show PlantUML source** shows the source of the diagram, and **Download
   SVG** saves the diagram.
 - When the input has an error, the box says it.
@@ -229,7 +265,7 @@ the CSV, which stays the input. The browser remembers the view.
 
 ## Generate
 
-The **Generate** section (between Validate and Query) generates synthetic
+The **Generate** section (the last one, after Compare) generates synthetic
 data from a schema with `generate` of rudof (since rudof 0.3.37), and
 validates it with the same schema right away. It has a tab for each schema
 language, **SHACL**, **ShEx** and **PGSchema**, which share their panel
@@ -262,12 +298,6 @@ views of the result.
   needs a property graph, and a schema of your own has no other language.
 - The schema, the configuration and the result have a height of their own
   (their handle, or Full screen, makes them bigger): the data can be long.
-
-The other tabs have a **Generate data** link next to their data: 20
-entities from the schema of the tab (ShEx in ShExC, SHACL in Turtle,
-PGSchema, with the ShapeMap or the type map), or, in the Data and Query
-tabs, from the first example of Generate. Each click generates another
-graph.
 
 ## SPARQL endpoints
 

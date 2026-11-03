@@ -17,6 +17,8 @@
     } catch {}
   </script>
   <script type="module" src="header.js"></script>
+  <!-- The fields of the inputs of RDF data, schemas and queries, before their editors -->
+  <script type="module" src="inputs.js"></script>
   <script type="module" src="codemirror-setup.js"></script>
   <script type="module" src="demo.js"></script>
 </head>
@@ -115,10 +117,10 @@
         <button role="tab" id="tab-schema" aria-controls="panel-schema" aria-selected="false" tabindex="-1">Schema</button>
         <button role="tab" id="tab-validate" aria-controls="panel-validate" aria-selected="false"
           tabindex="-1">Validate</button>
-        <button role="tab" id="tab-generate" aria-controls="panel-generate" aria-selected="false"
-          tabindex="-1">Generate</button>
         <button role="tab" id="tab-query" aria-controls="panel-query" aria-selected="false" tabindex="-1">Query</button>
         <button role="tab" id="tab-compare" aria-controls="panel-compare" aria-selected="false" tabindex="-1">Compare</button>
+        <button role="tab" id="tab-generate" aria-controls="panel-generate" aria-selected="false"
+          tabindex="-1">Generate</button>
       </div>
       <label class="inline layout-choice" title="How the boxes of each tab are placed">Layout
         <select id="layout"></select>
@@ -138,20 +140,7 @@
       <section id="panel-rdf" role="tabpanel" aria-labelledby="tab-rdf" class="panel">
         <div class="inputs two">
           <div class="field">
-            <div class="field-head">
-              <label for="rdf-data">RDF data</label>
-              <button type="button" class="link gen-data" id="rdf-generate-data" data-target="rdf" title="Synthetic data from an example of the Generate tab (persons, organisations and cities), with rudof generate" disabled>Generate data</button>
-              <select id="rdf-data-format" aria-label="Input format">
-                <option value="turtle">Turtle</option>
-                <option value="ntriples">N-Triples</option>
-                <option value="rdfxml">RDF/XML</option>
-                <option value="jsonld">JSON-LD</option>
-                <option value="trig">TriG</option>
-                <option value="n3">N3</option>
-                <option value="nquads">N-Quads</option>
-              </select>
-            </div>
-            <textarea id="rdf-data" data-editor data-format-select="rdf-data-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
+            <textarea id="rdf-data" data-input="rdf" data-label="RDF data">prefix : &lt;http://example.org/&gt;
 prefix foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
 prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
 
@@ -205,7 +194,6 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
           <div class="field">
             <div class="field-head">
               <label for="pg-data">Property graph</label>
-              <button type="button" class="link gen-data" id="pg-generate-data" data-target="pg" title="Synthetic data from an example of the Generate tab (persons, organisations and cities), with rudof generate" disabled>Generate data</button>
               <span class="format-tag" title="The only property graph format supported for now">YARS-PG</span>
             </div>
             <textarea id="pg-data" data-editor data-language="yarspg" spellcheck="false">(n1 {Person} [
@@ -258,23 +246,20 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
       <section id="panel-convert" role="tabpanel" aria-labelledby="tab-convert" class="panel">
         <div class="inputs two">
           <div class="field">
-            <div class="field-head">
-              <label for="convert-schema">Schema</label>
-              <select id="convert-language" aria-label="Schema language">
-                <option value="shex">ShEx</option>
-                <option value="shacl">SHACL</option>
-                <option value="dctap">DCTAP</option>
-                <option value="pgschema">PGSchema</option>
-              </select>
-              <select id="convert-format" aria-label="Schema format">
-                <option value="shexc">ShExC</option>
-              </select>
-              <div class="view-switch" id="convert-view" role="group" aria-label="View of the profile" hidden>
-                <button type="button" data-view="csv" aria-pressed="true">CSV</button>
-                <button type="button" data-view="table" aria-pressed="false">Table</button>
-              </div>
+            <select data-head id="convert-language" aria-label="Schema language">
+              <option value="shex">ShEx</option>
+              <option value="shacl">SHACL</option>
+              <option value="dctap">DCTAP</option>
+              <option value="pgschema">PGSchema</option>
+            </select>
+            <select data-head id="convert-format" aria-label="Schema format">
+              <option value="shexc">ShExC</option>
+            </select>
+            <div data-head class="view-switch" id="convert-view" role="group" aria-label="View of the profile" hidden>
+              <button type="button" data-view="csv" aria-pressed="true">CSV</button>
+              <button type="button" data-view="table" aria-pressed="false">Table</button>
             </div>
-            <textarea id="convert-schema" data-editor data-format-select="convert-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
+            <textarea id="convert-schema" data-input="schema" data-label="Schema" data-format-select="convert-format">prefix : &lt;http://example.org/&gt;
 prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
 
 :Person {
@@ -355,21 +340,8 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
         </details>
         <div class="inputs two">
           <div class="field">
-            <div class="field-head">
-              <label for="shex-data">RDF data</label>
-              <button type="button" class="link gen-data" id="shex-generate-data" data-target="shex" title="Synthetic data from the ShEx schema of this tab (ShExC), with rudof generate" disabled>Generate data</button>
-              <span class="hint" id="shex-data-unused" hidden>Not used: the validation runs on the endpoint</span>
-              <select id="shex-data-format" aria-label="RDF data format">
-                <option value="turtle">Turtle</option>
-                <option value="ntriples">N-Triples</option>
-                <option value="rdfxml">RDF/XML</option>
-                <option value="jsonld">JSON-LD</option>
-                <option value="trig">TriG</option>
-                <option value="n3">N3</option>
-                <option value="nquads">N-Quads</option>
-              </select>
-            </div>
-            <textarea id="shex-data" data-editor data-format-select="shex-data-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
+            <span data-head class="hint" id="shex-data-unused" hidden>Not used: the validation runs on the endpoint</span>
+            <textarea id="shex-data" data-input="rdf" data-label="RDF data">prefix : &lt;http://example.org/&gt;
 prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
 
 :alice :name "Alice" ;
@@ -382,19 +354,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
 :carol :name "Carol" .</textarea>
           </div>
           <div class="field">
-            <div class="field-head">
-              <label for="shex-schema">ShEx schema</label>
-              <select id="shex-schema-format" aria-label="ShEx schema format">
-                <option value="shexc">ShExC</option>
-                <option value="shexj">ShExJ</option>
-                <option value="turtle">ShExR (Turtle)</option>
-                <option value="ntriples">ShExR (N-Triples)</option>
-                <option value="rdfxml">ShExR (RDF/XML)</option>
-                <option value="trig">ShExR (TriG)</option>
-                <option value="nquads">ShExR (N-Quads)</option>
-              </select>
-            </div>
-            <textarea id="shex-schema" data-editor data-format-select="shex-schema-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
+            <textarea id="shex-schema" data-input="schema" data-language="shex" data-label="ShEx schema">prefix : &lt;http://example.org/&gt;
 prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
 
 :Person {
@@ -480,21 +440,8 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
         </details>
         <div class="inputs two">
           <div class="field">
-            <div class="field-head">
-              <label for="shacl-data">RDF data</label>
-              <button type="button" class="link gen-data" id="shacl-generate-data" data-target="shacl" title="Synthetic data from the shapes of this tab (Turtle), with rudof generate" disabled>Generate data</button>
-              <span class="hint" id="shacl-data-unused" hidden>Not used: the validation runs on the endpoint</span>
-              <select id="shacl-data-format" aria-label="RDF data format">
-                <option value="turtle">Turtle</option>
-                <option value="ntriples">N-Triples</option>
-                <option value="rdfxml">RDF/XML</option>
-                <option value="jsonld">JSON-LD</option>
-                <option value="trig">TriG</option>
-                <option value="n3">N3</option>
-                <option value="nquads">N-Quads</option>
-              </select>
-            </div>
-            <textarea id="shacl-data" data-editor data-format-select="shacl-data-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
+            <span data-head class="hint" id="shacl-data-unused" hidden>Not used: the validation runs on the endpoint</span>
+            <textarea id="shacl-data" data-input="rdf" data-label="RDF data">prefix : &lt;http://example.org/&gt;
 prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
 
 :alice a :Person ;
@@ -506,20 +453,8 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
        :birthDate "unknown" .</textarea>
           </div>
           <div class="field">
-            <div class="field-head">
-              <label for="shacl-shapes">Shapes graph</label>
-              <span class="hint" id="shacl-shapes-from-data" hidden>Empty: the shapes are taken from the RDF data</span>
-              <select id="shacl-shapes-format" aria-label="Shapes graph format">
-                <option value="turtle">Turtle</option>
-                <option value="ntriples">N-Triples</option>
-                <option value="rdfxml">RDF/XML</option>
-                <option value="jsonld">JSON-LD</option>
-                <option value="trig">TriG</option>
-                <option value="n3">N3</option>
-                <option value="nquads">N-Quads</option>
-              </select>
-            </div>
-            <textarea id="shacl-shapes" data-editor data-format-select="shacl-shapes-format" spellcheck="false" placeholder="Optional: without a shapes graph, the shapes are taken from the RDF data">prefix : &lt;http://example.org/&gt;
+            <span data-head class="hint" id="shacl-shapes-from-data" hidden>Empty: the shapes are taken from the RDF data</span>
+            <textarea id="shacl-shapes" data-input="schema" data-language="shacl" data-label="Shapes graph" placeholder="Optional: without a shapes graph, the shapes are taken from the RDF data">prefix : &lt;http://example.org/&gt;
 prefix sh: &lt;http://www.w3.org/ns/shacl#&gt;
 prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
 
@@ -536,20 +471,8 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
   ] .</textarea>
             <!-- Optional: merged with the shapes graph before the validation -->
             <div class="sub-field" id="shacl-targets-field">
-              <div class="field-head">
-                <label for="shacl-targets" title="Optional. RDF triples that declare targets, such as :PersonShape sh:targetNode :alice. They are merged with the shapes graph before the validation.">Target declarations</label>
-                <span class="hint" id="shacl-targets-used" hidden>Merged with the shapes graph</span>
-                <select id="shacl-targets-format" aria-label="Target declarations format">
-                  <option value="turtle">Turtle</option>
-                  <option value="ntriples">N-Triples</option>
-                  <option value="rdfxml">RDF/XML</option>
-                  <option value="jsonld">JSON-LD</option>
-                  <option value="trig">TriG</option>
-                  <option value="n3">N3</option>
-                  <option value="nquads">N-Quads</option>
-                </select>
-              </div>
-              <textarea id="shacl-targets" data-editor data-format-select="shacl-targets-format" class="short" spellcheck="false"
+              <span data-head class="hint" id="shacl-targets-used" hidden>Merged with the shapes graph</span>
+              <textarea id="shacl-targets" data-input="rdf" data-label="Target declarations" data-label-title="Optional. RDF triples that declare targets, such as :PersonShape sh:targetNode :alice. They are merged with the shapes graph before the validation." class="short"
                 placeholder="Optional: target declarations in RDF, merged with the shapes graph. For example: &lt;http://example.org/PersonShape&gt; &lt;http://www.w3.org/ns/shacl#targetNode&gt; &lt;http://example.org/alice&gt; ."></textarea>
             </div>
           </div>
@@ -650,20 +573,8 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
         </details>
         <div class="inputs two">
           <div class="field">
-            <div class="field-head">
-              <label for="dctap-data">RDF data</label>
-              <span class="hint" id="dctap-data-unused" hidden>Not used: the validation runs on the endpoint</span>
-              <select id="dctap-data-format" aria-label="RDF data format">
-                <option value="turtle">Turtle</option>
-                <option value="ntriples">N-Triples</option>
-                <option value="rdfxml">RDF/XML</option>
-                <option value="jsonld">JSON-LD</option>
-                <option value="trig">TriG</option>
-                <option value="n3">N3</option>
-                <option value="nquads">N-Quads</option>
-              </select>
-            </div>
-            <textarea id="dctap-data" data-editor data-format-select="dctap-data-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
+            <span data-head class="hint" id="dctap-data-unused" hidden>Not used: the validation runs on the endpoint</span>
+            <textarea id="dctap-data" data-input="rdf" data-label="RDF data">prefix : &lt;http://example.org/&gt;
 prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
 
 :alice :name "Alice" ;
@@ -676,15 +587,12 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
 :carol :name "Carol" .</textarea>
           </div>
           <div class="field">
-            <div class="field-head">
-              <label for="dctap-schema">DCTAP profile</label>
-              <div class="view-switch" id="dctap-view" role="group" aria-label="View of the profile"
-                title="Spreadsheets (xlsx, xls…) can be saved as CSV">
-                <button type="button" data-view="csv" aria-pressed="true">CSV</button>
-                <button type="button" data-view="table" aria-pressed="false">Table</button>
-              </div>
+            <div data-head class="view-switch" id="dctap-view" role="group" aria-label="View of the profile"
+              title="Spreadsheets (xlsx, xls…) can be saved as CSV">
+              <button type="button" data-view="csv" aria-pressed="true">CSV</button>
+              <button type="button" data-view="table" aria-pressed="false">Table</button>
             </div>
-            <textarea id="dctap-schema" data-editor data-language="dctap" spellcheck="false">shapeID,shapeLabel,propertyID,propertyLabel,mandatory,repeatable,valueNodeType,valueDataType,valueShape
+            <textarea id="dctap-schema" data-input="schema" data-language="dctap" data-label="DCTAP profile" data-format-tag="none">shapeID,shapeLabel,propertyID,propertyLabel,mandatory,repeatable,valueNodeType,valueDataType,valueShape
 Person,Person,:name,Name,true,false,literal,xsd:string,
 Person,,:birthDate,Birth date,false,false,literal,xsd:date,
 Person,,:knows,Knows,false,true,iri,,Person</textarea>
@@ -780,7 +688,6 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
           <div class="field">
             <div class="field-head">
               <label for="pgschema-data">Property graph</label>
-              <button type="button" class="link gen-data" id="pgschema-generate-data" data-target="pgschema" title="Synthetic data from the PGSchema of this tab, with rudof generate" disabled>Generate data</button>
               <span class="format-tag" title="The only property graph format supported for now">YARS-PG</span>
             </div>
             <textarea id="pgschema-data" data-editor data-language="yarspg" spellcheck="false">(n1 {Person} [
@@ -801,11 +708,7 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
 (n2) - (e2 {EnrolledIn} [start: 2024, end: 2025 ]) -&gt; (n3)</textarea>
           </div>
           <div class="field">
-            <div class="field-head">
-              <label for="pgschema-schema">PGSchema</label>
-              <span class="format-tag">PGSchemaC</span>
-            </div>
-            <textarea id="pgschema-schema" data-editor data-language="pgschema" spellcheck="false">CREATE NODE TYPE ( PersonType : Person {
+            <textarea id="pgschema-schema" data-input="schema" data-language="pgschema" data-label="PGSchema">CREATE NODE TYPE ( PersonType : Person {
     name: STRING ||
     ( givenName: STRING, familyName: STRING ),
     OPTIONAL birthdate: DATE
@@ -868,83 +771,6 @@ e2: EnrolledInType</textarea>
       </section>
     </section>
 
-    <!-- Generate: synthetic data from a ShEx, SHACL or PGSchema schema -->
-    <section id="panel-generate" role="tabpanel" aria-labelledby="tab-generate" class="section" hidden>
-      <!-- The three tabs share their panel: each chooses the language of the schema -->
-      <div class="tabs subtabs" role="tablist" aria-label="Schema language">
-        <button role="tab" id="tab-gen-shacl" aria-controls="panel-gen" data-panel="gen" data-select="gen-language" data-value="turtle" aria-selected="true">SHACL</button>
-        <button role="tab" id="tab-gen-shex" aria-controls="panel-gen" data-panel="gen" data-select="gen-language" data-value="shexc" aria-selected="false" tabindex="-1">ShEx</button>
-        <button role="tab" id="tab-gen-pgschema" aria-controls="panel-gen" data-panel="gen" data-select="gen-language" data-value="pgschema" aria-selected="false" tabindex="-1">PGSchema</button>
-      </div>
-
-      <section id="panel-gen" role="tabpanel" aria-labelledby="tab-gen-shacl" class="panel">
-        <div class="toolbar">
-          <label class="inline">Example
-            <select id="gen-example"></select>
-          </label>
-          <label class="inline">Kind of data
-            <select id="gen-scenario"></select>
-          </label>
-          <span class="hint">The examples say the same in SHACL, ShEx and PGSchema, and generate the same graph.</span>
-        </div>
-        <div class="inputs two">
-          <div class="field">
-            <div class="field-head">
-              <label for="gen-schema">Schema</label>
-              <select id="gen-language" aria-label="Schema language" hidden>
-                <option value="turtle">SHACL (Turtle)</option>
-                <option value="shexc">ShEx (ShExC)</option>
-                <option value="pgschema">PGSchema</option>
-              </select>
-            </div>
-            <textarea id="gen-schema" data-editor data-format-select="gen-language" spellcheck="false"></textarea>
-          </div>
-          <div class="field">
-            <div class="field-head">
-              <label for="gen-config">Generator configuration</label>
-              <span class="format-tag" title="rudof generate's configuration, version 2; the kind of data writes it">TOML</span>
-            </div>
-            <textarea id="gen-config" data-editor data-language="toml" spellcheck="false"></textarea>
-          </div>
-        </div>
-        <div class="toolbar">
-          <label class="inline">Entities <input id="gen-entities" type="number" min="1" max="100000" value="60"></label>
-          <label class="inline">Seed <input id="gen-seed" type="number" min="0" value="7"></label>
-          <button class="primary" id="gen-validate" disabled>Generate</button>
-          <label class="inline">Show
-            <select id="gen-result-format">
-              <option value="summary">Summary</option>
-              <option value="turtle">RDF data (Turtle)</option>
-              <option value="yarspg">Property graph</option>
-              <option value="typemap">Type map</option>
-              <option value="shapemap">ShapeMap</option>
-              <option value="report">Error report</option>
-              <option value="validation">Validation</option>
-            </select>
-          </label>
-          <span class="shortcut">Ctrl + Enter</span>
-        </div>
-        <div class="result" id="gen-result" hidden>
-          <div class="result-head"><span class="verdict"></span><span class="timing"></span></div>
-          <pre class="output" id="gen-output" data-viewer="Generated data" data-format-select="gen-result-format"></pre>
-          <div class="table-output" hidden></div>
-        </div>
-        <div class="toolbar schema-tools">
-          <button class="secondary" id="gen-check-shacl" disabled>Validate with SHACL</button>
-          <button class="secondary" id="gen-check-shex" disabled>Validate with ShEx</button>
-          <button class="secondary" id="gen-check-pgschema" disabled>Validate with PGSchema</button>
-          <button class="secondary" id="gen-download" disabled>Download</button>
-          <span class="hint">Here, with the schema of the example in that language.</span>
-        </div>
-        <div class="toolbar schema-tools">
-          <button class="secondary" id="gen-to-shacl" disabled>Open in SHACL</button>
-          <button class="secondary" id="gen-to-shex" disabled>Open in ShEx</button>
-          <button class="secondary" id="gen-to-pgschema" disabled>Open in PGSchema</button>
-          <span class="hint">In the tabs of Validate, with the data and the schema.</span>
-        </div>
-      </section>
-    </section>
-
     <!-- Query: SPARQL over RDF data (GQL or Cypher over property graphs later) -->
     <section id="panel-query" role="tabpanel" aria-labelledby="tab-query" class="section" hidden>
       <div class="tabs subtabs" role="tablist" aria-label="Query language">
@@ -968,21 +794,8 @@ e2: EnrolledInType</textarea>
         </details>
         <div class="inputs two">
           <div class="field">
-            <div class="field-head">
-              <label for="sparql-data">RDF data</label>
-              <button type="button" class="link gen-data" id="sparql-generate-data" data-target="sparql" title="Synthetic data from an example of the Generate tab (persons, organisations and cities), with rudof generate" disabled>Generate data</button>
-              <span class="hint" id="sparql-data-unused" hidden>Not used: the query runs on the endpoint</span>
-              <select id="sparql-data-format" aria-label="RDF data format">
-                <option value="turtle">Turtle</option>
-                <option value="ntriples">N-Triples</option>
-                <option value="rdfxml">RDF/XML</option>
-                <option value="jsonld">JSON-LD</option>
-                <option value="trig">TriG</option>
-                <option value="n3">N3</option>
-                <option value="nquads">N-Quads</option>
-              </select>
-            </div>
-            <textarea id="sparql-data" data-editor data-format-select="sparql-data-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
+            <span data-head class="hint" id="sparql-data-unused" hidden>Not used: the query runs on the endpoint</span>
+            <textarea id="sparql-data" data-input="rdf" data-label="RDF data">prefix : &lt;http://example.org/&gt;
 prefix foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
 
 :alice a foaf:Person ;
@@ -999,18 +812,15 @@ prefix foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
        foaf:name "Carol" .</textarea>
           </div>
           <div class="field">
-            <div class="field-head">
-              <label for="sparql-query">SPARQL query</label>
-              <select id="sparql-example" aria-label="Example queries">
-                <option value="">Examples…</option>
-                <option value="select">SELECT: names and ages</option>
-                <option value="count">SELECT: how many people each one knows</option>
-                <option value="ask">ASK: is anyone under 18?</option>
-                <option value="construct">CONSTRUCT: who is known by whom</option>
-                <option value="describe">DESCRIBE: Carol</option>
-              </select>
-            </div>
-            <textarea id="sparql-query" data-editor data-language="sparql" spellcheck="false">PREFIX foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
+            <select data-head id="sparql-example" aria-label="Example queries">
+              <option value="">Examples…</option>
+              <option value="select">SELECT: names and ages</option>
+              <option value="count">SELECT: how many people each one knows</option>
+              <option value="ask">ASK: is anyone under 18?</option>
+              <option value="construct">CONSTRUCT: who is known by whom</option>
+              <option value="describe">DESCRIBE: Carol</option>
+            </select>
+            <textarea id="sparql-query" data-input="query" data-language="sparql" data-label="SPARQL query">PREFIX foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
 
 SELECT ?name ?age WHERE {
   ?person a foaf:Person ;
@@ -1062,19 +872,7 @@ ORDER BY ?name</textarea>
         </div>
         <div class="inputs two">
           <div class="field">
-            <div class="field-head">
-              <label for="compare-data-1">First RDF data</label>
-              <select id="compare-data-1-format" aria-label="Format of the first RDF data">
-                <option value="turtle">Turtle</option>
-                <option value="ntriples">N-Triples</option>
-                <option value="rdfxml">RDF/XML</option>
-                <option value="jsonld">JSON-LD</option>
-                <option value="trig">TriG</option>
-                <option value="n3">N3</option>
-                <option value="nquads">N-Quads</option>
-              </select>
-            </div>
-            <textarea id="compare-data-1" data-editor data-format-select="compare-data-1-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
+            <textarea id="compare-data-1" data-input="rdf" data-label="First RDF data">prefix : &lt;http://example.org/&gt;
 prefix foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
 
 :alice a foaf:Person ;
@@ -1085,19 +883,7 @@ prefix foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
        foaf:name "Bob" .</textarea>
           </div>
           <div class="field">
-            <div class="field-head">
-              <label for="compare-data-2">Second RDF data</label>
-              <select id="compare-data-2-format" aria-label="Format of the second RDF data">
-                <option value="turtle">Turtle</option>
-                <option value="ntriples">N-Triples</option>
-                <option value="rdfxml">RDF/XML</option>
-                <option value="jsonld">JSON-LD</option>
-                <option value="trig">TriG</option>
-                <option value="n3">N3</option>
-                <option value="nquads">N-Quads</option>
-              </select>
-            </div>
-            <textarea id="compare-data-2" data-editor data-format-select="compare-data-2-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
+            <textarea id="compare-data-2" data-input="rdf" data-label="Second RDF data">prefix : &lt;http://example.org/&gt;
 prefix foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
 
 :alice a foaf:Person ;
@@ -1141,11 +927,7 @@ _:carol foaf:name "Carol" .
         </div>
         <div class="inputs two">
           <div class="field">
-            <div class="field-head">
-              <label for="compare-schemas-1">First schema</label>
-              <select id="compare-schemas-1-format" aria-label="Format of the first schema"></select>
-            </div>
-            <textarea id="compare-schemas-1" data-editor data-format-select="compare-schemas-1-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
+            <textarea id="compare-schemas-1" data-input="schema" data-label="First schema" data-visual="shex">prefix : &lt;http://example.org/&gt;
 prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
 
 :Person {
@@ -1158,11 +940,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
             </label>
           </div>
           <div class="field">
-            <div class="field-head">
-              <label for="compare-schemas-2">Second schema</label>
-              <select id="compare-schemas-2-format" aria-label="Format of the second schema"></select>
-            </div>
-            <textarea id="compare-schemas-2" data-editor data-format-select="compare-schemas-2-format" spellcheck="false">prefix : &lt;http://example.org/&gt;
+            <textarea id="compare-schemas-2" data-input="schema" data-label="Second schema" data-visual="shex">prefix : &lt;http://example.org/&gt;
 prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
 
 :Person {
@@ -1187,6 +965,79 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
         <div class="result" id="compare-schemas-result" hidden>
           <div class="result-head"><span class="verdict"></span><span class="timing"></span></div>
           <pre class="output" id="compare-schemas-output"></pre>
+        </div>
+      </section>
+    </section>
+    <!-- Generate: synthetic data from a ShEx, SHACL or PGSchema schema -->
+    <section id="panel-generate" role="tabpanel" aria-labelledby="tab-generate" class="section" hidden>
+      <!-- The three tabs share their panel: each chooses the language of the schema -->
+      <div class="tabs subtabs" role="tablist" aria-label="Schema language">
+        <button role="tab" id="tab-gen-shacl" aria-controls="panel-gen" data-panel="gen" data-select="gen-language" data-value="turtle" aria-selected="true">SHACL</button>
+        <button role="tab" id="tab-gen-shex" aria-controls="panel-gen" data-panel="gen" data-select="gen-language" data-value="shexc" aria-selected="false" tabindex="-1">ShEx</button>
+        <button role="tab" id="tab-gen-pgschema" aria-controls="panel-gen" data-panel="gen" data-select="gen-language" data-value="pgschema" aria-selected="false" tabindex="-1">PGSchema</button>
+      </div>
+
+      <section id="panel-gen" role="tabpanel" aria-labelledby="tab-gen-shacl" class="panel">
+        <div class="toolbar">
+          <label class="inline">Example
+            <select id="gen-example"></select>
+          </label>
+          <label class="inline">Kind of data
+            <select id="gen-scenario"></select>
+          </label>
+          <span class="hint">The examples say the same in SHACL, ShEx and PGSchema, and generate the same graph.</span>
+        </div>
+        <div class="inputs two">
+          <div class="field">
+            <select data-head id="gen-language" aria-label="Schema language" hidden>
+              <option value="turtle">SHACL (Turtle)</option>
+              <option value="shexc">ShEx (ShExC)</option>
+              <option value="pgschema">PGSchema</option>
+            </select>
+            <textarea id="gen-schema" data-input="schema" data-label="Schema" data-format-select="gen-language"></textarea>
+          </div>
+          <div class="field">
+            <div class="field-head">
+              <label for="gen-config">Generator configuration</label>
+              <span class="format-tag" title="rudof generate's configuration, version 2; the kind of data writes it">TOML</span>
+            </div>
+            <textarea id="gen-config" data-editor data-language="toml" spellcheck="false"></textarea>
+          </div>
+        </div>
+        <div class="toolbar">
+          <label class="inline">Entities <input id="gen-entities" type="number" min="1" max="100000" value="60"></label>
+          <label class="inline">Seed <input id="gen-seed" type="number" min="0" value="7"></label>
+          <button class="primary" id="gen-validate" disabled>Generate</button>
+          <label class="inline">Show
+            <select id="gen-result-format">
+              <option value="summary">Summary</option>
+              <option value="turtle">RDF data (Turtle)</option>
+              <option value="yarspg">Property graph</option>
+              <option value="typemap">Type map</option>
+              <option value="shapemap">ShapeMap</option>
+              <option value="report">Error report</option>
+              <option value="validation">Validation</option>
+            </select>
+          </label>
+          <span class="shortcut">Ctrl + Enter</span>
+        </div>
+        <div class="result" id="gen-result" hidden>
+          <div class="result-head"><span class="verdict"></span><span class="timing"></span></div>
+          <pre class="output" id="gen-output" data-viewer="Generated data" data-format-select="gen-result-format"></pre>
+          <div class="table-output" hidden></div>
+        </div>
+        <div class="toolbar schema-tools">
+          <button class="secondary" id="gen-check-shacl" disabled>Validate with SHACL</button>
+          <button class="secondary" id="gen-check-shex" disabled>Validate with ShEx</button>
+          <button class="secondary" id="gen-check-pgschema" disabled>Validate with PGSchema</button>
+          <button class="secondary" id="gen-download" disabled>Download</button>
+          <span class="hint">Here, with the schema of the example in that language.</span>
+        </div>
+        <div class="toolbar schema-tools">
+          <button class="secondary" id="gen-to-shacl" disabled>Open in SHACL</button>
+          <button class="secondary" id="gen-to-shex" disabled>Open in ShEx</button>
+          <button class="secondary" id="gen-to-pgschema" disabled>Open in PGSchema</button>
+          <span class="hint">In the tabs of Validate, with the data and the schema.</span>
         </div>
       </section>
     </section>
