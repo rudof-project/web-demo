@@ -1825,7 +1825,35 @@ function compareSchemasOf() {
 
 // ---------------------------------------------------------------------------
 // Generate (generate.js): synthetic data from the schema of the tab, validated
-// with it right away
+// with it right away. As in Validate, the schema is the first box, and the
+// data generated the second one, which can be edited: the validations, Open
+// in and Download take its text. The result under them has the summary, the
+// type map, the ShapeMap, the error report and the validation.
+
+// What the box of the generated data has: [the key of the generated data,
+// its view]
+const GENERATED_VIEWS = { turtle: "data", yarspg: "propertyGraph" };
+let generatedView = $("gen-data-view").value;
+
+// The generated data, with the text of its box
+function currentGenerated() {
+  if (!last.gen) return undefined;
+  const generated = { ...last.gen.generated, [GENERATED_VIEWS[generatedView]]: $("gen-data").value };
+  return (last.gen = { ...last.gen, generated });
+}
+
+// Shows a view of the generated data in its box: RDF data, or the property
+// graph of a PGSchema
+function showGenerated(view) {
+  const { generated } = last.gen;
+  const yarspg = $("gen-data-view").querySelector('option[value="yarspg"]');
+  yarspg.disabled = !generated.propertyGraph;
+  if (view === "yarspg" && !generated.propertyGraph) view = "turtle";
+  generatedView = view;
+  $("gen-data-view").value = view;
+  $("gen-data-view").dispatchEvent(new Event("change"));
+  setInputText("gen-data", generated[GENERATED_VIEWS[view]] ?? "");
+}
 
 function generateTab() {
   const schema = $("gen-schema").value;
@@ -1837,7 +1865,10 @@ function generateTab() {
     seed: Number($("gen-seed").value),
   });
   // What the data came from, for the other languages of its example
-  return { ...result, schema, example: $("gen-example").value };
+  last.gen = { ...result, schema, example: $("gen-example").value };
+  // A property graph from a PGSchema, else RDF data
+  showGenerated($("gen-language").value === "pgschema" ? "yarspg" : "turtle");
+  return last.gen;
 }
 
 // The schema of the generated data's example in a language: the one it came
@@ -1890,7 +1921,7 @@ function setupGenerate() {
     const schema = await generatedSchemaIn(target);
     if (schema === null || !last.gen) return;
     try {
-      last.gen = validateWith(rudofModule, last.gen, target, schema);
+      last.gen = validateWith(rudofModule, currentGenerated(), target, schema);
       $("gen-result-format").value = "validation";
       reformat("gen");
     } catch (e) {
@@ -1900,7 +1931,7 @@ function setupGenerate() {
   // The generated data, with the schema of its example, in the tabs of the
   // validators
   const open = async (target) => {
-    const { generated } = last.gen;
+    const { generated } = currentGenerated();
     const schema = await generatedSchemaIn(target);
     if (target === "pgschema") {
       setInputText("pgschema-data", generated.propertyGraph);
@@ -1919,8 +1950,17 @@ function setupGenerate() {
     $(`gen-to-${target}`).addEventListener("click", () => open(target));
     $(`gen-check-${target}`).addEventListener("click", () => check(target));
   }
+  // The box of the generated data shows the other view, and keeps the text
+  // of the one it showed
+  $("gen-data-view").addEventListener("change", () => {
+    if (!last.gen || $("gen-data-view").value === generatedView) return;
+    currentGenerated();
+    showGenerated($("gen-data-view").value);
+  });
+  // Download: what Show shows, or the generated data of its box
   $("gen-download").addEventListener("click", () => {
-    const [name, text] = generatedFile(last.gen, $("gen-result-format").value);
+    const view = $("gen-result-format").value;
+    const [name, text] = generatedFile(currentGenerated(), view === "summary" ? generatedView : view);
     const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([text ?? ""], { type: "text/plain" })), download: name });
     a.click();
     URL.revokeObjectURL(a.href);

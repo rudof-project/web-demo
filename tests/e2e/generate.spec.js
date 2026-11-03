@@ -2,7 +2,7 @@
 // tab each), validated with it right away, then with the schema of the
 // example in the other languages, here or in the tabs of Validate.
 
-import { test, expect, open, editor } from "./fixtures.js";
+import { test, expect, open, editor, setInput } from "./fixtures.js";
 
 const verdict = (page) => page.locator("#gen-result .verdict");
 const TABS = { turtle: "shacl", shexc: "shex", pgschema: "pgschema" };
@@ -53,14 +53,31 @@ for (const [language, validator] of [["turtle", "SHACL"], ["shexc", "ShEx"], ["p
   });
 }
 
-test("shows a summary, the property graph, the report and the validation", async ({ page }) => {
+test("writes the generated data in the box next to the schema", async ({ page }) => {
+  await open(page, "#generate/gen-shacl");
+  await expect(page.locator("#gen-data")).toHaveValue("");
+  await generate(page);
+  // RDF data from SHACL and ShEx, in Turtle
+  await expect(page.locator("#gen-data-view")).toHaveValue("turtle");
+  await expect(editor(page, "gen-data")).toHaveAttribute("data-format", "turtle");
+  await expect(editor(page, "gen-data")).toContainText("rudof.example/pg/");
+  // The property graph of the example too
+  await page.locator("#gen-data-view").selectOption("yarspg");
+  await expect(editor(page, "gen-data")).toHaveAttribute("data-format", "yarspg");
+  await expect(editor(page, "gen-data")).toContainText(")->");
+  // A property graph from a PGSchema
+  await generate(page, { language: "pgschema" });
+  await expect(page.locator("#gen-data-view")).toHaveValue("yarspg");
+  await expect(editor(page, "gen-data")).toContainText(")->");
+});
+
+test("shows a summary, the report and the validation", async ({ page }) => {
   await open(page, "#generate/gen-shacl");
   await generate(page, { scenario: "errors" });
   await expect(page.locator("#gen-result-format")).toHaveValue("summary");
+  await expect(page.locator("#gen-result-format option")).toHaveText(["Summary", "Type map", "ShapeMap", "Error report", "Validation"]);
   await expect(page.locator("#gen-result .table-output")).toContainText("Nodes generated");
   await expect(page.locator("#gen-result .table-output")).toContainText("PersonType");
-  await page.locator("#gen-result-format").selectOption("yarspg");
-  await expect(page.locator('.cm-viewer[data-viewer-for="gen-output"]')).toHaveAttribute("data-format", "yarspg");
   await page.locator("#gen-result-format").selectOption("report");
   await expect(page.locator("#gen-result .table-output table")).toBeVisible();
   await expect(page.locator("#gen-result .table-output")).toContainText("direct");
@@ -68,13 +85,33 @@ test("shows a summary, the property graph, the report and the validation", async
   await expect(page.locator("#gen-result .table-output")).toContainText("fails");
 });
 
-test("downloads the view shown", async ({ page }) => {
+test("downloads the view shown, or the generated data of its box", async ({ page }) => {
   await open(page, "#generate/gen-shacl");
   await generate(page);
-  await page.locator("#gen-result-format").selectOption("yarspg");
-  const download = page.waitForEvent("download");
-  await page.locator("#gen-download").click();
-  expect((await download).suggestedFilename()).toBe("data.pg");
+  const downloaded = async () => {
+    const download = page.waitForEvent("download");
+    await page.locator("#gen-download").click();
+    return (await download).suggestedFilename();
+  };
+  // With the summary: the data of the box
+  expect(await downloaded()).toBe("data.ttl");
+  await page.locator("#gen-data-view").selectOption("yarspg");
+  expect(await downloaded()).toBe("data.pg");
+  await page.locator("#gen-result-format").selectOption("shapemap");
+  expect(await downloaded()).toBe("shapemap.txt");
+});
+
+test("the generated data can be edited, and Open in takes the text of its box", async ({ page }) => {
+  await open(page, "#generate/gen-shacl");
+  await generate(page, { language: "shexc" });
+  const text = await page.locator("#gen-data").inputValue();
+  await setInput(page, "gen-data", `${text}\n# edited here`);
+  // The other view keeps the edit
+  await page.locator("#gen-data-view").selectOption("yarspg");
+  await page.locator("#gen-data-view").selectOption("turtle");
+  await expect(page.locator("#gen-data")).toHaveValue(/# edited here$/);
+  await page.locator("#gen-to-shex").click();
+  await expect(page.locator("#shex-data")).toHaveValue(/# edited here$/);
 });
 
 for (const [target, validator] of [["shacl", "SHACL"], ["shex", "ShEx"], ["pgschema", "PGSchema"]]) {
@@ -106,6 +143,9 @@ test("a custom schema has no other language, nor a property graph", async ({ pag
   await expect(page.locator("#gen-check-shacl")).toBeDisabled();
   await expect(page.locator("#gen-to-pgschema")).toBeDisabled();
   await expect(page.locator("#gen-check-pgschema")).toBeDisabled();
+  // The box of the generated data has only RDF data
+  await expect(page.locator('#gen-data-view option[value="yarspg"]')).toHaveJSProperty("disabled", true);
+  await expect(page.locator("#gen-data-view")).toHaveValue("turtle");
 });
 
 test("a permalink keeps the language, the example and the kind of data", async ({ page }) => {

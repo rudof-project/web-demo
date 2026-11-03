@@ -1038,8 +1038,9 @@ table.csv-result td code { font-size: 12px; white-space: pre-wrap; overflow-wrap
 ul.compare-bnodes { margin: 0 0.75rem 0.75rem; padding-left: 1.2rem; }
 ul.compare-bnodes code { font-size: 0.9em; }
 
-/* Generate: the schema, the configuration and the result keep a height of
-   their own (their handle, or Full screen, makes them bigger), since the
-   data generated can be long */
-.cm-editor[data-editor-for="gen-schema"], .cm-editor[data-editor-for="gen-config"] { height: 18rem; min-height: 7.5rem; }
+/* Generate: the schema, the generated data, the configuration and the
+   result keep a height of their own (their handle, or Full screen, makes
+   them bigger), since the data generated can be long */
+.cm-editor[data-editor-for="gen-schema"], .cm-editor[data-editor-for="gen-data"] { height: 22rem; min-height: 7.5rem; }
+.cm-editor[data-editor-for="gen-config"] { height: 10rem; min-height: 5rem; }
 #gen-result { height: 22rem; min-height: 8rem; }

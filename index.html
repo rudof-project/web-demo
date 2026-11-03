@@ -996,13 +996,25 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
             </select>
             <textarea id="gen-schema" data-input="schema" data-label="Schema" data-format-select="gen-language"></textarea>
           </div>
+          <!-- What Generate generates, which can be edited before it is validated or opened -->
           <div class="field">
             <div class="field-head">
-              <label for="gen-config">Generator configuration</label>
-              <span class="format-tag" title="rudof generate's configuration, version 2; the kind of data writes it">TOML</span>
+              <label for="gen-data">Generated data</label>
+              <select id="gen-data-view" aria-label="Generated data format">
+                <option value="turtle">RDF data (Turtle)</option>
+                <option value="yarspg">Property graph (YARS-PG)</option>
+              </select>
             </div>
-            <textarea id="gen-config" data-editor data-language="toml" spellcheck="false"></textarea>
+            <textarea id="gen-data" data-editor data-output data-format-select="gen-data-view" spellcheck="false"
+              placeholder="Press Generate: the data generated from the schema"></textarea>
           </div>
+        </div>
+        <div class="field">
+          <div class="field-head">
+            <label for="gen-config">Generator configuration</label>
+            <span class="format-tag" title="rudof generate's configuration, version 2; the kind of data writes it">TOML</span>
+          </div>
+          <textarea id="gen-config" data-editor data-language="toml" spellcheck="false"></textarea>
         </div>
         <div class="toolbar">
           <label class="inline">Entities <input id="gen-entities" type="number" min="1" max="100000" value="60"></label>
@@ -1011,8 +1023,6 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
           <label class="inline">Show
             <select id="gen-result-format">
               <option value="summary">Summary</option>
-              <option value="turtle">RDF data (Turtle)</option>
-              <option value="yarspg">Property graph</option>
               <option value="typemap">Type map</option>
               <option value="shapemap">ShapeMap</option>
               <option value="report">Error report</option>

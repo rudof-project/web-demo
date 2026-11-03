@@ -274,6 +274,10 @@ language, **SHACL**, **ShEx** and **PGSchema**, which share their panel
 [`generate.js`](generate.js) has the examples, the kinds of data and the
 views of the result.
 
+As in the tabs of Validate, the schema is the first box, and **Generated
+data** the second one: **Generate** writes in it the data it generated,
+under them the **Generator configuration**, and the result is below.
+
 - **Example**: six models, each written in the three languages
   ([`examples/generate/`](examples/generate/)): references, keys, facets,
   labels, LUBM and LDBC SNB. They are written over the RDF encoding of a
@@ -284,20 +288,26 @@ views of the result.
   which can be edited before **Generate**: valid data, dense or sparse data,
   a target coherence, or data **with errors** (20% of the entities broken,
   one constraint each).
+- **Generated data** has the RDF data (Turtle), or, from a PGSchema, the
+  property graph (YARS-PG); its menu shows the other one when the data has
+  it (the examples of SHACL and ShEx have a property graph too). It can be
+  edited: **Validate with**, **Open in** and **Download** take its text, and
+  the menu keeps the text of each one. Permalinks don't have it.
 - **Show**: a summary (nodes, the property graph's nodes and edges, the
-  report, what the validator rejects, the nodes of each shape), the RDF data
-  (Turtle), the property graph and its type map, the ShapeMap, the error
-  report and the validation. With errors, the report says which nodes a
-  correct validator must reject (*direct*, the broken node, and *induced*, a
-  node that refers to it) and which changes leave the data valid (*trap*).
-  The verdict compares it with what the validator rejects. **Download**
-  saves the view shown.
+  report, what the validator rejects, the nodes of each shape), the type map
+  of the property graph, the ShapeMap, the error report and the validation.
+  With errors, the report says which nodes a correct validator must reject
+  (*direct*, the broken node, and *induced*, a node that refers to it) and
+  which changes leave the data valid (*trap*). The verdict compares it with
+  what the validator rejects. **Download** saves the view shown, or, with
+  the summary, the generated data.
 - **Validate with SHACL / ShEx / PGSchema** validates the data here, with
   the example's schema in that language. **Open in SHACL / ShEx / PGSchema**
   copies the data and that schema to the tab of Validate instead. PGSchema
   needs a property graph, and a schema of your own has no other language.
-- The schema, the configuration and the result have a height of their own
-  (their handle, or Full screen, makes them bigger): the data can be long.
+- The schema, the generated data, the configuration and the result have a
+  height of their own (their handle, or Full screen, makes them bigger): the
+  data can be long.
 
 ## SPARQL endpoints
 
