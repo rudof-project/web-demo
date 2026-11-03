@@ -1,8 +1,0 @@
-CREATE NODE TYPE ( PersonType : Person {
-    name: STRING,
-    OPTIONAL age: INTEGER CHECK >= 18
-}) ;
-CREATE NODE TYPE ( OrgType : Org {
-    label: STRING
-}) ;
-CREATE EDGE TYPE (:@PersonType) -[WorksForType : worksFor]-> (:@OrgType)

@@ -1,0 +1,12 @@
+(alice {Person} [
+    name: "Alice",
+    birthDate: DATE "1995-03-12"
+])
+(bob {Person} [
+    name: ["Robert", "Bob"],
+    birthDate: "unknown"
+])
+(carol {Person} [
+    name: "Carol"
+])
+(alice) - (k1 {knows}) -> (carol)

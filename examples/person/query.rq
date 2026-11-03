@@ -1,0 +1,8 @@
+PREFIX : <http://example.org/>
+
+SELECT ?name ?birthDate WHERE {
+  ?person a :Person ;
+          :name ?name .
+  OPTIONAL { ?person :birthDate ?birthDate }
+}
+ORDER BY ?name

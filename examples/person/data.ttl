@@ -1,0 +1,14 @@
+prefix : <http://example.org/>
+prefix xsd: <http://www.w3.org/2001/XMLSchema#>
+
+:alice a :Person ;
+       :name "Alice" ;
+       :birthDate "1995-03-12"^^xsd:date ;
+       :knows :carol .
+
+:bob   a :Person ;
+       :name "Robert", "Bob" ;
+       :birthDate "unknown" .
+
+:carol a :Person ;
+       :name "Carol" .
