@@ -81,7 +81,8 @@ describe("the help page", () => {
       "data", "dataURL", "schema", "schemaURL", "shapes", "shapesURL", "queryMap", "queryMapURL",
       "typeMap", "typeMapURL", "query", "queryURL", "endpoint", "dataFormat", "schemaFormat", "queryFormat",
       "schemaLanguage", "schemaEngine", "prefixes", "prefixesURL", "picklistSeparator",
-      "targets", "targetsURL", "targetsFormat", "section", "examples",
+      "targets", "targetsURL", "targetsFormat", "section", "examples", "id",
+      "shacl", "shaclURL", "shex", "shexURL", "pgschema", "pgschemaURL", "config", "configURL", "entities", "seed", "kind",
     ];
     expect(keys.filter((key) => !documented.has(key))).toEqual([]);
   });
@@ -91,7 +92,7 @@ describe("the examples of the help page", () => {
   const entries = examples.flatMap((e) => e.entries.map((entry) => [e.heading, entry]));
 
   it("has an example for each action and validation engine", () => {
-    expect(new Set(entries.map(([, e]) => e.target))).toEqual(new Set(["shex", "shacl", "pgschema", "dctap", "rdf", "pg", "sparql", "convert-shex", "convert-dctap"]));
+    expect(new Set(entries.map(([, e]) => e.target))).toEqual(new Set(["shex", "shacl", "pgschema", "dctap", "rdf", "pg", "sparql", "convert-shex", "convert-dctap", "generate"]));
   });
 
   it.each(entries)("%s: %o can be loaded", async (_, example) => {

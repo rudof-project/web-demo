@@ -38,6 +38,10 @@
             <small>Examples from the <a href="https://github.com/cogsl/sheval">sheval</a> paper</small>
           </div>
           <div class="menu-item">
+            <a href="./?manifestURL=examples%2Fgenerate%2Fmanifest.yml#generate/gen-shacl">Generate examples</a>
+            <small>Synthetic data from SHACL, ShEx and PGSchema schemas, in the <a href="./#generate/gen-shacl">Generate</a> tab</small>
+          </div>
+          <div class="menu-item">
             <a href="help.html#format">Your own examples</a>
             <small>How to write a manifest of examples</small>
           </div>
@@ -147,6 +151,8 @@
             </li>
             <li><strong>schema</strong>: the Schema tab, with the language and the format of the schema. Choose what
               to convert it to, and press <strong>Convert</strong>.</li>
+            <li><strong>generate</strong>: the Generate tab, with the schema and the configuration of the generator.
+              Press <strong>Generate</strong> to generate data from the schema.</li>
           </ul>
           <p>Below the list, the demo shows what the example expects and its comment.</p>
         </li>
@@ -189,7 +195,8 @@
       <p>A manifest can put its examples in sections, which can have sections too. A section is an item with
         <code>section</code> (its title), an optional <code>comment</code> (more about it) and <code>examples</code>:
         a list of examples and sections. A manifest can have examples out of sections too, and a manifest without
-        sections is a list of examples, as before.</p>
+        sections is a list of examples, as before. A section can have an <code>id</code>, which names it: the
+        examples of the Generate tab are the sections of <a href="#example-generate">its manifest</a>.</p>
       <pre><code>- section: Knowledge Graphs
   comment: Examples about Knowledge Graphs
   examples:
@@ -412,6 +419,35 @@
   prefixes: |
     PREFIX : &lt;http://example.org/&gt;
   comment: The same people, in a DCTAP profile</code></pre>
+
+      <h3 id="example-generate">Generate data</h3>
+      <p><code>action: generate</code> puts the schema in the Generate tab, which generates synthetic data from it
+        with rudof. An example can have its schema in each of the languages of the tab, with
+        <code>shacl</code> (or <code>shaclURL</code>), <code>shex</code> (or <code>shexURL</code>) and
+        <code>pgschema</code> (or <code>pgschemaURL</code>), or one schema, with <code>schema</code> (or
+        <code>schemaURL</code>) and its <code>schemaLanguage</code>. It opens in its <code>schemaLanguage</code>
+        (SHACL by default), and the other languages of the tab show its schema in them: the data can be validated
+        with all of them. <code>config</code> (or <code>configURL</code>) is the configuration of the generator
+        (TOML, <code>version = 2</code> by default), <code>entities</code> and <code>seed</code> how many entities
+        and the random seed, and <code>kind</code> the kind of data, in the menu of the tab.</p>
+      <pre class="manifest-example"><code>- action: generate
+  schemaLanguage: shex
+  shex: |
+    PREFIX : &lt;http://example.org/&gt;
+    PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
+    :Person { :name xsd:string ; :age xsd:integer ? }
+  config: |
+    version = 2
+
+    [violations]
+    rate = 0.2
+  entities: 20
+  seed: 1
+  comment: People, 20% of them with an error</code></pre>
+      <p>The examples of the Generate tab are in the manifest
+        <a href="examples/generate/manifest.yml"><code>examples/generate/manifest.yml</code></a>, which the
+        <strong>Examples</strong> menu opens (<strong>Generate examples</strong>): a section for each example (with
+        its <code>id</code>), and an entry for each kind of data.</p>
     </section>
 
     <section id="keys">
@@ -433,7 +469,8 @@
               <td><code>action</code></td>
               <td><code>validate</code>: validate the data with a schema;<br><code>data</code>: load the
                 data;<br><code>query</code>: run a query on the data or on an endpoint;<br><code>schema</code>: show the
-                schema in the Schema tab, to convert it</td>
+                schema in the Schema tab, to convert it;<br><code>generate</code>: generate data from the schema, in the
+                Generate tab</td>
               <td><code>validate</code></td>
             </tr>
             <tr>
@@ -534,6 +571,22 @@
                 DCTAP) or <code>"|"</code> (or <code>bar</code>)</td>
               <td><code>validate</code> with DCTAP</td>
             </tr>
+            <tr>
+              <td><code>shacl</code>, <code>shaclURL</code>, <code>shex</code>, <code>shexURL</code>,
+                <code>pgschema</code>, <code>pgschemaURL</code></td>
+              <td>The schema in each language it has</td>
+              <td><code>generate</code> (or <code>schema</code> with its <code>schemaLanguage</code>)</td>
+            </tr>
+            <tr>
+              <td><code>config</code>, <code>configURL</code></td>
+              <td>The configuration of the generator (TOML)</td>
+              <td><code>generate</code>; <code>version = 2</code> by default</td>
+            </tr>
+            <tr>
+              <td><code>entities</code>, <code>seed</code>, <code>kind</code></td>
+              <td>How many entities, the random seed, and the kind of data</td>
+              <td><code>generate</code>; optional</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -630,6 +683,8 @@
         <li><code>action: data</code> goes to the Property graph tab when the data is a property graph
           (<code>dataFormat: yars-pg</code>, or a <code>.pg</code> file), and to the RDF tab otherwise.</li>
         <li><code>action: query</code> goes to the SPARQL tab.</li>
+        <li><code>action: generate</code> goes to the Generate tab, in the <code>schemaLanguage</code> of the
+          example, or else the first language it has a schema in (SHACL, ShEx, PGSchema).</li>
         <li><code>action: schema</code> goes to the Schema tab, in the <code>schemaLanguage</code> of the schema.
           Without
           it, the language is <code>dctap</code> for a DCTAP profile, else the language of the engine that would

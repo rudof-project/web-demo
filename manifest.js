@@ -39,6 +39,21 @@
 //       :S sh:targetNode :alice .  # declarations in RDF, merged with the
 //     targetsFormat: turtle       # shapes graph before the validation
 //
+// action: generate goes to the Generate tab: synthetic data from a schema
+// (examples/generate/manifest.yml has the examples of the tab):
+//
+//     shaclURL: s.ttl             # the schema in each language it has (or
+//     shexURL: s.shex             # shacl:, shex:, pgschema: with the text,
+//     pgschemaURL: s.pgs          # or schema: with schemaLanguage:)
+//     schemaLanguage: shex        # the language it opens in
+//     config: |                   # the configuration of the generator (TOML)
+//       version = 2
+//     entities: 60                # how many entities, and the random seed
+//     seed: 7
+//     kind: valid                 # the kind of data, in the Generate tab
+//
+// A section can have an id (as the examples of Generate: gen-example=…).
+//
 // Without a format, the format is the one of the extension of the file, or
 // the default. Without a validationEngine, PGSchema validates property graphs
 // and PGSchema schemas, SHACL validates shapes (shapes: or shapesURL:) and
@@ -107,6 +122,9 @@ const convertSchema = (language, input, ...others) => ({
   selects: { "convert-language": language },
   inputs: [{ name: "schema", key: "schemaFormat", textarea: "convert-schema", formatSelect: "convert-format", ...input }, ...others],
 });
+
+// The languages that the Generate tab generates data from
+export const GENERATE_LANGUAGES = ["shacl", "shex", "pgschema"];
 
 // Where the examples go: for each tab, its id in the URL fragment (and the
 // prefix of the ids of its inputs and its result), the action it is for, and
@@ -185,9 +203,23 @@ export const TARGETS = {
     { name: "picklistSeparator", textarea: "convert-picklist", optional: true, default: " ", values: PICKLIST_SEPARATORS },
   ),
   "convert-pgschema": convertSchema("pgschema", { formats: PGSCHEMA_FORMATS, names: "pgschema", extensions: PGSCHEMA_EXTENSIONS, inline: () => "pgschema" }),
+
+  // action: generate, in the Generate tab (the schemas in their languages)
+  generate: {
+    tab: "generate",
+    action: "generate",
+    validator: "gen",
+    what: "Generate",
+    inputs: [
+      ...GENERATE_LANGUAGES.map((name) => ({ name, optional: true })),
+      { name: "config", textarea: "gen-config", optional: true, default: "version = 2\n" },
+      { name: "entities", textarea: "gen-entities", optional: true },
+      { name: "seed", textarea: "gen-seed", optional: true },
+    ],
+  },
 };
 
-export const ACTIONS = ["data", "validate", "query", "schema"];
+export const ACTIONS = ["data", "validate", "query", "schema", "generate"];
 const VALIDATION_ENGINES = ["shex", "shacl", "pgschema"];
 // The languages of schemas, and the engines that can validate with each one
 const SCHEMA_LANGUAGES = { shex: ["shex"], shacl: ["shacl"], pgschema: ["pgschema"], dctap: ["shex"] };
@@ -226,6 +258,13 @@ function targetOf(entry, isPg, manifestURL) {
     return { problem: problem(`has an unknown action "${entry.action}"`, `Write action: ${ACTIONS.join(", action: ")}, or leave it out to validate.`, "key-action") };
   }
   if (action === "data") return { target: isPg ? "pg" : "rdf" };
+  if (action === "generate") {
+    const language = lower(entry.schemaLanguage);
+    if (language != null && !GENERATE_LANGUAGES.includes(language)) {
+      return { problem: problem(`generates data from a schema in "${entry.schemaLanguage}", which rudof can't do`, `Write schemaLanguage: ${GENERATE_LANGUAGES.join(", ")}.`, "example-generate") };
+    }
+    return { target: "generate" };
+  }
   if (action === "query") {
     const engine = lower(entry.queryEngine) ?? "sparql";
     if (!QUERY_ENGINES.includes(engine)) {
@@ -312,7 +351,7 @@ function isPgData(entry, manifestURL) {
 // The examples of a manifest (its YAML text), with their URLs made absolute
 // against the URL of the manifest. Each example has:
 //   index      its position in the manifest (in its sections too)
-//   action     data, validate or query
+//   action     data, validate, query, schema or generate
 //   target     the tab it goes to (a key of TARGETS)
 //   group      what it is grouped by (the schema label)
 //   sections   the titles of its sections, from the outermost ([] for none)
@@ -359,7 +398,7 @@ export function parseSections(source, manifestURL, { endpoints = false } = {}) {
         const title = text(entry.section);
         const items = entry.examples ?? [];
         if (!Array.isArray(items)) throw new Error(`the examples of the section “${title}” are not a YAML list`);
-        return { section: { title, comment: text(entry.comment), items: read(items, [...sections, title]) } };
+        return { section: { title, id: text(entry.id), comment: text(entry.comment), items: read(items, [...sections, title]) } };
       }
       const example = parseEntry(entry, examples.length, manifestURL, endpoints);
       example.sections = sections;
@@ -396,6 +435,13 @@ function parseEntry(entry, index, manifestURL, endpoints) {
       formats[name] = extensions?.[extension(input.url)];
     }
   }
+  // Generate: schema: is the schema in the schemaLanguage
+  let language;
+  if (target === "generate") {
+    const schema = inputOf(entry, ["schema"], manifestURL);
+    language = lower(entry.schemaLanguage) ?? GENERATE_LANGUAGES.find((l) => inputs[l]) ?? "shacl";
+    if (schema && !inputs[language]) inputs[language] = schema;
+  }
   const notes = [];
   if (entry.plugins?.length) {
     const names = [].concat(entry.plugins).map((p) => String(p).split("/").pop().replace(/\.js$/, ""));
@@ -412,6 +458,8 @@ function parseEntry(entry, index, manifestURL, endpoints) {
     status: text(entry.status),
     comment: text(entry.comment),
     endpoint: text(entry.endpoint),
+    kind: text(entry.kind),
+    language,
     notes,
     unsupported: why?.reason,
     hint: why?.hint,
@@ -461,6 +509,9 @@ function unsupported(entry, target, inputs, problems, endpoints) {
       "Open the example in Chrome or Edge 137 or later, or give the data with data: or dataURL:, instead of endpoint:.",
       "example-endpoint",
     );
+  }
+  if (target === "generate" && !GENERATE_LANGUAGES.some((l) => inputs[l])) {
+    return problem("has no schema to generate data from", "Add the schema, with shaclURL:, shexURL: or pgschemaURL: (or shacl:, shex:, pgschema: with its text).", "example-generate");
   }
   // The data is in the endpoint
   const given = (name) => inputs[name] || (name === "data" && inputs.endpoint);

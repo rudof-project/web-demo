@@ -420,7 +420,7 @@ describe("why an example can't be run", () => {
     const shacl = one("- schema: ''\n  schemaFormat: shex\n  validationEngine: shacl\n  data: ''\n");
     expect(shacl.hint).toBe("The schemaFormat of SHACL can be an RDF format (turtle, ntriples, rdfxml, jsonld, trig, n3, nquads).");
 
-    expect(one("- data: ''\n  action: convert\n")).toMatchObject({ hint: "Write action: data, action: validate, action: query, action: schema, or leave it out to validate.", help: "key-action" });
+    expect(one("- data: ''\n  action: convert\n")).toMatchObject({ hint: "Write action: data, action: validate, action: query, action: schema, action: generate, or leave it out to validate.", help: "key-action" });
     expect(one("- query: 'ASK {}'\n  action: query\n")).toMatchObject({ help: "example-query" });
     expect(examples[2]).toMatchObject({ help: "example-endpoint", hint: expect.stringMatching(/Chrome or Edge 137/) });
     expect(one("- schema: ''\n  neighborhood: sparql\n  queryMap: ''\n")).toMatchObject({ help: "unsupported", hint: expect.stringMatching(/neighborhood/) });

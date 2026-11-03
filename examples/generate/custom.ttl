@@ -1,0 +1,11 @@
+prefix : <http://example.org/>
+prefix sh: <http://www.w3.org/ns/shacl#>
+prefix xsd: <http://www.w3.org/2001/XMLSchema#>
+
+:PersonShape a sh:NodeShape ; sh:targetClass :Person ;
+  sh:property [ sh:path :name ; sh:datatype xsd:string ; sh:minCount 1 ; sh:maxCount 1 ] ;
+  sh:property [ sh:path :age ; sh:datatype xsd:integer ; sh:minInclusive 18 ; sh:maxCount 1 ] ;
+  sh:property [ sh:path :worksFor ; sh:node :OrgShape ; sh:minCount 1 ; sh:maxCount 1 ] .
+
+:OrgShape a sh:NodeShape ; sh:targetClass :Org ;
+  sh:property [ sh:path :label ; sh:datatype xsd:string ; sh:minCount 1 ; sh:maxCount 1 ] .

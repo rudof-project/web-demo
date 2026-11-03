@@ -75,13 +75,17 @@ describe("the menus", () => {
 
   it("Examples has the examples of DMKG 26, and the descriptions link to the events", () => {
     const items = [...menu("Examples").querySelectorAll(".menu-item")];
-    expect(items.map((i) => i.querySelector(":scope > a").textContent.trim())).toEqual(["ISWC 2026 tutorial", "DMKG 26", "Your own examples"]);
+    expect(items.map((i) => i.querySelector(":scope > a").textContent.trim())).toEqual(["ISWC 2026 tutorial", "DMKG 26", "Generate examples", "Your own examples"]);
     const dmkg = new URL(items[1].querySelector(":scope > a").getAttribute("href"), "https://rudof-project.github.io/web-demo/");
     expect(dmkg.searchParams.get("manifestURL")).toBe("https://raw.githubusercontent.com/cogsl/sheval/refs/heads/main/rudof.yaml");
     const links = (item) => [...item.querySelectorAll("small a")].map((a) => [a.textContent, a.getAttribute("href")]);
     expect(links(items[0])).toEqual([["the tutorial on validating RDF data", "https://www.validatingrdf.com/tutorial/iswc2026/"]]);
     expect(links(items[1])).toEqual([["sheval", "https://github.com/cogsl/sheval"]]);
     expect(items[0].querySelector("small").textContent).toBe("The examples of the tutorial on validating RDF data");
+    // The examples of the Generate tab: its manifest, a file of the site
+    const generate = new URL(items[2].querySelector(":scope > a").getAttribute("href"), "https://rudof-project.github.io/web-demo/");
+    expect(generate.searchParams.get("manifestURL")).toBe("examples/generate/manifest.yml");
+    expect(generate.hash).toBe("#generate/gen-shacl");
   });
 
   it("About has the manual, the projects on GitHub and the versions", () => {

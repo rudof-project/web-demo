@@ -271,23 +271,33 @@ validates it with the same schema right away. It has a tab for each schema
 language, **SHACL**, **ShEx** and **PGSchema**, which share their panel
 (`data-panel="gen"`): the tab chooses the language (`data-select`,
 `data-value`), and the permalink keeps it (`#generate/gen-shex`).
-[`generate.js`](generate.js) has the examples, the kinds of data and the
-views of the result.
+[`generate.js`](generate.js) has the views of the result.
 
 As in the tabs of Validate, the schema is the first box, and **Generated
 data** the second one: **Generate** writes in it the data it generated,
 under them the **Generator configuration**, and the result is below.
 
-- **Example**: six models, each written in the three languages
-  ([`examples/generate/`](examples/generate/)): references, keys, facets,
-  labels, LUBM and LDBC SNB. They are written over the RDF encoding of a
-  property graph, so the three schemas generate the same graph, and SHACL
-  and ShEx also get the property graph. **Your own schema** is a small
-  template to edit.
-- **Kind of data** writes the generator's configuration (TOML, version 2),
-  which can be edited before **Generate**: valid data, dense or sparse data,
-  a target coherence, or data **with errors** (20% of the entities broken,
-  one constraint each).
+- The examples are in a manifest,
+  [`examples/generate/manifest.yml`](examples/generate/manifest.yml), with
+  the schemas next to it, which the build publishes with the page. Each
+  section is an example (its `id` names it in permalinks), and each entry
+  of a section a kind of data (`kind`), with `action: generate`, the schema
+  in each language (`shaclURL`, `shexURL`, `pgschemaURL`) and the
+  configuration of the generator (`config`). The **Examples** menu opens it
+  too (**Generate examples**): an entry of it opens the Generate tab, with
+  the example and the kind of data chosen. An example of `action: generate`
+  of another manifest also goes to the tab (**From the manifest** in the
+  Example menu); help.html documents the keys.
+- **Example**: the sections of the manifest, six models, each written in the
+  three languages: references, keys, facets, labels, LUBM and LDBC SNB. They
+  are written over the RDF encoding of a property graph, so the three
+  schemas generate the same graph, and SHACL and ShEx also get the property
+  graph. **Your own schema** is a small template to edit.
+- **Kind of data**: the entries of the section, which write the generator's
+  configuration (TOML, version 2), which can be edited before **Generate**:
+  valid data, dense or sparse data, a target coherence, or data **with
+  errors** (20% of the entities broken, one constraint each). Another kind
+  of data keeps the schema.
 - **Generated data** has the RDF data (Turtle), or, from a PGSchema, the
   property graph (YARS-PG); its menu shows the other one when the data has
   it (the examples of SHACL and ShEx have a property graph too). It can be
@@ -304,7 +314,8 @@ under them the **Generator configuration**, and the result is below.
 - **Validate with SHACL / ShEx / PGSchema** validates the data here, with
   the example's schema in that language. **Open in SHACL / ShEx / PGSchema**
   copies the data and that schema to the tab of Validate instead. PGSchema
-  needs a property graph, and a schema of your own has no other language.
+  needs a property graph, and a schema of your own (one that is edited, or
+  that an example has in one language only) has no other language.
 - The schema, the generated data, the configuration and the result have a
   height of their own (their handle, or Full screen, makes them bigger): the
   data can be long.

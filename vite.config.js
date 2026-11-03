@@ -1,4 +1,5 @@
 import { execSync } from "node:child_process";
+import { readdirSync, readFileSync } from "node:fs";
 import { defineConfig } from "vite";
 import { lezer } from "@lezer/generator/rollup";
 
@@ -13,11 +14,26 @@ function commit() {
   }
 }
 
+// The examples of Generate (examples/generate/: its manifest and the schemas),
+// which the page reads and the Examples menu opens, as files of the site. The
+// dev server serves them from the repository.
+const GENERATE_EXAMPLES = "examples/generate";
+function generateExamples() {
+  return {
+    name: "generate-examples",
+    generateBundle() {
+      for (const name of readdirSync(GENERATE_EXAMPLES)) {
+        this.emitFile({ type: "asset", fileName: `${GENERATE_EXAMPLES}/${name}`, source: readFileSync(`${GENERATE_EXAMPLES}/${name}`) });
+      }
+    },
+  };
+}
+
 export default defineConfig({
   // Relative paths, so the page works wherever it is published
   base: "./",
   // The grammars of languages/ (.grammar files) are compiled to parsers
-  plugins: [lezer()],
+  plugins: [lezer(), generateExamples()],
   define: { __DEMO_COMMIT__: JSON.stringify(commit()) },
   build: {
     outDir: "dist",

@@ -12,95 +12,20 @@ const EXTENSIONS = { turtle: "ttl", shexc: "shex", pgschema: "pgs" };
 // The other way round: the language → the format of its examples
 export const GENERATE_TARGETS = { shacl: "turtle", shex: "shexc", pgschema: "pgschema" };
 
-// The examples say the same thing in the three languages, over the RDF
-// encoding of the property graph, so they generate the same graph.
-export const GENERATE_EXAMPLES = [
-  ["references", "Persons, organisations and cities (references)"],
-  ["keys", "Keys and values (required, optional, lists, dates)"],
-  ["facets", "Value facets (pattern, ranges)"],
-  ["labels", "Several labels (Person & Employee)"],
-  ["lubm", "LUBM university (12 node types, 35 edge types)"],
-  ["ldbc-snb", "LDBC Social Network (11 node types, cycles)"],
-  ["custom", "Your own schema (a template)"],
-];
-const FILES = import.meta.glob("./examples/generate/*", { query: "?raw", import: "default" });
+// The examples of the tab, in a manifest (manifest.js, action: generate),
+// which the Examples menu opens too. Each section is an example, written in
+// the three languages over the RDF encoding of a property graph (they
+// generate the same graph), and each entry of a section a kind of data: the
+// configuration of the generator.
+export const GENERATE_MANIFEST = "examples/generate/manifest.yml";
 
-const CUSTOM = {
-  turtle: `prefix : <http://example.org/>
-prefix sh: <http://www.w3.org/ns/shacl#>
-prefix xsd: <http://www.w3.org/2001/XMLSchema#>
-
-:PersonShape a sh:NodeShape ; sh:targetClass :Person ;
-  sh:property [ sh:path :name ; sh:datatype xsd:string ; sh:minCount 1 ; sh:maxCount 1 ] ;
-  sh:property [ sh:path :age ; sh:datatype xsd:integer ; sh:minInclusive 18 ; sh:maxCount 1 ] ;
-  sh:property [ sh:path :worksFor ; sh:node :OrgShape ; sh:minCount 1 ; sh:maxCount 1 ] .
-
-:OrgShape a sh:NodeShape ; sh:targetClass :Org ;
-  sh:property [ sh:path :label ; sh:datatype xsd:string ; sh:minCount 1 ; sh:maxCount 1 ] .
-`,
-  shexc: `prefix : <http://example.org/>
-prefix xsd: <http://www.w3.org/2001/XMLSchema#>
-
-:Person {
-  a [:Person] ;
-  :name xsd:string ;
-  :age xsd:integer MinInclusive 18 ? ;
-  :worksFor @:Org
-}
-:Org {
-  a [:Org] ;
-  :label xsd:string
-}
-`,
-  pgschema: `CREATE NODE TYPE ( PersonType : Person {
-    name: STRING,
-    OPTIONAL age: INTEGER CHECK >= 18
-}) ;
-CREATE NODE TYPE ( OrgType : Org {
-    label: STRING
-}) ;
-CREATE EDGE TYPE (:@PersonType) -[WorksForType : worksFor]-> (:@OrgType)
-`,
-};
-
-// The schema of an example in a format of the editor, or null when there is
-// none (the template exists in the three languages)
-export async function exampleSchema(example, format) {
-  if (example === "custom") return CUSTOM[format] ?? null;
-  const file = FILES[`./examples/generate/${example}.${EXTENSIONS[format]}`];
-  return file ? await file() : null;
-}
-
-// The kinds of data, each a generator configuration (TOML, version 2). A
-// property graph (from a PGSchema, or from an example written over its RDF
-// encoding) also gets the report of its RDF copy, under PGSchema's closed
-// records and required keys.
-export const SCENARIOS = {
-  valid: { label: "Valid data", config: () => `version = 2\n` },
-  dense: {
-    label: "Dense: every optional property, maximal cardinality",
-    config: () => `version = 2\n\n[defaults]\nfill = 1.0\ncardinality = "max"\n`,
-  },
-  sparse: {
-    label: "Sparse: optional properties on 10% of the nodes",
-    config: () => `version = 2\n\n[defaults]\nfill = 0.1\n`,
-  },
-  coherence: {
-    label: "Coherence 0.85 (searched over the fill)",
-    config: () => `version = 2\n\n[targets]\ncoherence = 0.85\ntolerance = 0.01\n`,
-  },
-  errors: {
-    label: "With errors (20%) and their report",
-    config: (pg) =>
-      `version = 2\n\n[violations]\nrate = 0.2\n` +
-      (pg
-        ? `\n# The RDF copy keeps PGSchema's closed records and required keys\n[violations.rdf]\nclosed = true\nkeys_required = true\n\n[output]\nformats = ["pg", "turtle"]\n`
-        : ""),
-  },
-};
-
-export function scenarioConfig(scenario, example, format) {
-  return SCENARIOS[scenario].config(example !== "custom" || format === "pgschema");
+// The examples of the tab from the sections of its manifest (parseSections):
+// [{ id, title, comment, kinds: [example] }], each example with its kind
+export function generateCatalog(tree) {
+  return tree
+    .filter((item) => item.section)
+    .map(({ section }) => ({ id: section.id, title: section.title, comment: section.comment, kinds: section.items.filter((item) => item.example).map((item) => item.example) }))
+    .filter((section) => section.kinds.length);
 }
 
 const strip = (t) => (t ?? "").trim().replace(/^<(.*)>$/s, "$1");
