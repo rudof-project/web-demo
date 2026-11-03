@@ -2,11 +2,12 @@
 # generate. The Generate tab reads this manifest, and the Examples menu
 # opens it (?manifestURL=examples/generate/manifest.yml).
 #
-# Each section is an example (its id names it in permalinks: gen-example=…),
-# written in SHACL, ShEx and PGSchema: the three schemas say the same, over
-# the RDF encoding of a property graph, so they generate the same graph. Each
-# entry of a section is a kind of data (kind: …, data-kind=… in permalinks):
-# the configuration of the generator (TOML, version 2).
+# Each section is an example (with an id), written in SHACL, ShEx and
+# PGSchema. The first one is the example of the other tabs of the page
+# (examples/person/), the one the tab has at first. The others say the same
+# in the three languages, over the RDF encoding of a property graph, so they
+# generate the same graph. Each entry of a section is a kind of data (kind:
+# …): the configuration of the generator (TOML, version 2).
 #
 #   action: generate
 #   shaclURL, shexURL, pgschemaURL   the schema in each language (or shacl:,
@@ -14,6 +15,65 @@
 #   schemaLanguage                   the language it opens in (shacl by default)
 #   config                           the configuration of the generator
 #   entities, seed                   how many entities, and the random seed
+
+- section: Persons (the example of the other tabs)
+  id: person
+  comment: "The schema of the other tabs: persons with a name, maybe a birth date, who know other persons. A small schema to edit, to write your own; it has no property graph in SHACL and ShEx."
+  examples:
+    - comment: "Valid data"
+      action: generate
+      kind: valid
+      shaclURL: ../person/shapes.ttl
+      shexURL: ../person/schema.shex
+      pgschemaURL: ../person/schema.pgs
+      config: |
+        version = 2
+    - comment: "Dense: every optional property, maximal cardinality"
+      action: generate
+      kind: dense
+      shaclURL: ../person/shapes.ttl
+      shexURL: ../person/schema.shex
+      pgschemaURL: ../person/schema.pgs
+      config: |
+        version = 2
+
+        [defaults]
+        fill = 1.0
+        cardinality = "max"
+    - comment: "Sparse: optional properties on 10% of the nodes"
+      action: generate
+      kind: sparse
+      shaclURL: ../person/shapes.ttl
+      shexURL: ../person/schema.shex
+      pgschemaURL: ../person/schema.pgs
+      config: |
+        version = 2
+
+        [defaults]
+        fill = 0.1
+    - comment: "Coherence 0.85 (searched over the fill)"
+      action: generate
+      kind: coherence
+      shaclURL: ../person/shapes.ttl
+      shexURL: ../person/schema.shex
+      pgschemaURL: ../person/schema.pgs
+      config: |
+        version = 2
+
+        [targets]
+        coherence = 0.85
+        tolerance = 0.01
+    - comment: "With errors (20%) and their report"
+      action: generate
+      kind: errors
+      shaclURL: ../person/shapes.ttl
+      shexURL: ../person/schema.shex
+      pgschemaURL: ../person/schema.pgs
+      config: |
+        version = 2
+
+        [violations]
+        rate = 0.2
 
 - section: Persons, organisations and cities (references)
   id: references
@@ -416,62 +476,3 @@
 
         [output]
         formats = ["pg", "turtle"]
-
-- section: Your own schema (a template)
-  id: custom
-  comment: "A small template to edit: it has no property graph in SHACL and ShEx, and no other language."
-  examples:
-    - comment: "Valid data"
-      action: generate
-      kind: valid
-      shaclURL: custom.ttl
-      shexURL: custom.shex
-      pgschemaURL: custom.pgs
-      config: |
-        version = 2
-    - comment: "Dense: every optional property, maximal cardinality"
-      action: generate
-      kind: dense
-      shaclURL: custom.ttl
-      shexURL: custom.shex
-      pgschemaURL: custom.pgs
-      config: |
-        version = 2
-
-        [defaults]
-        fill = 1.0
-        cardinality = "max"
-    - comment: "Sparse: optional properties on 10% of the nodes"
-      action: generate
-      kind: sparse
-      shaclURL: custom.ttl
-      shexURL: custom.shex
-      pgschemaURL: custom.pgs
-      config: |
-        version = 2
-
-        [defaults]
-        fill = 0.1
-    - comment: "Coherence 0.85 (searched over the fill)"
-      action: generate
-      kind: coherence
-      shaclURL: custom.ttl
-      shexURL: custom.shex
-      pgschemaURL: custom.pgs
-      config: |
-        version = 2
-
-        [targets]
-        coherence = 0.85
-        tolerance = 0.01
-    - comment: "With errors (20%) and their report"
-      action: generate
-      kind: errors
-      shaclURL: custom.ttl
-      shexURL: custom.shex
-      pgschemaURL: custom.pgs
-      config: |
-        version = 2
-
-        [violations]
-        rate = 0.2

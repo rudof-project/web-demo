@@ -1,0 +1,4 @@
+alice: PersonType,
+bob: PersonType,
+carol: PersonType,
+k1: KnowsType

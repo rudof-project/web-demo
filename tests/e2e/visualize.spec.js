@@ -74,10 +74,10 @@ test("Visualize shows each input of Compare alone as a diagram", async ({ page }
     await expect(page.locator(`#compare-data-${n}-visualize`)).toHaveText("Edit");
     await expect(editor(page, `compare-data-${n}`)).toBeHidden();
   }
-  // Each one has only its own triples: foaf:age is only in the second one
+  // Each one has only its own triples: the birth date of Carol is only in the second one
   await expect(page.locator("#compare-data-1-visual .visual-source")).toContainText("alice");
-  await expect(page.locator("#compare-data-1-visual .visual-source")).not.toContainText("34");
-  await expect(page.locator("#compare-data-2-visual .visual-source")).toContainText("34");
+  await expect(page.locator("#compare-data-1-visual .visual-source")).not.toContainText("2001-07-04");
+  await expect(page.locator("#compare-data-2-visual .visual-source")).toContainText("2001-07-04");
   // Swap shows the editors again
   await page.locator("#compare-data-swap").click();
   await expect(page.locator("#compare-data-1-visualize")).toHaveText("Visualize");

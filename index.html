@@ -144,17 +144,7 @@
       <section id="panel-rdf" role="tabpanel" aria-labelledby="tab-rdf" class="panel">
         <div class="inputs two">
           <div class="field">
-            <textarea id="rdf-data" data-input="rdf" data-label="RDF data">prefix : &lt;http://example.org/&gt;
-prefix foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
-prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
-
-:alice a foaf:Person ;
-       foaf:name "Alice"@en ;
-       foaf:birthday "1995-03-12"^^xsd:date ;
-       foaf:knows :bob, [ foaf:name "Carol" ] .
-
-:bob   a foaf:Person ;
-       foaf:name "Bob" .</textarea>
+            <textarea id="rdf-data" data-example="person/data.ttl" data-input="rdf" data-label="RDF data"></textarea>
           </div>
           <div class="field">
             <div class="field-head">
@@ -200,22 +190,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
               <label for="pg-data">Property graph</label>
               <span class="format-tag" title="The only property graph format supported for now">YARS-PG</span>
             </div>
-            <textarea id="pg-data" data-editor data-language="yarspg" spellcheck="false">(n1 {Person} [
-    name: "Alice",
-    birthdate: DATE "2010-07-22"
-])
-(n2 {Person, Student} [
-    id: 234,
-    name: "Robert Smith",
-    aliases: ["Bob", "Robbie"],
-    email: "bob@mail.com"
-])
-(n3 {Course} [
-    name: "Algebra",
-    credits: 6
-])
-(n1) - (e1 {knows} [since: 2020 ]) -&gt; (n2)
-(n2) - (e2 {EnrolledIn} [start: 2024, end: 2025 ]) -&gt; (n3)</textarea>
+            <textarea id="pg-data" data-example="person/data.pg" data-editor data-language="yarspg" spellcheck="false"></textarea>
           </div>
           <div class="field">
             <div class="field-head">
@@ -263,14 +238,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
               <button type="button" data-view="csv" aria-pressed="true">CSV</button>
               <button type="button" data-view="table" aria-pressed="false">Table</button>
             </div>
-            <textarea id="convert-schema" data-input="schema" data-label="Schema" data-format-select="convert-format">prefix : &lt;http://example.org/&gt;
-prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
-
-:Person {
-  :name      xsd:string ;
-  :birthDate xsd:date ? ;
-  :knows     @:Person *
-}</textarea>
+            <textarea id="convert-schema" data-example="person/schema.shex" data-input="schema" data-label="Schema" data-format-select="convert-format"></textarea>
             <div class="table-view-cells" id="convert-table" hidden></div>
           </div>
           <div class="field">
@@ -345,27 +313,10 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
         <div class="inputs two">
           <div class="field">
             <span data-head class="hint" id="shex-data-unused" hidden>Not used: the validation runs on the endpoint</span>
-            <textarea id="shex-data" data-input="rdf" data-label="RDF data">prefix : &lt;http://example.org/&gt;
-prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
-
-:alice :name "Alice" ;
-       :birthDate "1995-03-12"^^xsd:date ;
-       :knows :carol .
-
-:bob   :name "Robert", "Bob" ;
-       :birthDate "unknown" .
-
-:carol :name "Carol" .</textarea>
+            <textarea id="shex-data" data-example="person/data.ttl" data-input="rdf" data-label="RDF data"></textarea>
           </div>
           <div class="field">
-            <textarea id="shex-schema" data-input="schema" data-language="shex" data-label="ShEx schema">prefix : &lt;http://example.org/&gt;
-prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
-
-:Person {
-  :name      xsd:string ;
-  :birthDate xsd:date ? ;
-  :knows     @:Person *
-}</textarea>
+            <textarea id="shex-schema" data-example="person/schema.shex" data-input="schema" data-language="shex" data-label="ShEx schema"></textarea>
           </div>
         </div>
         <div class="field">
@@ -373,8 +324,8 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
             <label for="shex-shapemap">Shape map</label>
             <span class="hint">e.g. <code>:alice@:Person</code> or <code>{FOCUS :name _}@:Person</code></span>
           </div>
-          <textarea id="shex-shapemap" data-editor data-language="shapemap" class="short"
-            spellcheck="false">:alice@:Person, :bob@:Person, :carol@:Person</textarea>
+          <textarea id="shex-shapemap" data-example="person/shapemap.txt" data-editor data-language="shapemap" class="short"
+            spellcheck="false"></textarea>
         </div>
         <div class="toolbar">
           <button class="primary" id="shex-validate" disabled>Validate</button>
@@ -445,34 +396,11 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
         <div class="inputs two">
           <div class="field">
             <span data-head class="hint" id="shacl-data-unused" hidden>Not used: the validation runs on the endpoint</span>
-            <textarea id="shacl-data" data-input="rdf" data-label="RDF data">prefix : &lt;http://example.org/&gt;
-prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
-
-:alice a :Person ;
-       :name "Alice" ;
-       :birthDate "1995-03-12"^^xsd:date .
-
-:bob   a :Person ;
-       :name "Robert", "Bob" ;
-       :birthDate "unknown" .</textarea>
+            <textarea id="shacl-data" data-example="person/data.ttl" data-input="rdf" data-label="RDF data"></textarea>
           </div>
           <div class="field">
             <span data-head class="hint" id="shacl-shapes-from-data" hidden>Empty: the shapes are taken from the RDF data</span>
-            <textarea id="shacl-shapes" data-input="schema" data-language="shacl" data-label="Shapes graph" placeholder="Optional: without a shapes graph, the shapes are taken from the RDF data">prefix : &lt;http://example.org/&gt;
-prefix sh: &lt;http://www.w3.org/ns/shacl#&gt;
-prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
-
-:PersonShape a sh:NodeShape ;
-  sh:targetClass :Person ;
-  sh:property [
-    sh:path :name ;
-    sh:datatype xsd:string ;
-    sh:maxCount 1
-  ] ;
-  sh:property [
-    sh:path :birthDate ;
-    sh:datatype xsd:date
-  ] .</textarea>
+            <textarea id="shacl-shapes" data-example="person/shapes.ttl" data-input="schema" data-language="shacl" data-label="Shapes graph" placeholder="Optional: without a shapes graph, the shapes are taken from the RDF data"></textarea>
             <!-- Optional: merged with the shapes graph before the validation -->
             <div class="sub-field" id="shacl-targets-field">
               <span data-head class="hint" id="shacl-targets-used" hidden>Merged with the shapes graph</span>
@@ -578,17 +506,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
         <div class="inputs two">
           <div class="field">
             <span data-head class="hint" id="dctap-data-unused" hidden>Not used: the validation runs on the endpoint</span>
-            <textarea id="dctap-data" data-input="rdf" data-label="RDF data">prefix : &lt;http://example.org/&gt;
-prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
-
-:alice :name "Alice" ;
-       :birthDate "1995-03-12"^^xsd:date ;
-       :knows :carol .
-
-:bob   :name "Robert", "Bob" ;
-       :birthDate "unknown" .
-
-:carol :name "Carol" .</textarea>
+            <textarea id="dctap-data" data-example="person/data.ttl" data-input="rdf" data-label="RDF data"></textarea>
           </div>
           <div class="field">
             <div data-head class="view-switch" id="dctap-view" role="group" aria-label="View of the profile"
@@ -596,10 +514,7 @@ prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
               <button type="button" data-view="csv" aria-pressed="true">CSV</button>
               <button type="button" data-view="table" aria-pressed="false">Table</button>
             </div>
-            <textarea id="dctap-schema" data-input="schema" data-language="dctap" data-label="DCTAP profile" data-format-tag="none">shapeID,shapeLabel,propertyID,propertyLabel,mandatory,repeatable,valueNodeType,valueDataType,valueShape
-Person,Person,:name,Name,true,false,literal,xsd:string,
-Person,,:birthDate,Birth date,false,false,literal,xsd:date,
-Person,,:knows,Knows,false,true,iri,,Person</textarea>
+            <textarea id="dctap-schema" data-example="person/profile.csv" data-input="schema" data-language="dctap" data-label="DCTAP profile" data-format-tag="none"></textarea>
             <!-- The profile as a table (table-view.js) -->
             <div class="table-view-cells" id="dctap-table" hidden></div>
           </div>
@@ -610,8 +525,8 @@ Person,,:knows,Knows,false,true,iri,,Person</textarea>
               <label for="dctap-shapemap">Shape map</label>
               <span class="hint">e.g. <code>:alice@:Person</code></span>
             </div>
-            <textarea id="dctap-shapemap" data-editor data-language="shapemap" class="short"
-              spellcheck="false">:alice@:Person, :bob@:Person, :carol@:Person</textarea>
+            <textarea id="dctap-shapemap" data-example="person/shapemap.txt" data-editor data-language="shapemap" class="short"
+              spellcheck="false"></textarea>
           </div>
           <div class="field">
             <div class="field-head">
@@ -694,47 +609,10 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
               <label for="pgschema-data">Property graph</label>
               <span class="format-tag" title="The only property graph format supported for now">YARS-PG</span>
             </div>
-            <textarea id="pgschema-data" data-editor data-language="yarspg" spellcheck="false">(n1 {Person} [
-    name: "Alice",
-    birthdate: DATE "2010-07-22"
-])
-(n2 {Person, Student} [
-    id: 234,
-    name: "Robert Smith",
-    aliases: ["Bob", "Robbie"],
-    email: "bob@mail.com"
-])
-(n3 {Course} [
-    name: "Algebra",
-    credits: 6
-])
-(n1) - (e1 {knows} [since: 2020 ]) -&gt; (n2)
-(n2) - (e2 {EnrolledIn} [start: 2024, end: 2025 ]) -&gt; (n3)</textarea>
+            <textarea id="pgschema-data" data-example="person/data.pg" data-editor data-language="yarspg" spellcheck="false"></textarea>
           </div>
           <div class="field">
-            <textarea id="pgschema-schema" data-input="schema" data-language="pgschema" data-label="PGSchema">CREATE NODE TYPE ( PersonType : Person {
-    name: STRING ||
-    ( givenName: STRING, familyName: STRING ),
-    OPTIONAL birthdate: DATE
-}) ;
-
-CREATE NODE TYPE ( StudentType : @PersonType &amp; Student {
-    id: INTEGER | STRING,
-    email: STRING CHECK REGEX "^[\w.-]+@[\w.-]+\.\w+$",
-    aliases: STRING *
-}) ;
-
-CREATE NODE TYPE ( CourseType: Course {
-    name: STRING,
-    credits: INTEGER CHECK (&gt; 3)
-});
-
-CREATE EDGE TYPE (:@PersonType)
-                 -[KnowsType : Knows { since: INTEGER }]-&gt;
-                 (:@PersonType);
-CREATE EDGE TYPE (:@StudentType)
-                 -[EnrolledInType : EnrolledIn { start: INTEGER, end: INTEGER }]-&gt;
-                 (:@CourseType)</textarea>
+            <textarea id="pgschema-schema" data-example="person/schema.pgs" data-input="schema" data-language="pgschema" data-label="PGSchema"></textarea>
           </div>
         </div>
         <div class="field">
@@ -743,11 +621,7 @@ CREATE EDGE TYPE (:@StudentType)
             <span class="hint">node or edge id <code>:</code> type, e.g.
               <code>n1: PersonType, e1: KnowsType</code></span>
           </div>
-          <textarea id="pgschema-typemap" data-editor data-language="typemap" class="medium" spellcheck="false">n1: PersonType,
-n2: StudentType,
-n3: CourseType,
-e1: KnowsType,
-e2: EnrolledInType</textarea>
+          <textarea id="pgschema-typemap" data-example="person/typemap.txt" data-editor data-language="typemap" class="medium" spellcheck="false"></textarea>
         </div>
         <div class="toolbar">
           <button class="primary" id="pgschema-validate" disabled>Validate</button>
@@ -799,39 +673,18 @@ e2: EnrolledInType</textarea>
         <div class="inputs two">
           <div class="field">
             <span data-head class="hint" id="sparql-data-unused" hidden>Not used: the query runs on the endpoint</span>
-            <textarea id="sparql-data" data-input="rdf" data-label="RDF data">prefix : &lt;http://example.org/&gt;
-prefix foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
-
-:alice a foaf:Person ;
-       foaf:name "Alice" ;
-       foaf:age 23 ;
-       foaf:knows :bob, :carol .
-
-:bob   a foaf:Person ;
-       foaf:name "Bob" ;
-       foaf:age 34 ;
-       foaf:knows :carol .
-
-:carol a foaf:Person ;
-       foaf:name "Carol" .</textarea>
+            <textarea id="sparql-data" data-example="person/data.ttl" data-input="rdf" data-label="RDF data"></textarea>
           </div>
           <div class="field">
             <select data-head id="sparql-example" aria-label="Example queries">
               <option value="">Examples…</option>
-              <option value="select">SELECT: names and ages</option>
+              <option value="select">SELECT: names and birth dates</option>
               <option value="count">SELECT: how many people each one knows</option>
-              <option value="ask">ASK: is anyone under 18?</option>
+              <option value="ask">ASK: was anyone born in 2000 or later?</option>
               <option value="construct">CONSTRUCT: who is known by whom</option>
               <option value="describe">DESCRIBE: Carol</option>
             </select>
-            <textarea id="sparql-query" data-input="query" data-language="sparql" data-label="SPARQL query">PREFIX foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
-
-SELECT ?name ?age WHERE {
-  ?person a foaf:Person ;
-          foaf:name ?name .
-  OPTIONAL { ?person foaf:age ?age }
-}
-ORDER BY ?name</textarea>
+            <textarea id="sparql-query" data-example="person/query.rq" data-input="query" data-language="sparql" data-label="SPARQL query"></textarea>
           </div>
         </div>
         <div class="toolbar">
@@ -876,29 +729,24 @@ ORDER BY ?name</textarea>
         </div>
         <div class="inputs two">
           <div class="field">
-            <textarea id="compare-data-1" data-input="rdf" data-label="First RDF data">prefix : &lt;http://example.org/&gt;
-prefix foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
-
-:alice a foaf:Person ;
-       foaf:name "Alice" ;
-       foaf:knows :bob, [ foaf:name "Carol" ] .
-
-:bob   a foaf:Person ;
-       foaf:name "Bob" .</textarea>
+            <textarea id="compare-data-1" data-example="person/data.ttl" data-input="rdf" data-label="First RDF data"></textarea>
           </div>
           <div class="field">
             <textarea id="compare-data-2" data-input="rdf" data-label="Second RDF data">prefix : &lt;http://example.org/&gt;
-prefix foaf: &lt;http://xmlns.com/foaf/0.1/&gt;
+prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
 
-:alice a foaf:Person ;
-       foaf:name "Alice" ;
-       foaf:knows :bob, _:carol .
+:alice a :Person ;
+       :name "Alice" ;
+       :birthDate "1995-03-12"^^xsd:date ;
+       :knows :carol .
 
-_:carol foaf:name "Carol" .
+:bob   a :Person ;
+       :name "Robert", "Bob" ;
+       :birthDate "unknown" .
 
-:bob   a foaf:Person ;
-       foaf:name "Bob" ;
-       foaf:age 34 .</textarea>
+:carol a :Person ;
+       :name "Carol" ;
+       :birthDate "2001-07-04"^^xsd:date .</textarea>
           </div>
         </div>
         <div class="toolbar">
@@ -931,14 +779,7 @@ _:carol foaf:name "Carol" .
         </div>
         <div class="inputs two">
           <div class="field">
-            <textarea id="compare-schemas-1" data-input="schema" data-label="First schema" data-visual="shex">prefix : &lt;http://example.org/&gt;
-prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;
-
-:Person {
-  :name      xsd:string ;
-  :birthDate xsd:date ? ;
-  :knows     @:Person *
-}</textarea>
+            <textarea id="compare-schemas-1" data-example="person/schema.shex" data-input="schema" data-label="First schema" data-visual="shex"></textarea>
             <label class="inline compare-shape">Shape
               <input type="text" id="compare-schemas-1-label" spellcheck="false" autocomplete="off" placeholder="The first one" aria-label="Shape of the first schema">
             </label>

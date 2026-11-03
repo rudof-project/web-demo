@@ -16,12 +16,14 @@ test.describe("Compare data", () => {
     // The table: the prefixes of the data, links to the IRIs
     const rows = result(page, "compare-data").locator("tbody tr");
     await expect(rows).toHaveCount(1);
-    await expect(rows.first().locator("td")).toHaveText(["Second", ":bob", "foaf:age", '"34"^^xsd:integer']);
-    await expect(rows.first().locator("a.iri").first()).toHaveAttribute("href", "http://example.org/bob");
-    await expect(result(page, "compare-data").locator("li")).toHaveText(/^_:\S+ → _:carol$/);
+    // The example of the other tabs, and the same with a birth date for Carol
+    await expect(rows.first().locator("td")).toHaveText(["Second", ":carol", ":birthDate", '"2001-07-04"^^xsd:date']);
+    await expect(rows.first().locator("a.iri").first()).toHaveAttribute("href", "http://example.org/carol");
+    // No blank nodes
+    await expect(result(page, "compare-data").locator("li")).toHaveCount(0);
     // The report of rudof, and JSON
     await page.locator("#compare-data-result-format").selectOption("report");
-    await expect(page.locator("#compare-data-output")).toContainText("Only in the second graph (1):\n  :bob foaf:age 34 .");
+    await expect(page.locator("#compare-data-output")).toContainText('Only in the second graph (1):\n  :carol :birthDate "2001-07-04"^^xsd:date .');
     await page.locator("#compare-data-result-format").selectOption("json");
     const json = JSON.parse(await page.locator("#compare-data-output").textContent());
     expect([json.relation, json.mode, json.onlyInSecond.length, json.report]).toEqual(["subgraph", "injective", 1, undefined]);
@@ -33,19 +35,19 @@ test.describe("Compare data", () => {
     await page.locator("#compare-data-swap").click();
     await expect(page.locator("#compare-data-2-format")).toHaveValue("n3");
     await expect(page.locator("#compare-data-1-format")).toHaveValue("turtle");
-    await expect(page.locator("#compare-data-1")).toHaveValue(/foaf:age 34/);
+    await expect(page.locator("#compare-data-1")).toHaveValue(/2001-07-04/);
     await page.locator("#compare-data-2-format").selectOption("turtle");
     await page.locator("#compare-data-validate").click();
     await expect(result(page, "compare-data").locator(".verdict")).toHaveText("The second graph is contained in the first one · 1 triple only in the first");
     const url = new URL(page.url());
     expect(url.hash).toBe("#compare/compare-data");
-    expect(url.searchParams.get("data2")).toContain("[ foaf:name");
+    expect(url.searchParams.get("data2")).toContain(':name "Carol" .');
     // The permalink opens the tab with the graphs
     await page.goto(url.href.replace("mode=injective", "mode=homomorphic"));
     await page.reload();
     await expect(page.locator("#status")).toHaveClass(/ready/, { timeout: 30_000 });
     await expect(page.locator("#tab-compare-data")).toHaveAttribute("aria-selected", "true");
-    await expect(page.locator("#compare-data-1")).toHaveValue(/foaf:age 34/);
+    await expect(page.locator("#compare-data-1")).toHaveValue(/2001-07-04/);
     await expect(page.locator("#compare-data-mode")).toHaveValue("homomorphic");
   });
 

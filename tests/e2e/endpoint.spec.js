@@ -128,7 +128,8 @@ for (const endpoints of [true, false]) {
     test("without an endpoint, the query runs on the data, as before", async ({ page }) => {
       await open(page, "#query/sparql");
       await page.locator("#sparql-validate").click();
-      await expect(verdict(page)).toHaveText("3 results");
+      // Bob has two names: four solutions
+      await expect(verdict(page)).toHaveText("4 results");
     });
 
     test("the endpoint is in the permalink", async ({ page }) => {

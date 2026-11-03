@@ -8,10 +8,16 @@ import { highlightTree, tagHighlighter, tags as t } from "@lezer/highlight";
 import { Rudof } from "@rudof/rudof";
 import { yarspgLanguage } from "../../languages/yars-pg/index.js";
 import { pgschemaLanguage, typemapLanguage } from "../../languages/pgschema/index.js";
+import { exampleText } from "../../inputs.js";
 
 const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
 const unescape = (text) => text.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
-const textarea = (id) => unescape(html.match(new RegExp(`<textarea id="${id}"[^>]*>([\\s\\S]*?)</textarea>`))[1]);
+// The text of a textarea of the page: its example (data-example), or its text
+const textarea = (id) => {
+  const [, attributes, text] = html.match(new RegExp(`<textarea id="${id}"([^>]*)>([\\s\\S]*?)</textarea>`));
+  const example = attributes.match(/data-example="([^"]+)"/);
+  return example ? exampleText(example[1]) : unescape(text);
+};
 
 // The parts of a text with a syntax error
 function errors(language, text) {
@@ -154,7 +160,34 @@ CREATE NODE TYPE (OnlyLabel : L)`;
     rudof.readPgschema(MORE);
   });
 
-  const schema = textarea("pgschema-schema");
+  // A schema with more of the syntax than the example of the page
+  const schema = `CREATE NODE TYPE ( PersonType : Person {
+    name: STRING ||
+    ( givenName: STRING, familyName: STRING ),
+    OPTIONAL birthdate: DATE
+}) ;
+
+CREATE NODE TYPE ( StudentType : @PersonType & Student {
+    id: INTEGER | STRING,
+    email: STRING CHECK REGEX "^[\\w.-]+@[\\w.-]+\\.\\w+$",
+    aliases: STRING *
+}) ;
+
+CREATE NODE TYPE ( CourseType: Course {
+    name: STRING,
+    credits: INTEGER CHECK (> 3)
+});
+
+CREATE EDGE TYPE (:@PersonType)
+                 -[KnowsType : Knows { since: INTEGER }]->
+                 (:@PersonType);
+CREATE EDGE TYPE (:@StudentType)
+                 -[EnrolledInType : EnrolledIn { start: INTEGER, end: INTEGER }]->
+                 (:@CourseType)`;
+  it("parses a schema with more of the syntax", () => {
+    expect(errors(pgschemaLanguage, schema)).toEqual([]);
+    new Rudof().readPgschema(schema);
+  });
   it.each([
     ["CREATE", "definitionKeyword"],
     ["TYPE", "definitionKeyword"],

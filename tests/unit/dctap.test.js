@@ -8,10 +8,16 @@ import { StringStream } from "@codemirror/language";
 import { Rudof, RudofConfig } from "@rudof/rudof";
 import { parsePrefixes, dctapConfig, BASIC_PREFIXES } from "../../dctap.js";
 import { dctap } from "../../languages/dctap/index.js";
+import { exampleText } from "../../inputs.js";
 
 const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
 const unescape = (text) => text.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
-const textarea = (id) => unescape(html.match(new RegExp(`<textarea id="${id}"[^>]*>([\\s\\S]*?)</textarea>`))[1]);
+// The text of a textarea of the page: its example (data-example), or its text
+const textarea = (id) => {
+  const [, attributes, text] = html.match(new RegExp(`<textarea id="${id}"([^>]*)>([\\s\\S]*?)</textarea>`));
+  const example = attributes.match(/data-example="([^"]+)"/);
+  return example ? exampleText(example[1]) : unescape(text);
+};
 
 const PROFILE = textarea("dctap-schema");
 const PREFIXES = textarea("dctap-prefixes");

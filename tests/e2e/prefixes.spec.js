@@ -42,7 +42,7 @@ test("the editors complete the prefixes of the endpoint, and declare them", asyn
   await expect(page.locator(".cm-tooltip-autocomplete li").first()).toContainText("wdt:");
   await page.keyboard.press("Enter");
   const query = await page.locator("#sparql-query").inputValue();
-  expect(query).toMatch(/^PREFIX foaf: <http:\/\/xmlns\.com\/foaf\/0\.1\/>\nPREFIX wdt: <http:\/\/www\.wikidata\.org\/prop\/direct\/>\n/);
+  expect(query).toMatch(/^PREFIX : <http:\/\/example\.org\/>\nPREFIX wdt: <http:\/\/www\.wikidata\.org\/prop\/direct\/>\n/);
   expect(query.endsWith("\nwdt:")).toBe(true);
 });
 

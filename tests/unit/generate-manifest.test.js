@@ -49,7 +49,7 @@ describe("the manifest of the Generate tab", () => {
   const catalog = generateCatalog(tree);
 
   it("has a section for each example, with an id, and the same kinds of data in each one", () => {
-    expect(catalog.map((s) => s.id)).toEqual(["references", "keys", "facets", "labels", "lubm", "ldbc-snb", "custom"]);
+    expect(catalog.map((s) => s.id)).toEqual(["person", "references", "keys", "facets", "labels", "lubm", "ldbc-snb"]);
     for (const section of catalog) {
       expect(section.comment, section.id).toBeTruthy();
       expect(section.kinds.map((e) => e.kind), section.id).toEqual(["valid", "dense", "sparse", "coherence", "errors"]);
@@ -64,6 +64,12 @@ describe("the manifest of the Generate tab", () => {
         expect(existsSync(new URL(example.inputs[language].url)), example.inputs[language].url).toBe(true);
       }
     }
+  });
+
+  it("has the example of the other tabs first: their schemas", () => {
+    const [person] = catalog;
+    const files = Object.fromEntries(GENERATE_LANGUAGES.map((language) => [language, person.kinds[0].inputs[language].url.split("/examples/")[1]]));
+    expect(files).toEqual({ shacl: "person/shapes.ttl", shex: "person/schema.shex", pgschema: "person/schema.pgs" });
   });
 
   it("generates valid data from each example, in each language", async () => {

@@ -22,6 +22,12 @@
 //   marked data-head).
 // - data-input="query": a query, in data-language (sparql).
 //
+// The example of an input is a file of examples/ (data-example="person/data.ttl"):
+// the same examples in all the tabs (examples/person/ has the RDF data, the
+// schemas in each language, the shape map, the property graph, its type map
+// and the query). Any textarea can have one, also those that are not one of
+// these inputs.
+//
 // Other attributes: data-label-title (the title of the label),
 // data-format-tag="none" (no name of the only format), data-visual (how it
 // is drawn, for a schema whose language the page chooses).
@@ -30,6 +36,24 @@
 // editors as soon as it runs.
 
 import { LANGUAGES, RDF_FORMATS } from "./schema-convert.js";
+
+// The examples of the inputs, by their path in examples/
+const EXAMPLE_FILES = import.meta.glob("./examples/person/*", { query: "?raw", import: "default", eager: true });
+
+// The text of an example of examples/ (person/data.ttl), without its last
+// line end, or undefined
+export function exampleText(path) {
+  return EXAMPLE_FILES[`./examples/${path}`]?.replace(/\r?\n$/, "");
+}
+
+// Gives each textarea with data-example the text of its example
+export function fillExamples(doc = document) {
+  for (const textarea of doc.querySelectorAll("textarea[data-example]")) {
+    const text = exampleText(textarea.dataset.example);
+    if (text === undefined) throw new Error(`No example ${textarea.dataset.example} for #${textarea.id}`);
+    textarea.textContent = text;
+  }
+}
 
 export const INPUT_KINDS = ["rdf", "schema", "query"];
 
@@ -98,8 +122,9 @@ export function expandInput(textarea) {
   return textarea;
 }
 
-// The fields of all the inputs of a page
+// The fields of all the inputs of a page, and their examples
 export function expandInputs(doc = document) {
+  fillExamples(doc);
   return [...doc.querySelectorAll("textarea[data-input]")].map(expandInput);
 }
 
@@ -118,4 +143,4 @@ export function visualOf(textarea) {
 }
 
 // In the page: before the editors are made
-if (typeof document !== "undefined" && document.querySelector("textarea[data-input]")) expandInputs(document);
+if (typeof document !== "undefined" && document.querySelector("textarea[data-input], textarea[data-example]")) expandInputs(document);

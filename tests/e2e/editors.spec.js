@@ -31,7 +31,7 @@ test.describe("the page", () => {
 
   test("the editors start with the examples of the textareas", async ({ page }) => {
     await open(page);
-    await expect(editor(page, "rdf-data").locator(".cm-content")).toContainText(":alice a foaf:Person");
+    await expect(editor(page, "rdf-data").locator(".cm-content")).toContainText(":alice a :Person");
   });
 });
 
@@ -112,7 +112,7 @@ test.describe("languages", () => {
   test("the RDF data is highlighted as Turtle", async ({ page }) => {
     await open(page);
     await expect(editor(page, "rdf-data")).toHaveAttribute("data-format", "turtle");
-    await expect.poll(() => highlighted(page, "rdf-data")).toEqual(expect.arrayContaining(["prefix", "foaf:", "Person", '"Alice"']));
+    await expect.poll(() => highlighted(page, "rdf-data")).toEqual(expect.arrayContaining(["prefix", "xsd:", "Person", '"Alice"']));
   });
 
   test("the schema is highlighted as ShExC, the query as SPARQL", async ({ page }) => {
@@ -182,7 +182,7 @@ test.describe("the demo uses the editors", () => {
   test("the examples of the query menu go into the editor", async ({ page }) => {
     await open(page, "#query/sparql");
     await page.locator("#sparql-example").selectOption("ask");
-    await expect(editor(page, "sparql-query").locator(".cm-content")).toContainText("ASK { ?person foaf:age ?age");
+    await expect(editor(page, "sparql-query").locator(".cm-content")).toContainText("ASK { ?person :birthDate ?date");
     await expect(editor(page, "sparql-query").locator(".cm-content")).toBeFocused();
     await page.locator("#sparql-validate").click();
     await expect(verdict(page, "sparql")).toHaveText("ASK: false");
@@ -209,7 +209,7 @@ test.describe("the demo uses the editors", () => {
     await page.locator("#rdf-validate").click();
     await expect(viewer).toBeVisible();
     await expect(viewer).toHaveAttribute("data-format", "turtle");
-    await expect(viewer.locator(".cm-content")).toContainText("foaf:Person");
+    await expect(viewer.locator(".cm-content")).toContainText("a :Person");
     await expect(viewer.locator(".cm-line span[class]").first()).toBeVisible();
     await expect(page.locator("#rdf-output")).toBeHidden();
     await expect(viewer.locator(".cm-content")).toHaveAttribute("aria-readonly", "true");

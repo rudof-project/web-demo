@@ -1,0 +1,6 @@
+CREATE NODE TYPE ( PersonType : Person {
+    name: STRING,
+    OPTIONAL birthDate: DATE
+}) ;
+
+CREATE EDGE TYPE (:@PersonType) -[KnowsType : knows]-> (:@PersonType)

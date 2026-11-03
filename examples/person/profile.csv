@@ -1,0 +1,4 @@
+shapeID,shapeLabel,propertyID,propertyLabel,mandatory,repeatable,valueNodeType,valueDataType,valueShape
+Person,Person,:name,Name,true,false,literal,xsd:string,
+Person,,:birthDate,Birth date,false,false,literal,xsd:date,
+Person,,:knows,Knows,false,true,iri,,Person

@@ -62,7 +62,7 @@ test.describe("CSV results", () => {
     await expect(toggle(page, "sparql")).toBeVisible();
     await expect(viewer(page, "sparql")).toHaveAttribute("data-format", "csv");
     // rudof writes the terms of the solutions in Turtle, in the cells
-    await expect(viewer(page, "sparql").locator(".cm-content")).toContainText("?name,?age");
+    await expect(viewer(page, "sparql").locator(".cm-content")).toContainText("?name,?birthDate");
   });
 
   test("can be shown as a table, for every result, and the choice is remembered", async ({ page }) => {
@@ -71,9 +71,9 @@ test.describe("CSV results", () => {
     await page.locator("#sparql-result-format").selectOption("csv");
     await toggle(page, "sparql").getByRole("button", { name: "Table" }).click();
     const table = page.locator("#sparql-result .csv-output table");
-    await expect(table.locator("th .th-label")).toHaveText(["?name", "?age"]);
+    await expect(table.locator("th .th-label")).toHaveText(["?name", "?birthDate"]);
     await expect(table.locator("tbody tr").first().locator("td").first()).toHaveText('"Alice"');
-    await expect(table.locator("tbody tr")).toHaveCount(3);
+    await expect(table.locator("tbody tr")).toHaveCount(4);
     await expect(viewer(page, "sparql")).toBeHidden();
 
     // The validation results in CSV are a table too

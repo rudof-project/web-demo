@@ -14,16 +14,17 @@ function commit() {
   }
 }
 
-// The examples of Generate (examples/generate/: its manifest and the schemas),
-// which the page reads and the Examples menu opens, as files of the site. The
-// dev server serves them from the repository.
-const GENERATE_EXAMPLES = "examples/generate";
+// The examples of Generate (examples/generate/: its manifest and the schemas,
+// and examples/person/, the example of all the tabs, which its manifest has
+// too), which the page reads and the Examples menu opens, as files of the
+// site. The dev server serves them from the repository.
+const PUBLISHED_EXAMPLES = ["examples/generate", "examples/person"];
 function generateExamples() {
   return {
     name: "generate-examples",
     generateBundle() {
-      for (const name of readdirSync(GENERATE_EXAMPLES)) {
-        this.emitFile({ type: "asset", fileName: `${GENERATE_EXAMPLES}/${name}`, source: readFileSync(`${GENERATE_EXAMPLES}/${name}`) });
+      for (const dir of PUBLISHED_EXAMPLES) {
+        for (const name of readdirSync(dir)) this.emitFile({ type: "asset", fileName: `${dir}/${name}`, source: readFileSync(`${dir}/${name}`) });
       }
     },
   };

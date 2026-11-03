@@ -21,7 +21,7 @@ import { startLog, loggingFetch, logSummary, logTime, limitsText, renderQueries,
 import { LANGUAGES, TARGETS, DEFAULT_TARGET, canConvert, readSchema as readAnySchema, readShexSchema, hasShexImports, hasRelativeImports, convertSchema, sourceLabel, targetLabel, asSource } from "./schema-convert.js";
 import { DATA_MODES, DATA_KINDS, SCHEMA_LANGUAGES, SHEX_FORMATS, dataVerdict, differencesView, compactTerm, shapeIri } from "./compare.js";
 import { GENERATE_LANGUAGES, GENERATE_TARGETS, GENERATE_MANIFEST, generateCatalog, generateData, validateWith, serializeGenerated, generatedFile } from "./generate.js";
-import { INPUT_KINDS, inputsOf, visualOf } from "./inputs.js";
+import { INPUT_KINDS, inputsOf, visualOf, exampleText } from "./inputs.js";
 import { devDependencies } from "./package.json";
 
 // The exact version of package.json (the one the tests use), so that updating
@@ -1495,30 +1495,25 @@ const SPARQL_FORMATS = {
   ],
 };
 
+// The examples of queries, on the RDF data of the example (examples/person/):
+// the first one is the query of the example
 const SPARQL_EXAMPLES = {
-  select: `PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-
-SELECT ?name ?age WHERE {
-  ?person a foaf:Person ;
-          foaf:name ?name .
-  OPTIONAL { ?person foaf:age ?age }
-}
-ORDER BY ?name`,
-  count: `PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+  select: exampleText("person/query.rq"),
+  count: `PREFIX : <http://example.org/>
 
 SELECT ?name (COUNT(?friend) AS ?friends) WHERE {
-  ?person foaf:name ?name .
-  OPTIONAL { ?person foaf:knows ?friend }
+  ?person :name ?name .
+  OPTIONAL { ?person :knows ?friend }
 }
 GROUP BY ?name
 ORDER BY DESC(?friends)`,
-  ask: `PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+  ask: `PREFIX : <http://example.org/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-ASK { ?person foaf:age ?age FILTER (?age < 18) }`,
-  construct: `PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-PREFIX : <http://example.org/>
+ASK { ?person :birthDate ?date FILTER (?date >= "2000-01-01"^^xsd:date) }`,
+  construct: `PREFIX : <http://example.org/>
 
-CONSTRUCT { ?b :isKnownBy ?a } WHERE { ?a foaf:knows ?b }`,
+CONSTRUCT { ?b :isKnownBy ?a } WHERE { ?a :knows ?b }`,
   describe: `DESCRIBE <http://example.org/carol>`,
 };
 
@@ -1932,6 +1927,10 @@ async function generateText(input) {
   return generateTexts.get(input.url);
 }
 
+// A schema in the tab: without its last line end, as the examples of the
+// other tabs (inputs.js)
+const schemaText = (text) => text.replace(/\r?\n$/, "");
+
 // The example of the manifest that the tab has (an entry of action:
 // generate), and the schema it wrote in the tab: { entry, language, schema }
 let generateEntry;
@@ -1954,7 +1953,7 @@ async function loadGenerateEntry() {
   const language = GENERATE_LANGUAGES[format];
   try {
     const config = await generateText(entry.inputs.config ?? { text: "version = 2\n" });
-    const text = entry.inputs[language] ? await generateText(entry.inputs[language]) : "";
+    const text = entry.inputs[language] ? schemaText(await generateText(entry.inputs[language])) : "";
     // Another example or language may have been chosen meanwhile
     if (entry !== generateEntry || format !== $("gen-language").value) return;
     setInputText("gen-schema", text);
@@ -1982,7 +1981,7 @@ async function setupGenerateExamples() {
     }
     const language = GENERATE_LANGUAGES[$("gen-language").value];
     for (const { kinds } of sections) {
-      if (!kinds[0].inputs[language] || (await generateText(kinds[0].inputs[language])) !== schema) continue;
+      if (!kinds[0].inputs[language] || schemaText(await generateText(kinds[0].inputs[language])) !== schema) continue;
       const configs = await Promise.all(kinds.map((e) => generateText(e.inputs.config ?? { text: "version = 2\n" })));
       generateEntry = kinds[configs.indexOf($("gen-config").value)] ?? kinds[0];
       generateLoaded = { entry: generateEntry, language, schema };

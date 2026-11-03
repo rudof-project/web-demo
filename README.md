@@ -58,6 +58,24 @@ it can be drawn (the RDF data and the ShEx schemas).
 The other inputs (property graphs, shape maps, type maps, the prefixes of a
 DCTAP profile, the configuration of Generate) are editors as before.
 
+The examples of the inputs are the same in all the tabs: the files of
+[`examples/person/`](examples/person/), which a textarea names with
+`data-example="person/data.ttl"` (any textarea can have one). They are
+persons with a name, maybe a birth date, who know other persons:
+
+| File | Example of |
+|------|------------|
+| `data.ttl` | the RDF data of the RDF, ShEx, SHACL, DCTAP, SPARQL and Compare tabs |
+| `schema.shex` | the ShEx schema of the ShEx, Schema and Compare tabs |
+| `shapes.ttl`, `profile.csv`, `schema.pgs` | the same schema in SHACL, DCTAP and PGSchema |
+| `shapemap.txt` | the shape map of ShEx and DCTAP |
+| `data.pg`, `typemap.txt` | the same data as a property graph (Data and PGSchema), and its type map |
+| `query.rq` | the SPARQL query (the first of its examples) |
+
+All the schemas say the same: Alice and Carol conform, and Bob doesn't (two
+names, and a birth date that is not a date). The Generate tab has them as
+its first example. The build publishes `examples/person/` with the page.
+
 ## Inputs from URLs
 
 As in [RDFShape](https://rdfshape.weso.es/dataInfo), the RDF data, the
@@ -288,11 +306,13 @@ under them the **Generator configuration**, and the result is below.
   the Generate tab, with its schema and its configuration. An example of
   `action: generate` of another manifest also goes to the tab; help.html
   documents the keys.
-- The examples are six models, each written in the three languages:
-  references, keys, facets, labels, LUBM and LDBC SNB. They are written over
-  the RDF encoding of a property graph, so the three schemas generate the
-  same graph, and SHACL and ShEx also get the property graph. **Your own
-  schema** is a small template to edit. The kinds of data write the
+- The first example, which the tab has at first, is the one of the other
+  tabs (persons, [`examples/person/`](examples/person/)), in SHACL, ShEx and
+  PGSchema: a small schema to edit, to write your own. The others are six
+  models, each written in the three languages: references, keys, facets,
+  labels, LUBM and LDBC SNB. They are written over the RDF encoding of a
+  property graph, so the three schemas generate the same graph, and SHACL
+  and ShEx also get the property graph. The kinds of data write the
   generator's configuration (TOML, version 2), which can be edited before
   **Generate**: valid data, dense or sparse data, a target coherence, or data
   **with errors** (20% of the entities broken, one constraint each).
