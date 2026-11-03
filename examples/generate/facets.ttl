@@ -1,4 +1,4 @@
-var e=`# facets.pgs in SHACL over its RDF encoding: a pattern and inclusive and exclusive ranges.
+# facets.pgs in SHACL over its RDF encoding: a pattern and inclusive and exclusive ranges.
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix t: <http://rudof.example/pg/type/> .
@@ -14,4 +14,3 @@ t:ItemType a sh:NodeShape ; sh:targetClass l:Item ;
                 sh:minCount 1 ; sh:maxCount 1 ] ;
   sh:property [ sh:path k:stock ; sh:datatype xsd:integer ; sh:minExclusive 0 ; sh:maxExclusive 100 ;
                 sh:minCount 1 ; sh:maxCount 1 ] .
-`;export{e as default};

@@ -1,7 +1,7 @@
-var e=`// LDBC Social Network Benchmark (SNB) schema in rudof's PG-Schema syntax, after the
+// LDBC Social Network Benchmark (SNB) schema in rudof's PG-Schema syntax, after the
 // SNB specification's data schema. Adaptations, each forced by the syntax or the
 // validator: DateTime properties are DATE (no datetime type); 64-bit ids are INTEGER
-// (i32 in rudof); multi-valued \`speaks\`/\`email\` are STRING lists; Place and
+// (i32 in rudof); multi-valued `speaks`/`email` are STRING lists; Place and
 // Organisation subtypes are separate node types with their SNB labels.
 // Edge types with properties (knows, likes, hasMember, studyAt, workAt) are kept;
 // the generator leaves them out, which it reports, because it cannot yet generate
@@ -71,4 +71,3 @@ CREATE EDGE TYPE (:@CityType) -[CityIsPartOfType : isPartOf]-> (:@CountryType) ;
 CREATE EDGE TYPE (:@CountryType) -[CountryIsPartOfType : isPartOf]-> (:@ContinentType) ;
 CREATE EDGE TYPE (:@UniversityType) -[UniversityIsLocatedInType : isLocatedIn]-> (:@CityType) ;
 CREATE EDGE TYPE (:@CompanyType) -[CompanyIsLocatedInType : isLocatedIn]-> (:@CountryType)
-`;export{e as default};

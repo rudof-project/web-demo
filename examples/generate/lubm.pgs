@@ -1,4 +1,4 @@
-var e=`// LUBM (Lehigh University Benchmark) in rudof's PG-Schema syntax, after the univ-bench
+// LUBM (Lehigh University Benchmark) in rudof's PG-Schema syntax, after the univ-bench
 // ontology (univ-bench.owl) and the classes and properties its generator (UBA) emits.
 // Adaptations, each forced by the syntax: an object property becomes one edge type per
 // source type, with a single target type (advisor and publicationAuthor point to
@@ -89,4 +89,3 @@ CREATE EDGE TYPE (:@GraduateStudentType) -[GradUgDegreeType : undergraduateDegre
 CREATE EDGE TYPE (:@GraduateStudentType) -[GradTaOfType : teachingAssistantOf]-> (:@CourseType) ;
 
 CREATE EDGE TYPE (:@PublicationType) -[PubAuthorType : publicationAuthor]-> (:@FullProfessorType)
-`;export{e as default};

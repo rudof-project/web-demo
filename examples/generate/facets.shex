@@ -1,4 +1,4 @@
-var e=`# facets.pgs in ShEx over its RDF encoding: a pattern and inclusive and exclusive ranges.
+# facets.pgs in ShEx over its RDF encoding: a pattern and inclusive and exclusive ranges.
 PREFIX t: <http://rudof.example/pg/type/>
 PREFIX k: <http://rudof.example/pg/key/>
 PREFIX l: <http://rudof.example/pg/label/>
@@ -10,4 +10,3 @@ t:ItemType CLOSED {
   k:price xsd:integer MinInclusive 1 MaxInclusive 500 ;
   k:stock xsd:integer MinExclusive 0 MaxExclusive 100
 }
-`;export{e as default};

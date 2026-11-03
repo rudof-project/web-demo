@@ -1,4 +1,4 @@
-var e=`# labels.pgs in ShEx over its RDF encoding: a node with two labels has two rdf:type values.
+# labels.pgs in ShEx over its RDF encoding: a node with two labels has two rdf:type values.
 PREFIX t: <http://rudof.example/pg/type/>
 PREFIX k: <http://rudof.example/pg/key/>
 PREFIX l: <http://rudof.example/pg/label/>
@@ -9,4 +9,3 @@ t:StaffType CLOSED {
   a [ l:Employee ] ;
   k:name xsd:string
 }
-`;export{e as default};

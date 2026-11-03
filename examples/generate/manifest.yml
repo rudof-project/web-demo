@@ -1,0 +1,477 @@
+# The examples of the Generate tab: synthetic data from a schema, with rudof
+# generate. The Generate tab reads this manifest, and the Examples menu
+# opens it (?manifestURL=examples/generate/manifest.yml).
+#
+# Each section is an example (its id names it in permalinks: gen-example=…),
+# written in SHACL, ShEx and PGSchema: the three schemas say the same, over
+# the RDF encoding of a property graph, so they generate the same graph. Each
+# entry of a section is a kind of data (kind: …, data-kind=… in permalinks):
+# the configuration of the generator (TOML, version 2).
+#
+#   action: generate
+#   shaclURL, shexURL, pgschemaURL   the schema in each language (or shacl:,
+#                                    shex:, pgschema: with the text)
+#   schemaLanguage                   the language it opens in (shacl by default)
+#   config                           the configuration of the generator
+#   entities, seed                   how many entities, and the random seed
+
+- section: Persons, organisations and cities (references)
+  id: references
+  comment: "Persons work for organisations, which are in cities: nodes that refer to other nodes."
+  examples:
+    - comment: "Valid data"
+      action: generate
+      kind: valid
+      shaclURL: references.ttl
+      shexURL: references.shex
+      pgschemaURL: references.pgs
+      config: |
+        version = 2
+    - comment: "Dense: every optional property, maximal cardinality"
+      action: generate
+      kind: dense
+      shaclURL: references.ttl
+      shexURL: references.shex
+      pgschemaURL: references.pgs
+      config: |
+        version = 2
+
+        [defaults]
+        fill = 1.0
+        cardinality = "max"
+    - comment: "Sparse: optional properties on 10% of the nodes"
+      action: generate
+      kind: sparse
+      shaclURL: references.ttl
+      shexURL: references.shex
+      pgschemaURL: references.pgs
+      config: |
+        version = 2
+
+        [defaults]
+        fill = 0.1
+    - comment: "Coherence 0.85 (searched over the fill)"
+      action: generate
+      kind: coherence
+      shaclURL: references.ttl
+      shexURL: references.shex
+      pgschemaURL: references.pgs
+      config: |
+        version = 2
+
+        [targets]
+        coherence = 0.85
+        tolerance = 0.01
+    - comment: "With errors (20%) and their report"
+      action: generate
+      kind: errors
+      shaclURL: references.ttl
+      shexURL: references.shex
+      pgschemaURL: references.pgs
+      config: |
+        version = 2
+
+        [violations]
+        rate = 0.2
+
+        # The RDF copy keeps PGSchema's closed records and required keys
+        [violations.rdf]
+        closed = true
+        keys_required = true
+
+        [output]
+        formats = ["pg", "turtle"]
+
+- section: Keys and values (required, optional, lists, dates)
+  id: keys
+  comment: "The kinds of values of the keys of a node: required, optional, lists and dates."
+  examples:
+    - comment: "Valid data"
+      action: generate
+      kind: valid
+      shaclURL: keys.ttl
+      shexURL: keys.shex
+      pgschemaURL: keys.pgs
+      config: |
+        version = 2
+    - comment: "Dense: every optional property, maximal cardinality"
+      action: generate
+      kind: dense
+      shaclURL: keys.ttl
+      shexURL: keys.shex
+      pgschemaURL: keys.pgs
+      config: |
+        version = 2
+
+        [defaults]
+        fill = 1.0
+        cardinality = "max"
+    - comment: "Sparse: optional properties on 10% of the nodes"
+      action: generate
+      kind: sparse
+      shaclURL: keys.ttl
+      shexURL: keys.shex
+      pgschemaURL: keys.pgs
+      config: |
+        version = 2
+
+        [defaults]
+        fill = 0.1
+    - comment: "Coherence 0.85 (searched over the fill)"
+      action: generate
+      kind: coherence
+      shaclURL: keys.ttl
+      shexURL: keys.shex
+      pgschemaURL: keys.pgs
+      config: |
+        version = 2
+
+        [targets]
+        coherence = 0.85
+        tolerance = 0.01
+    - comment: "With errors (20%) and their report"
+      action: generate
+      kind: errors
+      shaclURL: keys.ttl
+      shexURL: keys.shex
+      pgschemaURL: keys.pgs
+      config: |
+        version = 2
+
+        [violations]
+        rate = 0.2
+
+        # The RDF copy keeps PGSchema's closed records and required keys
+        [violations.rdf]
+        closed = true
+        keys_required = true
+
+        [output]
+        formats = ["pg", "turtle"]
+
+- section: Value facets (pattern, ranges)
+  id: facets
+  comment: "Values with facets: a pattern, and ranges of numbers."
+  examples:
+    - comment: "Valid data"
+      action: generate
+      kind: valid
+      shaclURL: facets.ttl
+      shexURL: facets.shex
+      pgschemaURL: facets.pgs
+      config: |
+        version = 2
+    - comment: "Dense: every optional property, maximal cardinality"
+      action: generate
+      kind: dense
+      shaclURL: facets.ttl
+      shexURL: facets.shex
+      pgschemaURL: facets.pgs
+      config: |
+        version = 2
+
+        [defaults]
+        fill = 1.0
+        cardinality = "max"
+    - comment: "Sparse: optional properties on 10% of the nodes"
+      action: generate
+      kind: sparse
+      shaclURL: facets.ttl
+      shexURL: facets.shex
+      pgschemaURL: facets.pgs
+      config: |
+        version = 2
+
+        [defaults]
+        fill = 0.1
+    - comment: "Coherence 0.85 (searched over the fill)"
+      action: generate
+      kind: coherence
+      shaclURL: facets.ttl
+      shexURL: facets.shex
+      pgschemaURL: facets.pgs
+      config: |
+        version = 2
+
+        [targets]
+        coherence = 0.85
+        tolerance = 0.01
+    - comment: "With errors (20%) and their report"
+      action: generate
+      kind: errors
+      shaclURL: facets.ttl
+      shexURL: facets.shex
+      pgschemaURL: facets.pgs
+      config: |
+        version = 2
+
+        [violations]
+        rate = 0.2
+
+        # The RDF copy keeps PGSchema's closed records and required keys
+        [violations.rdf]
+        closed = true
+        keys_required = true
+
+        [output]
+        formats = ["pg", "turtle"]
+
+- section: Several labels (Person & Employee)
+  id: labels
+  comment: "Nodes with more than one label: a Person that is also an Employee."
+  examples:
+    - comment: "Valid data"
+      action: generate
+      kind: valid
+      shaclURL: labels.ttl
+      shexURL: labels.shex
+      pgschemaURL: labels.pgs
+      config: |
+        version = 2
+    - comment: "Dense: every optional property, maximal cardinality"
+      action: generate
+      kind: dense
+      shaclURL: labels.ttl
+      shexURL: labels.shex
+      pgschemaURL: labels.pgs
+      config: |
+        version = 2
+
+        [defaults]
+        fill = 1.0
+        cardinality = "max"
+    - comment: "Sparse: optional properties on 10% of the nodes"
+      action: generate
+      kind: sparse
+      shaclURL: labels.ttl
+      shexURL: labels.shex
+      pgschemaURL: labels.pgs
+      config: |
+        version = 2
+
+        [defaults]
+        fill = 0.1
+    - comment: "Coherence 0.85 (searched over the fill)"
+      action: generate
+      kind: coherence
+      shaclURL: labels.ttl
+      shexURL: labels.shex
+      pgschemaURL: labels.pgs
+      config: |
+        version = 2
+
+        [targets]
+        coherence = 0.85
+        tolerance = 0.01
+    - comment: "With errors (20%) and their report"
+      action: generate
+      kind: errors
+      shaclURL: labels.ttl
+      shexURL: labels.shex
+      pgschemaURL: labels.pgs
+      config: |
+        version = 2
+
+        [violations]
+        rate = 0.2
+
+        # The RDF copy keeps PGSchema's closed records and required keys
+        [violations.rdf]
+        closed = true
+        keys_required = true
+
+        [output]
+        formats = ["pg", "turtle"]
+
+- section: LUBM university (12 node types, 35 edge types)
+  id: lubm
+  comment: "The Lehigh University Benchmark: universities, departments, people and courses."
+  examples:
+    - comment: "Valid data"
+      action: generate
+      kind: valid
+      shaclURL: lubm.ttl
+      shexURL: lubm.shex
+      pgschemaURL: lubm.pgs
+      config: |
+        version = 2
+    - comment: "Dense: every optional property, maximal cardinality"
+      action: generate
+      kind: dense
+      shaclURL: lubm.ttl
+      shexURL: lubm.shex
+      pgschemaURL: lubm.pgs
+      config: |
+        version = 2
+
+        [defaults]
+        fill = 1.0
+        cardinality = "max"
+    - comment: "Sparse: optional properties on 10% of the nodes"
+      action: generate
+      kind: sparse
+      shaclURL: lubm.ttl
+      shexURL: lubm.shex
+      pgschemaURL: lubm.pgs
+      config: |
+        version = 2
+
+        [defaults]
+        fill = 0.1
+    - comment: "Coherence 0.85 (searched over the fill)"
+      action: generate
+      kind: coherence
+      shaclURL: lubm.ttl
+      shexURL: lubm.shex
+      pgschemaURL: lubm.pgs
+      config: |
+        version = 2
+
+        [targets]
+        coherence = 0.85
+        tolerance = 0.01
+    - comment: "With errors (20%) and their report"
+      action: generate
+      kind: errors
+      shaclURL: lubm.ttl
+      shexURL: lubm.shex
+      pgschemaURL: lubm.pgs
+      config: |
+        version = 2
+
+        [violations]
+        rate = 0.2
+
+        # The RDF copy keeps PGSchema's closed records and required keys
+        [violations.rdf]
+        closed = true
+        keys_required = true
+
+        [output]
+        formats = ["pg", "turtle"]
+
+- section: LDBC Social Network (11 node types, cycles)
+  id: ldbc-snb
+  comment: "The LDBC Social Network Benchmark: persons, forums, posts and comments, with cycles."
+  examples:
+    - comment: "Valid data"
+      action: generate
+      kind: valid
+      shaclURL: ldbc-snb.ttl
+      shexURL: ldbc-snb.shex
+      pgschemaURL: ldbc-snb.pgs
+      config: |
+        version = 2
+    - comment: "Dense: every optional property, maximal cardinality"
+      action: generate
+      kind: dense
+      shaclURL: ldbc-snb.ttl
+      shexURL: ldbc-snb.shex
+      pgschemaURL: ldbc-snb.pgs
+      config: |
+        version = 2
+
+        [defaults]
+        fill = 1.0
+        cardinality = "max"
+    - comment: "Sparse: optional properties on 10% of the nodes"
+      action: generate
+      kind: sparse
+      shaclURL: ldbc-snb.ttl
+      shexURL: ldbc-snb.shex
+      pgschemaURL: ldbc-snb.pgs
+      config: |
+        version = 2
+
+        [defaults]
+        fill = 0.1
+    - comment: "Coherence 0.85 (searched over the fill)"
+      action: generate
+      kind: coherence
+      shaclURL: ldbc-snb.ttl
+      shexURL: ldbc-snb.shex
+      pgschemaURL: ldbc-snb.pgs
+      config: |
+        version = 2
+
+        [targets]
+        coherence = 0.85
+        tolerance = 0.01
+    - comment: "With errors (20%) and their report"
+      action: generate
+      kind: errors
+      shaclURL: ldbc-snb.ttl
+      shexURL: ldbc-snb.shex
+      pgschemaURL: ldbc-snb.pgs
+      config: |
+        version = 2
+
+        [violations]
+        rate = 0.2
+
+        # The RDF copy keeps PGSchema's closed records and required keys
+        [violations.rdf]
+        closed = true
+        keys_required = true
+
+        [output]
+        formats = ["pg", "turtle"]
+
+- section: Your own schema (a template)
+  id: custom
+  comment: "A small template to edit: it has no property graph in SHACL and ShEx, and no other language."
+  examples:
+    - comment: "Valid data"
+      action: generate
+      kind: valid
+      shaclURL: custom.ttl
+      shexURL: custom.shex
+      pgschemaURL: custom.pgs
+      config: |
+        version = 2
+    - comment: "Dense: every optional property, maximal cardinality"
+      action: generate
+      kind: dense
+      shaclURL: custom.ttl
+      shexURL: custom.shex
+      pgschemaURL: custom.pgs
+      config: |
+        version = 2
+
+        [defaults]
+        fill = 1.0
+        cardinality = "max"
+    - comment: "Sparse: optional properties on 10% of the nodes"
+      action: generate
+      kind: sparse
+      shaclURL: custom.ttl
+      shexURL: custom.shex
+      pgschemaURL: custom.pgs
+      config: |
+        version = 2
+
+        [defaults]
+        fill = 0.1
+    - comment: "Coherence 0.85 (searched over the fill)"
+      action: generate
+      kind: coherence
+      shaclURL: custom.ttl
+      shexURL: custom.shex
+      pgschemaURL: custom.pgs
+      config: |
+        version = 2
+
+        [targets]
+        coherence = 0.85
+        tolerance = 0.01
+    - comment: "With errors (20%) and their report"
+      action: generate
+      kind: errors
+      shaclURL: custom.ttl
+      shexURL: custom.shex
+      pgschemaURL: custom.pgs
+      config: |
+        version = 2
+
+        [violations]
+        rate = 0.2

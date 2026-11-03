@@ -1,4 +1,4 @@
-var e=`# chain.pgs translated to ShEx over its RDF encoding, keeping PG-Schema's defaults:
+# chain.pgs translated to ShEx over its RDF encoding, keeping PG-Schema's defaults:
 # closed records become CLOSED shapes, and keys without OPTIONAL stay required.
 PREFIX t: <http://rudof.example/pg/type/>
 PREFIX k: <http://rudof.example/pg/key/>
@@ -20,4 +20,3 @@ t:CityType CLOSED {
   a [ l:City ] ;
   k:name xsd:string
 }
-`;export{e as default};
