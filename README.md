@@ -639,6 +639,13 @@ menu (converted in a session of its own, without validating again). The
 subgraph is hidden while the tab runs, after an error, and without the
 option.
 
+**Visualize**, next to its format menu, shows the subgraph as a diagram in
+place of its text, as for the inputs of RDF data: rudof writes it in PlantUML
+(`serializeData("plantuml")`), with the prefixes of the tab, and PlantUML
+draws it, with **Show PlantUML source** and **Download SVG**. The button is
+then **Text**, which shows the text again. While it is shown, each new
+validation draws its subgraph.
+
 Only the native engine of SHACL reads triples: with the SPARQL engine, which
 reads the data with queries, the option is disabled. In permalinks, the
 option and the format are `read-triples` and `read-triples-format`.
