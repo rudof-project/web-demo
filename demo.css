@@ -886,6 +886,7 @@ table.csv-result td code { font-size: 12px; white-space: pre-wrap; overflow-wrap
 .read-triples summary { cursor: pointer; color: var(--muted); }
 .read-triples[open] summary { margin-bottom: 0.4rem; }
 .read-triples label.inline { display: inline-flex; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem; }
+.read-triples pre.has-viewer { display: none; }
 .read-triples .cm-viewer { max-height: 20rem; overflow: auto; border: 1px solid var(--border); border-radius: 6px; }
 
 /* The settings of rudof: the gear of the header, and its dialog */
