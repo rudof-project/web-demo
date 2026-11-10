@@ -487,7 +487,7 @@ $("permalink").addEventListener("click", async (e) => {
 function showResult(prefix, { verdict, kind, output, millis, readTriples }) {
   const box = $(`${prefix}-result`);
   box.hidden = false;
-  showReadTriples(box, readTriples);
+  showReadTriples(prefix, readTriples);
   box.dataset.kind = kind;
   box.querySelector(".verdict").textContent = verdict;
   box.querySelector(".timing").textContent = millis === undefined ? "" : `${millis.toFixed(0)} ms`;
@@ -515,13 +515,31 @@ function showResult(prefix, { verdict, kind, output, millis, readTriples }) {
 
 // The subgraph that a validation read (see readTriplesOn), below its result:
 // hidden without it (while it runs, after an error, or without the option).
-function showReadTriples(box, triples) {
-  const block = box.querySelector(".read-triples");
+// rudof gives it in Turtle; the other formats are converted in a session of
+// their own, without validating again.
+function showReadTriples(prefix, triples) {
+  const block = $(`${prefix}-result`).querySelector(".read-triples");
   if (!block) return;
   block.hidden = !triples;
   if (!triples) return;
   block.querySelector("summary").textContent = `Subgraph read: ${count(triples.distinct, "distinct triple")} (${count(triples.read, "triple")} read)`;
-  block.querySelector("pre").textContent = triples.text;
+  block.querySelector("pre").textContent = subgraphIn(prefix, triples.text, $(`${prefix}-read-triples-format`).value);
+}
+
+function subgraphIn(prefix, turtle, format) {
+  if (format === "turtle") return turtle;
+  try {
+    const rudof = session(`${prefix}-read-triples`);
+    rudof.resetAll();
+    rudof.readData(turtle, "turtle");
+    return rudof.serializeData(format);
+  } catch (e) {
+    return `The subgraph can't be written in ${format}: ${e.message ?? e}`;
+  }
+}
+
+for (const prefix of ["shex", "shacl"]) {
+  $(`${prefix}-read-triples-format`).addEventListener("change", () => showReadTriples(prefix, last[prefix]?.readTriples));
 }
 
 // CSV results, as text (in the viewer of the result) or as a table: the
