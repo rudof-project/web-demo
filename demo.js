@@ -523,23 +523,70 @@ function showReadTriples(prefix, triples) {
   block.hidden = !triples;
   if (!triples) return;
   block.querySelector("summary").textContent = `Subgraph read: ${count(triples.distinct, "distinct triple")} (${count(triples.read, "triple")} read)`;
-  block.querySelector("pre").textContent = subgraphIn(prefix, triples.text, $(`${prefix}-read-triples-format`).value);
+  block.querySelector(`#${prefix}-read-triples-output`).textContent = subgraphIn(prefix, triples.text, $(`${prefix}-read-triples-format`).value);
+  if (block.classList.contains("visual")) setSubgraphVisual(prefix, true, triples);
+}
+
+// The subgraph in another format (PlantUML too), in a session of its own
+function convertSubgraph(prefix, turtle, format) {
+  const rudof = session(`${prefix}-read-triples`);
+  rudof.resetAll();
+  rudof.readData(turtle, "turtle");
+  return rudof.serializeData(format);
 }
 
 function subgraphIn(prefix, turtle, format) {
   if (format === "turtle") return turtle;
   try {
-    const rudof = session(`${prefix}-read-triples`);
-    rudof.resetAll();
-    rudof.readData(turtle, "turtle");
-    return rudof.serializeData(format);
+    return convertSubgraph(prefix, turtle, format);
   } catch (e) {
     return `The subgraph can't be written in ${format}: ${e.message ?? e}`;
   }
 }
 
+// Visualize: the subgraph as the diagram that PlantUML draws of it, in place
+// of its viewer, as the inputs of RDF data (setVisual); Text shows the viewer
+// again. A diagram already drawn of the same subgraph is not drawn again.
+async function setSubgraphVisual(prefix, visual, triples = last[prefix]?.readTriples) {
+  const block = $(`${prefix}-result`).querySelector(".read-triples");
+  const box = $(`${prefix}-read-triples-visual`);
+  const button = $(`${prefix}-read-triples-visualize`);
+  block.classList.toggle("visual", visual);
+  box.hidden = !visual;
+  button.textContent = visual ? "Text" : "Visualize";
+  button.title = visual ? "Show the subgraph as text again" : "Show the subgraph as a diagram";
+  button.setAttribute("aria-pressed", String(visual));
+  if (!visual || !triples) {
+    diagrams.set(box, null); // a diagram still being drawn is not shown
+    return;
+  }
+  const image = box.querySelector(".diagram-image");
+  const sourcePre = box.querySelector(".visual-source");
+  try {
+    // With the prefixes of the tab (rudof writes the subgraph without them),
+    // so that the diagram has prefixed names, as that of the RDF data
+    const declarations = [...new Map(tabPrefixes(prefix))].map(([alias, iri]) => `PREFIX ${alias}: <${iri}>\n`).join("");
+    const source = convertSubgraph(prefix, declarations + triples.text, "plantuml");
+    if (sourcePre.textContent === source && image.querySelector("img")) return;
+    sourcePre.textContent = source;
+    await drawDiagram(box, source);
+  } catch (e) {
+    sourcePre.textContent = "";
+    image.replaceChildren(Object.assign(document.createElement("p"), { className: "diagram-status error", textContent: `Could not visualize it: ${e.message ?? e}` }));
+  }
+}
+
 for (const prefix of ["shex", "shacl"]) {
   $(`${prefix}-read-triples-format`).addEventListener("change", () => showReadTriples(prefix, last[prefix]?.readTriples));
+  const visualize = $(`${prefix}-read-triples-visualize`);
+  visualize.addEventListener("click", () => setSubgraphVisual(prefix, visualize.getAttribute("aria-pressed") !== "true"));
+  const box = $(`${prefix}-read-triples-visual`);
+  const sourceButton = box.querySelector('[data-action="source"]');
+  sourceButton.addEventListener("click", () => {
+    const pre = box.querySelector(".visual-source");
+    pre.hidden = !pre.hidden;
+    sourceButton.textContent = pre.hidden ? "Show PlantUML source" : "Hide PlantUML source";
+  });
 }
 
 // CSV results, as text (in the viewer of the result) or as a table: the

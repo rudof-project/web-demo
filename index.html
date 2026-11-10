@@ -353,17 +353,25 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
           <div class="csv-output" hidden></div>
           <details class="read-triples" hidden>
             <summary></summary>
-            <label class="inline">Format
-              <select id="shex-read-triples-format">
-                <option value="turtle">Turtle</option>
-                <option value="ntriples">N-Triples</option>
-                <option value="rdfxml">RDF/XML</option>
-                <option value="jsonld">JSON-LD</option>
-                <option value="trig">TriG</option>
-                <option value="n3">N3</option>
-                <option value="nquads">N-Quads</option>
-              </select>
-            </label>
+            <div class="read-triples-tools">
+              <label class="inline">Format
+                <select id="shex-read-triples-format">
+                  <option value="turtle">Turtle</option>
+                  <option value="ntriples">N-Triples</option>
+                  <option value="rdfxml">RDF/XML</option>
+                  <option value="jsonld">JSON-LD</option>
+                  <option value="trig">TriG</option>
+                  <option value="n3">N3</option>
+                  <option value="nquads">N-Quads</option>
+                </select>
+              </label>
+              <button type="button" class="secondary small visualize" id="shex-read-triples-visualize" aria-pressed="false" title="Show the subgraph as a diagram">Visualize</button>
+            </div>
+            <div class="input-visual" id="shex-read-triples-visual" hidden>
+              <div class="diagram-tools"><button type="button" class="link" data-action="source">Show PlantUML source</button><a class="link" data-action="download" download="shex-subgraph.svg">Download SVG</a></div>
+              <pre class="visual-source" hidden></pre>
+              <div class="diagram-image"></div>
+            </div>
             <pre id="shex-read-triples-output" data-viewer="Subgraph read" data-format-select="shex-read-triples-format"></pre>
           </details>
         </div>
@@ -477,17 +485,25 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
           <div class="csv-output" hidden></div>
           <details class="read-triples" hidden>
             <summary></summary>
-            <label class="inline">Format
-              <select id="shacl-read-triples-format">
-                <option value="turtle">Turtle</option>
-                <option value="ntriples">N-Triples</option>
-                <option value="rdfxml">RDF/XML</option>
-                <option value="jsonld">JSON-LD</option>
-                <option value="trig">TriG</option>
-                <option value="n3">N3</option>
-                <option value="nquads">N-Quads</option>
-              </select>
-            </label>
+            <div class="read-triples-tools">
+              <label class="inline">Format
+                <select id="shacl-read-triples-format">
+                  <option value="turtle">Turtle</option>
+                  <option value="ntriples">N-Triples</option>
+                  <option value="rdfxml">RDF/XML</option>
+                  <option value="jsonld">JSON-LD</option>
+                  <option value="trig">TriG</option>
+                  <option value="n3">N3</option>
+                  <option value="nquads">N-Quads</option>
+                </select>
+              </label>
+              <button type="button" class="secondary small visualize" id="shacl-read-triples-visualize" aria-pressed="false" title="Show the subgraph as a diagram">Visualize</button>
+            </div>
+            <div class="input-visual" id="shacl-read-triples-visual" hidden>
+              <div class="diagram-tools"><button type="button" class="link" data-action="source">Show PlantUML source</button><a class="link" data-action="download" download="shacl-subgraph.svg">Download SVG</a></div>
+              <pre class="visual-source" hidden></pre>
+              <div class="diagram-image"></div>
+            </div>
             <pre id="shacl-read-triples-output" data-viewer="Subgraph read" data-format-select="shacl-read-triples-format"></pre>
           </details>
         </div>

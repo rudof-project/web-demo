@@ -885,7 +885,10 @@ table.csv-result td code { font-size: 12px; white-space: pre-wrap; overflow-wrap
 .read-triples { flex: none; border-top: 1px solid var(--border); padding: 0.4rem 0.7rem 0.6rem; background: var(--surface); font-size: 0.9em; }
 .read-triples summary { cursor: pointer; color: var(--muted); }
 .read-triples[open] summary { margin-bottom: 0.4rem; }
-.read-triples label.inline { display: inline-flex; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem; }
+.read-triples-tools { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.4rem; }
+.read-triples-tools label.inline { display: inline-flex; align-items: center; gap: 0.4rem; }
+.read-triples.visual .read-triples-tools label.inline, .read-triples.visual .cm-viewer { display: none; }
+.read-triples .input-visual { min-height: 12rem; }
 .read-triples pre.has-viewer { display: none; }
 .read-triples .cm-viewer { max-height: 20rem; overflow: auto; border: 1px solid var(--border); border-radius: 6px; }
 
