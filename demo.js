@@ -1400,6 +1400,7 @@ function shapesNote() {
   return parts.length ? ` (with ${parts.join(" and ")})` : "";
 }
 for (const id of ["shacl-recursion", "shacl-errors", "shacl-evidences", "shacl-evidences-shapes"]) $(id).addEventListener("change", updatePermalink);
+for (const id of ["shex-read-triples", "shex-read-triples-format", "shacl-read-triples", "shacl-read-triples-format"]) $(id).addEventListener("change", updatePermalink);
 
 function validateShacl() {
   const start = performance.now();
