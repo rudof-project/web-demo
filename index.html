@@ -16,11 +16,11 @@
     } catch {}
   </script>
   <!-- The fields of the inputs of RDF data, schemas and queries, before their editors -->
-  <script type="module" crossorigin src="./assets/main-DiYHoAoi.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/header-BuGTlGtH.js">
+  <script type="module" crossorigin src="./assets/main-BD2IfhGr.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/header-gFGxexMZ.js">
   <link rel="modulepreload" crossorigin href="./assets/dist-CjNGdU0X.js">
   <link rel="modulepreload" crossorigin href="./assets/dctap-DBredz1z.js">
-  <link rel="stylesheet" crossorigin href="./assets/header-C1fFVM8-.css">
+  <link rel="stylesheet" crossorigin href="./assets/header-ClqXeRqd.css">
 </head>
 
 <body>
@@ -338,6 +338,7 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
               <option value="csv">CSV</option>
             </select>
           </label>
+          <label class="inline" title="Count the triples that the validation reads, and show the subgraph they make"><input type="checkbox" id="shex-read-triples"> Read triples</label>
           <span class="shortcut">Ctrl + Enter</span>
         </div>
         <div class="result" id="shex-result" hidden>
@@ -350,6 +351,29 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
           <pre class="output" id="shex-output" data-viewer="Validation result" data-format-select="shex-result-format"></pre>
           <div class="table-output" hidden></div>
           <div class="csv-output" hidden></div>
+          <details class="read-triples" hidden>
+            <summary></summary>
+            <div class="read-triples-tools">
+              <label class="inline">Format
+                <select id="shex-read-triples-format">
+                  <option value="turtle">Turtle</option>
+                  <option value="ntriples">N-Triples</option>
+                  <option value="rdfxml">RDF/XML</option>
+                  <option value="jsonld">JSON-LD</option>
+                  <option value="trig">TriG</option>
+                  <option value="n3">N3</option>
+                  <option value="nquads">N-Quads</option>
+                </select>
+              </label>
+              <button type="button" class="secondary small visualize" id="shex-read-triples-visualize" aria-pressed="false" title="Show the subgraph as a diagram">Visualize</button>
+            </div>
+            <div class="input-visual" id="shex-read-triples-visual" hidden>
+              <div class="diagram-tools"><button type="button" class="link" data-action="source">Show PlantUML source</button><a class="link" data-action="download" download="shex-subgraph.svg">Download SVG</a></div>
+              <pre class="visual-source" hidden></pre>
+              <div class="diagram-image"></div>
+            </div>
+            <pre id="shex-read-triples-output" data-viewer="Subgraph read" data-format-select="shex-read-triples-format"></pre>
+          </details>
         </div>
         <div class="toolbar schema-tools">
           <label class="inline">Convert the schema to
@@ -446,6 +470,7 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
             <label title="Why the nodes conform"><input type="checkbox" id="shacl-evidences" checked> Evidences</label>
             <label title="Only the evidences of shapes, not of each constraint"><input type="checkbox" id="shacl-evidences-shapes" checked> of shapes only</label>
           </span>
+          <label class="inline" title="Count the triples that the validation reads, and show the subgraph they make"><input type="checkbox" id="shacl-read-triples"> Read triples</label>
           <span class="shortcut">Ctrl + Enter</span>
         </div>
         <div class="result" id="shacl-result" hidden>
@@ -458,6 +483,29 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
           <pre class="output" id="shacl-output" data-viewer="Validation result" data-format-select="shacl-result-format"></pre>
           <div class="table-output" hidden></div>
           <div class="csv-output" hidden></div>
+          <details class="read-triples" hidden>
+            <summary></summary>
+            <div class="read-triples-tools">
+              <label class="inline">Format
+                <select id="shacl-read-triples-format">
+                  <option value="turtle">Turtle</option>
+                  <option value="ntriples">N-Triples</option>
+                  <option value="rdfxml">RDF/XML</option>
+                  <option value="jsonld">JSON-LD</option>
+                  <option value="trig">TriG</option>
+                  <option value="n3">N3</option>
+                  <option value="nquads">N-Quads</option>
+                </select>
+              </label>
+              <button type="button" class="secondary small visualize" id="shacl-read-triples-visualize" aria-pressed="false" title="Show the subgraph as a diagram">Visualize</button>
+            </div>
+            <div class="input-visual" id="shacl-read-triples-visual" hidden>
+              <div class="diagram-tools"><button type="button" class="link" data-action="source">Show PlantUML source</button><a class="link" data-action="download" download="shacl-subgraph.svg">Download SVG</a></div>
+              <pre class="visual-source" hidden></pre>
+              <div class="diagram-image"></div>
+            </div>
+            <pre id="shacl-read-triples-output" data-viewer="Subgraph read" data-format-select="shacl-read-triples-format"></pre>
+          </details>
         </div>
         <div class="toolbar schema-tools">
           <label class="inline">Convert the schema to
