@@ -1382,7 +1382,9 @@ function validateShacl() {
   const mode = $("shacl-mode").value;
   readShaclShapes(data.rudof);
   const note = shapesNote();
-  return validation(data, () => data.rudof.validateShacl(mode), () => data.rudof.validateShaclAsync(mode), (report) => {
+  // The fetch strategy of the configuration (null), and the triples read
+  const triples = readTriplesOn("shacl");
+  return validation(data, () => data.rudof.validateShacl(mode, null, triples), () => data.rudof.validateShaclAsync(mode, null, triples), (report) => {
     const result = shaclResult(report, start);
     return { ...result, verdict: result.verdict + note };
   });
