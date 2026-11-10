@@ -626,6 +626,23 @@ They are the `[shacl]` section of the configuration of rudof
 (`recursion_semantics`, `store_errors`, `store_evidences` and
 `evidence_shapes_only`). Without the errors, the verdict doesn't count them.
 
+### Read triples
+
+Next to the **Validate** button of the ShEx and SHACL tabs, **Read triples**
+asks rudof (0.3.39 or later) for the triples that the validation reads
+(`validateShex(readTriples)`, `validateShacl(mode, fetchStrategy, readTriples)`
+and their `…Async` versions, on endpoints). The verdict says how many it read,
+duplicates included, and how many are distinct: "Conforms · 8 triples read
+(7 distinct)". Below the result, **Subgraph read** (folded) has the distinct
+triples, in Turtle as rudof gives them, or in another RDF format of its own
+menu (converted in a session of its own, without validating again). The
+subgraph is hidden while the tab runs, after an error, and without the
+option.
+
+Only the native engine of SHACL reads triples: with the SPARQL engine, which
+reads the data with queries, the option is disabled. In permalinks, the
+option and the format are `read-triples` and `read-triples-format`.
+
 ## Layout
 
 [`layout.js`](layout.js) lets you arrange the boxes of every tab (Data,
