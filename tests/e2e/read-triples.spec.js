@@ -64,6 +64,39 @@ test.describe("ShEx", () => {
     await expect(page.locator("#shex-result .timing")).toHaveText(timing);
   });
 
+  // PlantUML is not served in the tests: they read the PlantUML source that
+  // rudof writes, and not the diagram
+  test("Visualize shows the subgraph as a diagram, and Text goes back to the viewer", async ({ page }) => {
+    await page.locator("#shex-read-triples").check();
+    await validate(page, "shex");
+    await block(page, "shex").locator("summary").click();
+    const button = page.locator("#shex-read-triples-visualize");
+    const box = page.locator("#shex-read-triples-visual");
+    await expect(button).toHaveText("Visualize");
+    await expect(box).toBeHidden();
+    await button.click();
+    await expect(button).toHaveText("Text");
+    await expect(button).toHaveAttribute("aria-pressed", "true");
+    await expect(subgraph(page, "shex")).toBeHidden();
+    await expect(page.locator("#shex-read-triples-format")).toBeHidden();
+    await expect(box).toBeVisible();
+    const source = box.locator(".visual-source");
+    await expect(source).toBeHidden();
+    await box.getByRole("button", { name: "Show PlantUML source" }).click();
+    await expect(source).toContainText("@startuml");
+    await expect(source).toContainText("Alice");
+    await expect(source).not.toContainText("carol");
+    // A new validation draws its subgraph
+    await setInput(page, "shex-shapemap", ":bob@:Person");
+    await validate(page, "shex");
+    await expect(source).not.toContainText("Alice");
+    await expect(source).toContainText("Bob");
+    await button.click();
+    await expect(button).toHaveText("Visualize");
+    await expect(box).toBeHidden();
+    await expect(subgraph(page, "shex")).toBeVisible();
+  });
+
   test("an error hides the subgraph", async ({ page }) => {
     await page.locator("#shex-read-triples").check();
     await validate(page, "shex");
