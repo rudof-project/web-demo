@@ -1319,9 +1319,16 @@ function showShaclOptions() {
   $("shacl-evidences-shapes").disabled = !$("shacl-evidences").checked;
   const recursion = $("shacl-recursion");
   recursion.title = recursion.selectedOptions[0]?.title ?? "";
+  // The SPARQL engine reads the data with queries, not triples
+  const readTriples = $("shacl-read-triples");
+  readTriples.disabled = $("shacl-mode").value !== "native";
+  readTriples.parentElement.title = readTriples.disabled
+    ? "Only the native engine can count the triples that it reads"
+    : "Count the triples that the validation reads, and show the subgraph they make";
 }
 $("shacl-evidences").addEventListener("change", showShaclOptions);
 $("shacl-recursion").addEventListener("change", showShaclOptions);
+$("shacl-mode").addEventListener("change", showShaclOptions);
 
 // The shapes graph is optional: without it, rudof takes the shapes from the
 // RDF data (readShacl without shapes)
