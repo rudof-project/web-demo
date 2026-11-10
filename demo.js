@@ -1081,14 +1081,38 @@ function dataSession(prefix, { config, prefixes, fresh = false } = {}) {
 // SHACL in Turtle), for the shape maps of validations on endpoints
 const schemaPrefixes = (text) => parsePrefixes(text).prefixes;
 
+// Read triples: whether a validation of the tab counts the triples that it
+// reads, and keeps the subgraph they make (in Turtle). rudof reads them with
+// the native engine of SHACL only.
+function readTriplesOn(prefix) {
+  if (!$(`${prefix}-read-triples`)?.checked) return false;
+  return prefix !== "shacl" || $("shacl-mode").value === "native";
+}
+
+// The triples that a report says were read, if it says them
+function readTriplesOf(report) {
+  if (report.readTriples === undefined) return undefined;
+  return { text: report.readTriples, read: report.triplesRead, distinct: report.distinctTriplesRead };
+}
+
+const readTriplesNote = (triples) => (triples ? ` · ${count(triples.read, "triple")} read (${triples.distinct} distinct)` : "");
+
 // The result of a validation: `validate` on the data of the page, or
-// `validateAsync` on an endpoint, with `result` to make the result of its report.
+// `validateAsync` on an endpoint, with `result` to make the result of its
+// report, and the triples that it read.
 function validation({ rudof, endpoint }, validate, validateAsync, result) {
-  if (!endpoint) return result(validate());
+  const withTriples = (report, r) => {
+    const readTriples = readTriplesOf(report);
+    return { ...r, verdict: r.verdict + readTriplesNote(readTriples), readTriples };
+  };
+  if (!endpoint) {
+    const report = validate();
+    return withTriples(report, result(report));
+  }
   return validateAsync().then(
     (report) => {
       const r = result(report);
-      return { ...r, verdict: `${r.verdict} on ${endpointName(endpoint)}`, session: rudof };
+      return withTriples(report, { ...r, verdict: `${r.verdict} on ${endpointName(endpoint)}`, session: rudof });
     },
     (e) => Promise.reject(endpointError(endpoint, e)),
   );
@@ -1130,7 +1154,8 @@ function validateShex() {
   const data = dataSession("shex", { prefixes: schemaPrefixes(schema), fresh: imports });
   const validate = () => {
     data.rudof.readShapemap($("shex-shapemap").value);
-    return validation(data, () => data.rudof.validateShex(), () => data.rudof.validateShexAsync(), (report) => shexResult(report, start));
+    const triples = readTriplesOn("shex");
+    return validation(data, () => data.rudof.validateShex(triples), () => data.rudof.validateShexAsync(triples), (report) => shexResult(report, start));
   };
   if (!imports) {
     data.rudof.readShex(schema, format);
