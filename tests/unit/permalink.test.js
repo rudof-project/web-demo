@@ -34,6 +34,17 @@ describe("PANELS", () => {
     for (const textarea of document.querySelectorAll("main textarea:not([data-output])")) expect(ids).toContain(textarea.id);
   });
 
+  it.each(["shex", "shacl"])("%s: has the option to read triples (a checkbox), and the format of the subgraph", (panel) => {
+    const { params } = PANELS[panel];
+    expect(document.getElementById(params["read-triples"]).type).toBe("checkbox");
+    const formats = [...document.getElementById(params["read-triples-format"]).options].map((o) => o.value);
+    expect(formats[0]).toBe("turtle");
+    expect(inputsOfParams(panel, new URLSearchParams("read-triples=true&read-triples-format=ntriples"))).toEqual([
+      [`${panel}-read-triples`, "true"],
+      [`${panel}-read-triples-format`, "ntriples"],
+    ]);
+  });
+
   it("uses the names of shex.js for ShEx", () => {
     expect(Object.keys(PANELS.shex.params)).toEqual(expect.arrayContaining(["schema", "data", "shape-map"]));
   });
