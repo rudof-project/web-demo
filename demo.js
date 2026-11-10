@@ -484,9 +484,10 @@ $("permalink").addEventListener("click", async (e) => {
 
 // `output` is text, an element (a table built from a report), or
 // `{ plantuml }`: the source of a diagram, which is drawn.
-function showResult(prefix, { verdict, kind, output, millis }) {
+function showResult(prefix, { verdict, kind, output, millis, readTriples }) {
   const box = $(`${prefix}-result`);
   box.hidden = false;
+  showReadTriples(box, readTriples);
   box.dataset.kind = kind;
   box.querySelector(".verdict").textContent = verdict;
   box.querySelector(".timing").textContent = millis === undefined ? "" : `${millis.toFixed(0)} ms`;
@@ -510,6 +511,17 @@ function showResult(prefix, { verdict, kind, output, millis }) {
   pre.hidden = isElement;
   if (!isElement) pre.textContent = plain(output);
   showCsvView(box, prefix, kind !== "error" && kind !== "running" && !isElement);
+}
+
+// The subgraph that a validation read (see readTriplesOn), below its result:
+// hidden without it (while it runs, after an error, or without the option).
+function showReadTriples(box, triples) {
+  const block = box.querySelector(".read-triples");
+  if (!block) return;
+  block.hidden = !triples;
+  if (!triples) return;
+  block.querySelector("summary").textContent = `Subgraph read: ${count(triples.distinct, "distinct triple")} (${count(triples.read, "triple")} read)`;
+  block.querySelector("pre").textContent = triples.text;
 }
 
 // CSV results, as text (in the viewer of the result) or as a table: the
