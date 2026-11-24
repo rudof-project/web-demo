@@ -1,19 +1,19 @@
 // YARS-PG, the syntax of property graphs, as a Lezer grammar
 // (https://lezer.codemirror.net/docs/guide/).
 //
-// It joins two grammars, so that both highlight:
-// - the one rudof reads and writes (pgschema/src/parser/pg.rustemo): labels
-//   and keys without quotes, numbers, DATE "…", TRUE and FALSE, lists, and
-//   // and /* */ comments;
+// It joins two grammars, thus the editor highlights both:
+// - The grammar that rudof reads and writes (pgschema/src/parser/pg.rustemo):
+//   labels and keys without quotes, numbers, DATE "…", TRUE and FALSE, lists,
+//   and // and /* */ comments.
 // - YARS-PG 5 (https://github.com/lszeremeta/yarspg, other-notations/YARSpg.ebnf):
 //   metadata, variables, graphs, undirected edges, sets and structs,
 //   meta-properties @<…>, # comments, and the schemas S(…).
-// The names of its nodes are those of the EBNF, in CamelCase.
+// Its nodes have the names of the EBNF, in CamelCase.
 
 @top Graph { statement* }
 
-// A list of graphs after a node or an edge, and the arguments of a type, go
-// with what is before them (and do not start the next statement).
+// A list of graphs after a node or an edge, and the arguments of a type, are
+// part of the item before them. They do not start the next statement.
 @precedence { attach }
 
 statement {

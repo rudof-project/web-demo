@@ -1,6 +1,6 @@
 // The Lezer grammars of property graphs (languages/yars-pg) and of their
-// schemas and type maps (languages/pgschema): they parse the examples of the
-// page and what rudof writes, and highlight each part with its tag.
+// schemas and type maps (languages/pgschema). They parse the examples of the
+// page and the output of rudof. They highlight each part with its tag.
 
 import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
@@ -143,7 +143,7 @@ describe("PGSchemaC", () => {
 CREATE EDGE TYPE (:Person | [Course]) -[ K : Knows { since: INTEGER {1,*} CHECK >= 1900 AND <= 2100 OR NOT = 0, ok: BOOL ?, any: ANY, d: DATE CHECK > DATE "2000-01-01" } ]-> (: (A & B) | C) ;
 CREATE NODE TYPE (OnlyLabel : L)`;
 
-  // In pgs.rustemo, but rudof 0.3.25 can't read graph types yet
+  // In pgs.rustemo, but rudof 0.3.25 cannot read graph types yet
   const GRAPH_TYPE = "CREATE GRAPH TYPE G STRICT { PersonType, (Other : X) }";
 
   it.each([

@@ -98,11 +98,11 @@ test.describe("CSV results", () => {
   });
 });
 
-// rudof crashes: a panic, or a stack overflow, after which its WebAssembly
-// instance can't be used again (rudof 0.3.33 ran out of stack with a cycle of
-// shape references, such as :A @:A AND { :p . }). The test makes the
-// validations of rudof throw a RangeError while crashRudof is true: the page
-// says it, and loads rudof again, so that the tabs can run again.
+// rudof crashes: a panic or a stack overflow. After a crash, the page cannot
+// use its WebAssembly instance again. For example, rudof 0.3.33 had a stack
+// overflow with a cycle of shape references, such as :A @:A AND { :p . }.
+// While crashRudof is true, the validations of rudof throw a RangeError. The
+// page shows the error and loads rudof again. Then the tabs can run again.
 test("rudof is loaded again after it runs out of stack", async ({ page }) => {
   const rudofPackage = dirname(createRequire(import.meta.url).resolve("@rudof/rudof/package.json"));
   await page.route(/^https:\/\/cdn\.jsdelivr\.net\/npm\/@rudof\/rudof@[^/]+\/(endpoints\/)?web\/rudof_wasm\.js$/, async (route) => {
@@ -129,15 +129,16 @@ for (const name of ["validateShex", "validateShexAsync"]) {
   await page.locator("#shex-validate").click();
   await expect(page.locator("#status")).toHaveText(/ready/);
   await expect(page.locator("#shex-result")).toContainText("rudof ran out of stack");
-  // The validation of the example runs again: some nodes conform, and others don't
+  // The validation of the example runs again: some nodes conform, and others do not
   await page.evaluate(() => (globalThis.crashRudof = false));
   await page.locator("#shex-validate").click();
   await expect(page.locator("#shex-result")).toHaveAttribute("data-kind", "fail");
   await expect(page.locator("#shex-result .verdict")).toHaveText("Does not conform: 1 of 3 nodes failed");
 });
 
-// rudof 0.3.33 ran out of stack with a cycle of shape references (with no
-// triple constraint between them) and two nodes or more; 0.3.35 validates it
+// rudof 0.3.33 had a stack overflow with a cycle of shape references (with no
+// triple constraint between them) and two or more nodes. rudof 0.3.35
+// validates it.
 test("a cycle of shape references doesn't crash rudof (rudof 0.3.35)", async ({ page }) => {
   await open(page, "#validate/shex");
   await setInput(page, "shex-schema", "prefix : <http://example.org/>\nprefix xsd: <http://www.w3.org/2001/XMLSchema#>\n:User @:Person AND { :name xsd:string ; :knows . + }\n:Person @:User AND { :knows @:Person * }");

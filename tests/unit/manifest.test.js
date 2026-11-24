@@ -1,6 +1,6 @@
-// Manifests: the examples of a YAML manifest (?manifestURL=…), in the
-// vocabulary of shex.js (https://shex.js.org/doc/tests-manifest.yaml), with
-// the keys that say what to do with them (action, dataFormat…).
+// Manifests: the examples of a YAML manifest (?manifestURL=…) in the
+// vocabulary of shex.js (https://shex.js.org/doc/tests-manifest.yaml). Some
+// keys tell what to do with the examples (action, dataFormat…).
 
 import { readFileSync } from "node:fs";
 import { describe, it, expect, vi } from "vitest";
@@ -227,7 +227,7 @@ describe("parseManifest, with actions", () => {
     expect(example).toMatchObject({ target: "shacl", unsupported: undefined, formats: { targets: "ntriples" } });
     const inputs = Object.fromEntries((await loadExample(example)).map((i) => [i.name, i]));
     expect(inputs.targets).toMatchObject({ textarea: "shacl-targets", formatSelect: "shacl-targets-format", format: "ntriples" });
-    // From a file, in the format of its extension; Turtle by default
+    // From a file, in the format of its extension. Turtle by default
     const file = one("- shapes: ''\n  data: ''\n  targetsURL: targets.nt\n");
     expect(file.inputs.targets).toEqual({ url: new URL("targets.nt", MANIFEST_URL).href });
     expect(file.formats.targets).toBe("ntriples");

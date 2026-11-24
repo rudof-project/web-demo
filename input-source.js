@@ -1,11 +1,11 @@
-// Inputs given by a URL, as in RDFShape: next to the name of an input (RDF
-// data, a schema, a query), "Text | URL" says where it comes from. With URL,
-// a field takes the place of the editor, and the page reads the URL when the
-// tab runs (readUrlInputs): its text goes to the textarea of the input, so
-// the rest of the page reads it as before. The URL can be a prefixed name,
-// with the prefixes that `prefixesOf` gives (those of the endpoint of the
-// tab): es:E371 is https://www.wikidata.org/wiki/Special:EntitySchemaText/E371
-// on Wikidata.
+// Inputs from a URL, as in RDFShape. Next to the name of an input (RDF data, a
+// schema, a query), "Text | URL" shows the source of the input. With URL, a
+// field replaces the editor, and the page reads the URL when the tab runs
+// (readUrlInputs). The text from the URL goes into the textarea of the input.
+// Thus the rest of the page reads it as before. The URL can be a prefixed name
+// with the prefixes from `prefixesOf` (the prefixes of the endpoint of the
+// tab). For example, on Wikidata es:E371 is
+// https://www.wikidata.org/wiki/Special:EntitySchemaText/E371.
 //
 // The text of an input is kept while it is given by a URL: Text gives it
 // back, and URL gives back the last URL. "Edit as text" reads the URL and
@@ -30,8 +30,9 @@ function el(doc, tag, props = {}, ...children) {
   return e;
 }
 
-// The URL that a URL field means: a URL, or a prefixed name of one of the
-// prefixes ([alias, iri]), else the text as it is
+// The URL of a URL field. The field has a URL or a prefixed name with one of
+// the prefixes ([alias, iri]). For other text, the function gives the text
+// without changes.
 export function resolveUrl(text, prefixes = []) {
   const value = text.trim();
   if (!value || /^[a-z][\w+.-]*:\/\//i.test(value)) return value;
@@ -53,7 +54,7 @@ export function formatOfUrl(url) {
   }
 }
 
-// The text of a URL, or why it can't be read
+// The text of a URL, or why it cannot be read
 export async function fetchText(url, fetchFn = (...args) => fetch(...args)) {
   let response;
   try {
@@ -154,7 +155,7 @@ export async function readUrlInputs(doc, root) {
 }
 
 // The switch and the field of the URL of each input. `prefixesOf(id)`: the
-// prefixes of its prefixed names; `onChange`: when an input changes where it
+// prefixes of its prefixed names. `onChange`: when an input changes where it
 // comes from, or its URL.
 export function setupInputSources(doc, ids, { prefixesOf, onChange, fetch: fetchFn } = {}) {
   options = { prefixesOf, fetch: fetchFn };

@@ -128,7 +128,7 @@ describe("configWithSettings", () => {
     const config = parse(toml);
     expect(config.rdf.base_iri).toBe("http://other.example/");
     expect(config.tap.delimiter).toBe(";");
-    // What the operation sets and the settings don't
+    // What the operation sets and the settings do not
     expect(config.tap2shex.prefixmap[""]).toBe("http://example.org/");
     expect(() => RudofConfig.fromToml(toml)).not.toThrow();
   });

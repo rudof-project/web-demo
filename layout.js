@@ -1,13 +1,14 @@
 // The layout of the boxes of the demo (the input editors and the results):
 //
 // - The two boxes of a row (.inputs.two) are side by side or one above the
-//   other, in their order or swapped. The layout menu chooses it for all the
-//   tabs, and the browser remembers it.
-// - Side by side, the splitter between the boxes changes their widths: drag
-//   it, or focus it and use the arrow keys. A double click shares the width
-//   equally again.
-// - Each box has a Full screen button, which shows it on the whole window of
-//   the browser, and back. Esc also gives the normal size back.
+//   other, in their order or swapped. The layout menu sets it for all the
+//   tabs, and the browser keeps it.
+// - Side by side, the splitter between the boxes changes their widths. Drag
+//   the splitter, or give it the focus and use the arrow keys. A double click
+//   makes the widths equal again.
+// - Each box has a Full screen button. It shows the box on all the window of
+//   the browser, and a second click shows it as before. Esc also gives the
+//   normal size back.
 //
 // The heights of the editors and of the results change with the handle at
 // their bottom right corner (CSS resize).

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-// The layout of the boxes: side by side or one above the other, the widths
-// of the boxes side by side, and full screen.
+// The layout of the boxes: side by side or one above the other, the widths of
+// the boxes side by side and full screen.
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { setupLayout, setLayout, setSplit, splitOf, setMaximized, maximizedBox, LAYOUTS, DEFAULT_LAYOUT } from "../../layout.js";

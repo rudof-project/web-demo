@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // The table view of a CSV input (table-view.js): the switch between the text
-// and the table, and the table writing its changes in the text.
+// and the table, and the changes that the table writes in the text.
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { setupTableView } from "../../table-view.js";

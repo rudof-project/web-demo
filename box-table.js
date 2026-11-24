@@ -1,5 +1,6 @@
-// The tables that rudof writes as text, with box-drawing characters (such as
-// the compact results of SHACL), read back as a header and rows of cells:
+// This file reads the tables that rudof writes as text with box-drawing
+// characters, for example the compact results of SHACL. It gives a header and
+// rows of cells:
 //
 //   ╭──────────┬────────╮
 //   │ Severity │ Node   │
@@ -7,15 +8,16 @@
 //   │ Conforms │ :alice │
 //   ╰──────────┴────────╯
 //
-// A cell can go on over several lines, for two reasons:
-// - The text of the cell has several lines (the details of ShEx and SHACL,
-//   such as "OR passed" and "└── Reference to …"). The lines are kept.
-// - The text is longer than WRAP_WIDTH: rudof cuts it at exactly that width,
-//   also in a word or after a space, and goes on in the next line. These
-//   lines are joined again, as they were.
-// So, in a column of WRAP_WIDTH, a line that fills the column (or all of it
-// but a space, where the cut was after a space) goes on in the next line;
-// other lines end with a new line.
+// A cell can have more than one line, for two reasons:
+// - The text of the cell has more than one line, for example the details of
+//   ShEx and SHACL ("OR passed" and "└── Reference to …"). The parser keeps
+//   these lines.
+// - The text is longer than WRAP_WIDTH. rudof cuts the text at exactly that
+//   width, also in a word or after a space, and continues on the next line.
+//   The parser joins these lines again.
+// Thus, in a column of WRAP_WIDTH, a line that fills the column continues on
+// the next line. This is also true for a line that fills all of the column but
+// one space (a cut after a space). Other lines end with a new line.
 
 const BORDER = /^\s*[╭├╰┌└+]/;
 const ROW = /^\s*│/;
@@ -24,15 +26,20 @@ const ROW = /^\s*│/;
 export const WRAP_WIDTH = 80;
 
 export function parseBoxTable(text) {
-  const lines = text.split("\n");
-  const top = lines.find((line) => /^\s*[╭┌]/.test(line));
-  if (!top) return undefined;
+  const all = text.split("\n");
+  const start = all.findIndex((line) => /^\s*[╭┌]/.test(line));
+  if (start < 0) return undefined;
+  const top = all[start];
+  // Only the lines of the table: the text after it (such as the details of
+  // ShEx) has lines that start like those of a table
+  const bottom = all.findIndex((line, i) => i > start && /^\s*[╰└]/.test(line));
+  const lines = all.slice(start, bottom < 0 ? undefined : bottom + 1);
   // The width of the text of each column: its border, without the spaces
   // around the text
   const widths = top.trim().slice(1, -1).split(/[┬+]/).map((segment) => segment.length - 2);
   const rows = [];
-  // The cells of the row being read, and whether the last line of each cell
-  // was cut by rudof (with the spaces at its end, which are text)
+  // The cells of the current row. For each cell, `cut` keeps the spaces at the
+  // end of its last line when rudof cut that line (these spaces are text).
   let current;
   let cut = [];
   for (const line of lines) {
@@ -60,4 +67,31 @@ export function parseBoxTable(text) {
   if (!clean.length) return undefined;
   const [header, ...body] = clean;
   return { header, rows: body };
+}
+
+// rudof 0.3.40 and later cut the Summary column of the table of ShEx results.
+// After the table, rudof writes the full details of each association that
+// fails. The first line has the node, the shape and the status. The lines of
+// the details follow, with an indent of two spaces:
+//
+//   :bob@:P FAIL
+//     :bob does not conform to :P
+//     └── property :name: …
+//
+// A map from "node@shape" to the text of its details, without the indent.
+export function parseShexDetails(text) {
+  const details = new Map();
+  const lines = text.split("\n");
+  const end = lines.findIndex((line) => /^\s*╰/.test(line));
+  if (end < 0) return new Map();
+  let key;
+  for (const line of lines.slice(end + 1)) {
+    const head = /^(\S.*) (\S+)$/.exec(line);
+    if (head) {
+      key = head[1];
+      details.set(key, []);
+    } else if (key && line.startsWith("  ")) details.get(key).push(line.slice(2));
+    else if (!line.trim()) key = undefined;
+  }
+  return new Map([...details].map(([k, v]) => [k, v.join("\n")]));
 }

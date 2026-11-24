@@ -31,7 +31,7 @@ function shexTokens(stream, state) {
   if (state.code || stream.peek() === "%") return action(stream, state);
   if (stream.match(SHAPE_REF)) return "typeName";
   if (stream.match("//")) return "operator"; // annotations
-  // Regular expressions, which can't start with / or * (comments)
+  // Regular expressions, which cannot start with / or * (comments)
   if (stream.match(/^\/(?![/*])(?:[^/\\\n]|\\.)+\/[smix]*/)) return "regexp";
   return undefined;
 }

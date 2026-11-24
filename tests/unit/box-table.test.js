@@ -2,7 +2,7 @@
 
 import { describe, it, expect } from "vitest";
 import { Rudof, RudofConfig } from "@rudof/rudof";
-import { parseBoxTable, WRAP_WIDTH } from "../../box-table.js";
+import { parseBoxTable, parseShexDetails, WRAP_WIDTH } from "../../box-table.js";
 import { BASE_CONFIG } from "../../dctap.js";
 
 describe("parseBoxTable", () => {
@@ -39,15 +39,19 @@ describe("parseBoxTable", () => {
     expect(parseBoxTable(text).rows).toEqual([[value]]);
   });
 
-  it("joins the cut lines of rudof, and keeps the other lines", () => {
+  it("reads the table of ShEx of rudof, and not the details after it", () => {
     const value = `${"x".repeat(100)} and more`;
     const rudof = new Rudof();
     rudof.readData(`prefix : <http://example.org/>\n:bob :name "${value}" .`, "turtle");
     rudof.readShex("prefix : <http://example.org/>\nprefix xsd: <http://www.w3.org/2001/XMLSchema#>\n:P { :name xsd:integer } OR { :age . }");
     rudof.readShapemap(":bob@:P");
     rudof.validateShex();
-    const { header, rows } = parseBoxTable(rudof.serializeShexValidationResults("details"));
-    const details = rows[0][header.indexOf("Details")];
+    const text = rudof.serializeShexValidationResults("details");
+    const { header, rows } = parseBoxTable(text);
+    expect(header).toEqual(["Node", "Shape", "Status", "Summary"]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].slice(0, 3)).toEqual([":bob", ":P", "FAIL"]);
+    const details = parseShexDetails(text).get(":bob@:P");
     expect(details).toContain(value);
     expect(details.split("\n").length).toBeGreaterThan(1);
   });
@@ -76,8 +80,23 @@ describe("parseBoxTable", () => {
     rudof.readShex("prefix : <http://example.org/>\nprefix xsd: <http://www.w3.org/2001/XMLSchema#>\n:P { :name xsd:string }");
     rudof.readShapemap(":bob@:P");
     rudof.validateShex();
-    const { rows } = parseBoxTable(rudof.serializeShexValidationResults("details"));
+    const text = rudof.serializeShexValidationResults("details");
+    const { rows } = parseBoxTable(text);
     expect(rows[0].slice(0, 3)).toEqual([":bob", ":P", "FAIL"]);
-    expect(rows[0][3]).toContain("expected xsd:string");
+    expect(parseShexDetails(text).get(":bob@:P")).toContain("expected xsd:string");
+  });
+
+  it("has the details of ShEx only for the associations that fail", () => {
+    const rudof = new Rudof();
+    rudof.readData("prefix : <http://example.org/>\n:alice :name \"Alice\" .\n:bob :name 23 .", "turtle");
+    rudof.readShex("prefix : <http://example.org/>\nprefix xsd: <http://www.w3.org/2001/XMLSchema#>\n:P { :name xsd:string }");
+    rudof.readShapemap(":alice@:P, :bob@:P");
+    rudof.validateShex();
+    const details = parseShexDetails(rudof.serializeShexValidationResults("details"));
+    expect([...details.keys()]).toEqual([":bob@:P"]);
+  });
+
+  it("has no details of ShEx without a table", () => {
+    expect(parseShexDetails("No results").size).toBe(0);
   });
 });

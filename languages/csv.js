@@ -5,7 +5,7 @@
 
 function token(stream, state) {
   if (stream.sol() && !state.quoted) state.line += 1;
-  // A quoted cell, which can go on over lines; "" is a quote
+  // A quoted cell, which can have more than one line. "" is a quote.
   if (state.quoted) {
     while (!stream.eol()) {
       if (stream.match('""')) continue;

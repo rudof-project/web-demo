@@ -1,5 +1,5 @@
 // The Schema tab: a schema of ShEx, SHACL, DCTAP or PGSchema, converted to
-// other formats and languages. What rudof can't do yet can't be chosen.
+// other formats and languages. What rudof cannot do yet cannot be chosen.
 
 import { test, expect, editor, open, setInput } from "./fixtures.js";
 

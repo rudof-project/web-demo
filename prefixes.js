@@ -3,9 +3,9 @@
 //
 // rudof describes each endpoint it knows in a TOML file of its repository
 // (rudof_rdf/endpoints/<name>.toml): its name, its URL and its prefixes. The
-// npm package of rudof doesn't have these files, nor a function that gives
-// the prefixes, so the page reads the files of the version of rudof that it
-// loads, from jsDelivr.
+// npm package of rudof does not have these files or a function that gives the
+// prefixes. Thus the page reads the files from jsDelivr, for the version of
+// rudof that it loads.
 
 import { parse } from "smol-toml";
 
@@ -43,9 +43,9 @@ export function prefixesOfEndpointToml(text) {
 
 const prefixesOfEndpoint = (description) => Object.entries(description.prefixmap ?? {}).filter(([, iri]) => typeof iri === "string");
 
-// The TOML description of an endpoint: its prefixes, as [alias, iri], and
-// its keys (such as min_request_interval_ms, which says how often rudof can
-// send it requests)
+// The TOML description of an endpoint: its prefixes, as [alias, iri], and its
+// keys. For example, min_request_interval_ms tells how frequently rudof can
+// send requests to it.
 export function endpointToml(text) {
   const description = parse(text);
   return { prefixes: prefixesOfEndpoint(description), description };
@@ -66,10 +66,10 @@ export function declaration(text, alias, iri, { turtle = false } = {}) {
   return `${keyword} ${alias}: <${iri}>`;
 }
 
-// Where a declaration goes: after the last line of the first block of
-// declarations (PREFIX, @prefix, BASE, @base, comments and empty lines), or
-// at the start of the text. The position, and whether it needs a new line
-// before it.
+// The position of a new declaration. It goes after the last line of the first
+// block of declarations (PREFIX, @prefix, BASE, @base, comments and empty
+// lines), or at the start of the text. The position, and whether it needs a
+// new line before it.
 export function declarationPosition(text) {
   const lines = text.split("\n");
   let offset = 0;

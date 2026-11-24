@@ -44,7 +44,8 @@ test("the settings change what rudof does, and the browser keeps them", async ({
   await expect(page.locator("#convert-output")).toContainText("left to right direction");
   await expect(page.locator("#convert-output")).toContainText("BackgroundColor LightGreen");
 
-  // Kept when the page opens again; Reset to defaults forgets them
+  // The browser keeps them when the page opens again. Reset to defaults
+  // forgets them
   await open(page, "#schema/convert");
   await expect(page.locator("#settings-badge")).toHaveText("2");
   await openSettings(page);

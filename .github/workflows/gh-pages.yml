@@ -1,6 +1,6 @@
-# Tests and builds the page on every push and pull request, and publishes it
-# (dist/) to the gh-pages branch on every push to main (and when it is run on
-# main by hand or by update-rudof.yml).
+# Tests and builds the page on each push and pull request. On each push to
+# main, it also publishes the page (dist/) to the gh-pages branch. It also
+# publishes the page when a person or update-rudof.yml starts it on main.
 name: gh-pages
 
 on:

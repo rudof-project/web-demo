@@ -1,7 +1,7 @@
-// A SPARQL endpoint for the browser tests: it answers the queries of the page
+// A SPARQL endpoint for the browser tests. It answers the queries of the page
 // (or of rudof in the page) on some RDF data, with the SPARQL 1.1 protocol.
-// rudof, in Node.js, runs the queries; their results are given as SPARQL JSON
-// results (SELECT, ASK) or Turtle (CONSTRUCT, DESCRIBE).
+// rudof in Node.js runs the queries. The results are SPARQL JSON results
+// (SELECT, ASK) or Turtle (CONSTRUCT, DESCRIBE).
 
 import { createRequire } from "node:module";
 

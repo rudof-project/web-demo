@@ -165,7 +165,8 @@ describe("widths", () => {
     expect(handle.getAttribute("role")).toBe("separator");
     expect(handle.getAttribute("aria-label")).toBe("Width of Node");
     expect(t.classList.contains("resized")).toBe(false);
-    // Not less than MIN_WIDTH, the column that changes; the others as they are
+    // The column that changes is not less than MIN_WIDTH. The other columns do
+    // not change.
     key(t, 0, "ArrowRight");
     expect(t.classList.contains("resized")).toBe(true);
     expect(widths(t)).toEqual([`${MIN_WIDTH}px`, "0px"]);
@@ -175,7 +176,7 @@ describe("widths", () => {
     key(t, 0, "ArrowLeft");
     key(t, 0, "ArrowLeft");
     expect(widths(t)[0]).toBe(`${MIN_WIDTH}px`);
-    // A click on the border doesn't sort
+    // A click on the border does not sort
     handle.dispatchEvent(new document.defaultView.MouseEvent("click", { bubbles: true }));
     expect(t.tHead.rows[0].cells[0].getAttribute("aria-sort")).toBe("none");
   });

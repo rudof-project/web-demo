@@ -1,7 +1,7 @@
 // Inputs as diagrams: Visualize, next to the RDF data and the ShEx schema,
-// shows the diagram of the input in place of its editor, and Edit shows the
-// editor again. PlantUML is not served in the tests: they read the PlantUML
-// source that rudof writes, and not the diagram.
+// shows the diagram of the input instead of its editor. Edit shows the editor
+// again. PlantUML is not served in the tests: they read the PlantUML source
+// that rudof writes, and not the diagram.
 
 import { test, expect, open, setInput, editor } from "./fixtures.js";
 

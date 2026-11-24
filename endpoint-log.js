@@ -1,18 +1,18 @@
-// What rudof asks the endpoints while a validation or a query runs on one.
-// rudof (built with endpoints) sends its HTTP requests with the function that
-// setFetch gives it: loggingFetch sends them with fetch, and keeps each
-// request in the logs of the runs that wait for its endpoint: its SPARQL
-// query, when it was sent, its status, how long it took and what the endpoint
-// answered. A run can be stopped: its requests are aborted.
+// The requests that rudof sends to an endpoint while a validation or a query
+// runs on it. rudof (built with endpoints) sends its HTTP requests with the
+// function that setFetch gives it. loggingFetch sends them with fetch. It
+// keeps each request in the logs of the runs that wait for its endpoint. The
+// log has the SPARQL query, the time it was sent, its status, its duration and
+// the answer of the endpoint. A run can be stopped: its requests are aborted.
 //
-// rudof has one fetch function for all its sessions, so a request goes to
-// the logs of the runs on the host of its URL (or of all the runs, when no
-// run is on that host).
+// rudof has one fetch function for all its sessions. Thus a request goes to
+// the logs of the runs on the host of its URL. When no run is on that host,
+// the request goes to the logs of all the runs.
 //
-// rudof can't be stopped from JavaScript: a stopped run goes on until rudof
-// gives up. Until then (finish), its new requests fail at once, without
-// going to the network: else rudof would go on asking the endpoint, and
-// reading its answers, in the page.
+// rudof cannot be stopped from JavaScript: a stopped run goes on until rudof
+// gives up. Until then (finish), its new requests fail immediately and do not
+// go to the network. If they did not fail, rudof would continue to send
+// requests to the endpoint and read its answers in the page.
 
 import { makeResizable } from "./table-tools.js";
 
@@ -82,8 +82,9 @@ function logsOf(url) {
   return same.length ? same : [...active];
 }
 
-// The stopped runs that a request to a URL is of: those on its host, when
-// no running run is on it, or all of them, when no run is running
+// The stopped runs that a request to a URL is for. These are the runs on its
+// host when no active run is on that host. When no run is active, these are
+// all the stopped runs.
 function stoppedOf(url) {
   const host = hostOf(url);
   if ([...active].some((log) => log.host && log.host === host)) return [];
@@ -106,8 +107,8 @@ export function requestParts(url) {
   }
 }
 
-// The nodes that a query asks about: the values of its VALUES (rudof asks
-// about several nodes of a shape map in one query), or one
+// The nodes in a query: the values of its VALUES, or one node. rudof can ask
+// about many nodes of a shape map in one query.
 export function nodesOf(query) {
   if (!query) return 1;
   const values = query.match(/VALUES\s+\?\w+\s*\{([^}]*)\}/i);

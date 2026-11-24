@@ -1,17 +1,20 @@
-// The page under test, with rudof served from node_modules instead of
-// jsDelivr, so that the tests don't depend on the network and use the rudof
-// version of package.json (the one demo.js loads, see examples.test.js).
+// The page under test. The tests get rudof from node_modules, not from
+// jsDelivr. Thus the tests do not need the network, and they use the rudof
+// version of package.json (the version that demo.js loads, see
+// examples.test.js).
 //
 // rudof with endpoints (endpoints/web/, which demo.js loads in browsers with
-// JSPI) comes from the package too, or from the folder RUDOF_ENDPOINTS_DIR
-// when it is set (another build of rudof with the `endpoints` feature, e.g.
-// bindings/wasm/pkg/endpoints/web of rudof). Without it, the page gets 404 for
-// it and loads web/, as it does when it can't load rudof with endpoints.
-// Tests can ask for web/ with test.use({ rudofEndpoints: false }).
+// JSPI) also comes from the package. If RUDOF_ENDPOINTS_DIR is set, it comes
+// from that folder. The folder has a different build of rudof with the
+// `endpoints` feature, for example bindings/wasm/pkg/endpoints/web of rudof.
+// Without it, the page gets 404 for it and loads web/, as it does when it
+// cannot load rudof with endpoints. Tests can ask for web/ with test.use({
+// rudofEndpoints: false }).
 //
-// The descriptions of the endpoints that rudof knows (rudof_rdf/endpoints of
-// its repository, which the page reads from jsDelivr) are copies of some of
-// them, in rudof-endpoints/; the others are not found.
+// The page reads the descriptions of the endpoints that rudof knows from
+// jsDelivr (rudof_rdf/endpoints in the repository of rudof). rudof-endpoints/
+// has copies of some of these descriptions. The tests do not find the other
+// descriptions.
 
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";

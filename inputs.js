@@ -1,36 +1,36 @@
-// The inputs of the page that ask for RDF data, a schema or a query: one
-// component for each kind. index.html writes only the textarea of an input,
-// with its kind, its label and its example, in its .field:
+// The inputs of the page for RDF data, a schema or a query: one component for
+// each type. index.html writes only the textarea of an input in its .field,
+// with its type, its label and its example:
 //
 //   <div class="field">
 //     <span class="hint" id="shex-data-unused" data-head hidden>…</span>
 //     <textarea data-input="rdf" id="shex-data" data-label="RDF data">…</textarea>
 //   </div>
 //
-// expandInputs makes the head of each one: its label, the elements of the
-// field marked data-head (in their order), and the menu of its formats (the
-// select ${id}-format), or the name of its only format. Its textarea becomes
-// an editor (codemirror-setup.js) in the format of the menu. demo.js gives
-// all of them where they come from (Text | URL, input-source.js), and
-// Visualize to those that can be drawn (visualOf).
+// expandInputs makes the head of each input. The head has the label, the
+// elements of the field with data-head (in their order), and the menu of the
+// formats (the select ${id}-format) or the name of the only format. The
+// textarea becomes an editor (codemirror-setup.js) in the format of the menu.
+// demo.js adds the source of each input (Text | URL, input-source.js). It also
+// adds Visualize to the inputs that it can draw (visualOf).
 //
 // - data-input="rdf": RDF data, in the formats of RDF_FORMATS.
 // - data-input="schema": a schema. data-language says its language (shex,
-//   shacl, dctap or pgschema), with the formats of LANGUAGES. Without it, the
-//   page chooses the language: the menu is empty, and the page fills it, or
-//   the textarea names a menu of its own (data-format-select, an element
-//   marked data-head).
+//   shacl, dctap or pgschema), with the formats of LANGUAGES. Without
+//   data-language, the page sets the language. The menu is empty and the page
+//   fills it, or the textarea refers to its own menu (data-format-select, an
+//   element with data-head).
 // - data-input="query": a query, in data-language (sparql).
 //
-// The example of an input is a file of examples/ (data-example="person/data.ttl"):
-// the same examples in all the tabs (examples/person/ has the RDF data, the
-// schemas in each language, the shape map, the property graph, its type map
-// and the query). Any textarea can have one, also those that are not one of
-// these inputs.
+// The example of an input is a file in examples/
+// (data-example="person/data.ttl"). All the tabs use the same examples.
+// examples/person/ has the RDF data, the schemas in each language, the shape
+// map, the property graph, its type map and the query. Any textarea can have
+// one, also those that are not one of these inputs.
 //
 // Other attributes: data-label-title (the title of the label),
-// data-format-tag="none" (no name of the only format), data-visual (how it
-// is drawn, for a schema whose language the page chooses).
+// data-format-tag="none" (do not show the name of the only format) and
+// data-visual (the diagram type, for a schema whose language the page sets).
 //
 // It runs as a module of its own, before codemirror-setup.js, which makes the
 // editors as soon as it runs.

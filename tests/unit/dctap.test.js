@@ -1,6 +1,6 @@
-// DCTAP: the configuration of rudof made from the prefixes of a profile
-// (dctap.js), the conversion and validation of the profile of the page with
-// it, and the highlighting of profiles (languages/dctap).
+// DCTAP: the configuration of rudof from the prefixes of a profile (dctap.js),
+// the conversion and the validation of the profile of the page with it, and
+// the highlighting of profiles (languages/dctap).
 
 import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";

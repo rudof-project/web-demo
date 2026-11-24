@@ -1,7 +1,7 @@
 // Generate: synthetic data from a ShEx, SHACL or PGSchema schema (rudof
-// generate), optionally with errors and the report of what a correct validator
-// of the schema's language must flag. The data is validated with the schema
-// it came from as soon as it is generated.
+// generate). Optionally, the data has errors, and a report tells which errors
+// a correct validator of the language of the schema must find. The data is
+// validated with the schema it came from as soon as it is generated.
 
 import { makeTableTools } from "./table-tools.js";
 
@@ -13,9 +13,9 @@ const EXTENSIONS = { turtle: "ttl", shexc: "shex", pgschema: "pgs" };
 export const GENERATE_TARGETS = { shacl: "turtle", shex: "shexc", pgschema: "pgschema" };
 
 // The examples of the tab, in a manifest (manifest.js, action: generate),
-// which the Examples menu opens too. Each section is an example, written in
-// the three languages over the RDF encoding of a property graph (they
-// generate the same graph), and each entry of a section a kind of data: the
+// which the Examples menu opens too. Each section is an example in the three
+// languages, over the RDF encoding of a property graph. The three schemas
+// generate the same graph. Each entry of a section is a type of data: a
 // configuration of the generator.
 export const GENERATE_MANIFEST = "examples/generate/manifest.yml";
 
@@ -104,9 +104,9 @@ export function generateData(rudofModule, { schema, format, config, entities, se
   return validateWith(rudofModule, { millis, generated, language, nodes: associations(generated.shapemap) }, language, schema);
 }
 
-// The generated data validated with a schema of one of the three languages
-// (the one it came from, or the same example in another language), and what
-// the validator rejects compared with the report of the generator
+// Validates the generated data with a schema in one of the three languages:
+// the source schema, or the same example in another language. Then it compares
+// the errors of the validator with the report of the generator.
 export function validateWith(rudofModule, result, language, schema) {
   const { generated, nodes } = result;
   const shapes = new Set(nodes.map((a) => a.shape)).size;

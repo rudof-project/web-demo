@@ -1,7 +1,7 @@
-// The dialog of the settings of rudof (settings.js): a field for each
-// setting, by sections, the settings in TOML, and the configuration that
-// rudof gets. Saving checks the settings first (check), and gives them to the
-// page (onSave).
+// The dialog of the settings of rudof (settings.js). It has a field for each
+// setting (in sections), the settings in TOML and the configuration that rudof
+// gets. Saving checks the settings first (check), and gives them to the page
+// (onSave).
 
 import { SETTINGS, ALL_SETTINGS, emptySettings, settingValue, changedCount } from "./settings.js";
 

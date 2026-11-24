@@ -4,7 +4,7 @@
 // chosen into the editors.
 //
 // An entry gives each input of an example as text (`schema: |`) or as a URL
-// (`schemaURL:`), relative to the manifest, in the vocabulary of shex.js:
+// relative to the manifest (`schemaURL:`). It uses the vocabulary of shex.js:
 //
 //   - schemaLabel: clinical observation     # examples are grouped by schema
 //     schemaURL: ClinObs.shex               # or schema: | ...
@@ -16,7 +16,7 @@
 //     comment: The name of the example in the list.
 //
 // and with optional keys that say what to do with it (the defaults are those
-// of shex.js manifests, which don't have them):
+// of shex.js manifests, which do not have them):
 //
 //     action: validate            # data (load the data), validate, query, or
 //                                 # schema (convert the schema, in the Schema tab)
@@ -54,17 +54,17 @@
 //
 // A section can have an id (as the examples of Generate: gen-example=…).
 //
-// Without a format, the format is the one of the extension of the file, or
-// the default. Without a validationEngine, PGSchema validates property graphs
-// and PGSchema schemas, SHACL validates shapes (shapes: or shapesURL:) and
-// schemas in an RDF format without a shape map, and ShEx everything else.
-// A schema in CSV (schemaFormat: csv, or a .csv file) is a DCTAP profile,
-// which the DCTAP tab converts to ShEx to validate. With action: schema, the
-// schema goes to the Schema tab, in its language: the schemaLanguage, or else
-// the one that would validate it (DCTAP for CSV).
-// Validations on an endpoint need rudof with endpoints, which only some
-// browsers can load: parseManifest says which ones the page can run.
-// help.html documents all of it for the users of the demo.
+// Without a format, the format is the one of the extension of the file, or the
+// default. Without a validationEngine, PGSchema validates property graphs and
+// PGSchema schemas. SHACL validates shapes (shapes: or shapesURL:) and schemas
+// in an RDF format without a shape map. ShEx validates all other entries. A
+// schema in CSV (schemaFormat: csv, or a .csv file) is a DCTAP profile, which
+// the DCTAP tab converts to ShEx to validate. With action: schema, the schema
+// goes to the Schema tab, in its language. This is the schemaLanguage, or else
+// the language that validates the schema (DCTAP for CSV). Validations on an
+// endpoint need rudof with endpoints, and only some browsers can load it.
+// parseManifest tells which validations the page can run. help.html documents
+// all of it for the users of the demo.
 
 import { parse, stringify } from "yaml";
 
@@ -109,8 +109,8 @@ const endpointInput = (textarea) => ({ name: "endpoint", textarea, optional: tru
 const pgData = (textarea) => ({ name: "data", key: "dataFormat", textarea, formats: PG_FORMATS, names: "yars-pg", extensions: PG_EXTENSIONS });
 
 // The schema of the Schema tab, in a language. The tab reads ShExR in fewer
-// RDF formats than the ShEx tab, and calls the formats of DCTAP and PGSchema
-// by the name of the language.
+// RDF formats than the ShEx tab. It uses the name of the language for the
+// formats of DCTAP and PGSchema.
 const without = (formats, ...names) => Object.fromEntries(Object.entries(formats).filter(([, v]) => !names.includes(v)));
 const CONVERT_SHEX_FORMATS = without(SHEX_FORMATS, "n3");
 const convertSchema = (language, input, ...others) => ({
@@ -126,12 +126,12 @@ const convertSchema = (language, input, ...others) => ({
 // The languages that the Generate tab generates data from
 export const GENERATE_LANGUAGES = ["shacl", "shex", "pgschema"];
 
-// Where the examples go: for each tab, its id in the URL fragment (and the
-// prefix of the ids of its inputs and its result), the action it is for, and
-// its inputs: the name of the input in the manifest (and other names it may
-// have), the textarea it fills, the key of its format in the manifest and the
-// formats that key can have, the formats of the file extensions, the select of
-// the format if it can be chosen, and the format of inline text.
+// The tabs for the examples. Each tab has its id in the URL fragment (also the
+// prefix of the ids of its inputs and its result), its action and its inputs.
+// Each input has: its name in the manifest (and other possible names), the
+// textarea that it fills, the key of its format in the manifest and the values
+// of that key, and the formats of the file extensions. It also has the select
+// of the format (if you can select one) and the format of inline text.
 export const TARGETS = {
   rdf: { tab: "data/rdf", action: "data", what: "RDF data", inputs: [rdfData("rdf-data", "rdf-data-format")] },
   pg: { tab: "data/pg", action: "data", what: "property graphs", inputs: [pgData("pg-data")] },
@@ -233,9 +233,10 @@ const lower = (value) => text(value)?.trim().toLowerCase();
 
 const extension = (url) => new URL(url).pathname.split(".").pop().toLowerCase();
 
-// The validation engine of an entry without validationEngine: PGSchema for
-// property graphs and PGSchemaC schemas; SHACL for shapes (shapes:), and for
-// schemas in an RDF format without a shape map, which ShEx needs; else ShEx.
+// The validation engine of an entry without validationEngine. PGSchema is for
+// property graphs and PGSchemaC schemas. SHACL is for shapes (shapes:) and for
+// schemas in an RDF format without a shape map (ShEx needs a shape map). ShEx
+// is for all other entries.
 function defaultEngine(entry, isPg, manifestURL) {
   const schema = inputOf(entry, ["schema"], manifestURL);
   const ext = schema?.url ? extension(schema.url) : undefined;
@@ -247,8 +248,8 @@ function defaultEngine(entry, isPg, manifestURL) {
   return "shex";
 }
 
-// Why an entry can't be run: the reason (after "This example"), a hint on
-// how to change the entry, and the section of help.html about it.
+// The reason why the page cannot run an entry (after "This example"), a hint
+// about how to change the entry, and the related section of help.html.
 const problem = (reason, hint, help) => ({ reason, hint, help });
 
 // The tab of an entry, or why there is none: { target } or { problem }.
@@ -361,16 +362,16 @@ function isPgData(entry, manifestURL) {
 //   comment    the comment of the manifest
 //   endpoint   the endpoint of its query, if it has one
 //   notes      what may differ from what the manifest expects
-//   unsupported  why it can't be loaded, if it can't
+//   unsupported  why it cannot be loaded, if it cannot
 //   hint       how to change the entry so that it can be loaded
 //   help       the section of help.html about it (its id)
-//   source     the entry, written again in YAML, when it can't be loaded
+//   source     the entry, written again in YAML, when it cannot be loaded
 //   inputs     { name: { text } or { url } } for each input it has
 //   formats    { name: format } for the inputs whose format is known before
 //              they are read (from the manifest or the file extension)
 //
 // `endpoints` says whether the page can validate the data of endpoints (with
-// rudof built with endpoints): without it, those examples can't be run.
+// rudof built with endpoints): without it, those examples cannot be run.
 export function parseManifest(source, manifestURL, options) {
   return parseSections(source, manifestURL, options).examples;
 }
@@ -470,7 +471,7 @@ function parseEntry(entry, index, manifestURL, endpoints) {
   };
 }
 
-// What to add for each input an entry doesn't have, and where help.html says it.
+// What to add for each input an entry does not have, and where help.html says it.
 const MISSING = {
   data: ["Add the data, with data: (text) or dataURL: (a file).", "format"],
   schema: ["Add the schema, with schema: (text) or schemaURL: (a file).", "format"],
@@ -482,7 +483,7 @@ const MISSING = {
   query: ["Add the query, with query: (text) or queryURL: (a file).", "example-query"],
 };
 
-// Entries that need something the demo doesn't have.
+// Entries that need something the demo does not have.
 function unsupported(entry, target, inputs, problems, endpoints) {
   const action = TARGETS[target].action;
   // shex.js reads the neighborhood of each node from an endpoint as it
@@ -536,7 +537,7 @@ export function groupExamples(examples) {
 
 // The inputs of an example, read from their URLs if needed:
 // [{ textarea, text, formatSelect, format }], in the order of TARGETS. The
-// optional inputs that the example doesn't have are empty.
+// optional inputs that the example does not have are empty.
 export async function loadExample(example, fetchText = defaultFetchText) {
   if (example.unsupported) throw new Error(`This example ${example.unsupported}.`);
   return Promise.all(

@@ -1,6 +1,6 @@
-// The examples of the page are the same in all the tabs: the files of
-// examples/person/ (data-example, inputs.js), which rudof validates as the
-// tabs say (Bob has two names and a birth date that is not a date).
+// All the tabs use the same examples: the files of examples/person/
+// (data-example, inputs.js). rudof validates them with the results that the
+// tabs expect. Bob has two names and a birth date that is not a date.
 
 import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";

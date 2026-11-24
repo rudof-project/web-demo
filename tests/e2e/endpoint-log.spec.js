@@ -1,7 +1,7 @@
-// What a run on an endpoint asks it (endpoint-log.js): while the run waits,
-// the result shows the queries (the progress, the limits of the requests and
-// a table of the queries, with Stop); then the switch "Result | Queries" of
-// the result. The limits are settings (the Options of the endpoints).
+// The queries of a run on an endpoint (endpoint-log.js). While the run waits,
+// the result shows the progress, the limits of the requests and a table of the
+// queries, with Stop. After the run, the switch "Result | Queries" of the
+// result shows them. The limits are settings (the Options of the endpoints).
 
 import { test, expect, open, setInput, hasEndpointsBuild } from "./fixtures.js";
 import { sparqlEndpoint } from "./sparql-endpoint.js";
@@ -156,7 +156,8 @@ prefix wdt: <http://www.wikidata.org/prop/direct/>
     await expect.poll(() => queries.length, { timeout: 30_000 }).toBeGreaterThan(20);
     await view(page, "shex").locator(".queries-stop").click();
     await expect(box(page, "shex").locator(".verdict")).toHaveText("Stopped");
-    // The requests sent before the click may still arrive; then none
+    // The requests sent before the click can arrive after it. Then no more
+    // requests arrive.
     await page.waitForTimeout(500);
     const atStop = queries.length;
     await expect(view(page, "shex").locator(".queries-summary")).toContainText(/stopping: rudof gives up/);
@@ -232,8 +233,8 @@ prefix sh: <http://www.w3.org/ns/shacl#>
   });
 
   test("an OR doesn't follow its second branch when the first one matches (rudof 0.3.33)", async ({ page }) => {
-    // wd:Q42 is a human (wd:Q5), and wd:Q5 has a tree of superclasses, which
-    // rudof 0.3.32 asked about one by one (366 queries)
+    // wd:Q42 is a human (wd:Q5), and wd:Q5 has a tree of superclasses. rudof
+    // 0.3.32 sent one query for each superclass (366 queries).
     const lines = ["wd:Q42 wdt:P31 wd:Q5 ."];
     let n = 0;
     for (const queue = [["Q5", 0]]; queue.length; ) {

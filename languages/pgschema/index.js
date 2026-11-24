@@ -1,7 +1,8 @@
-// PGSchema: PGSchemaC, the syntax of property graph schemas (pgschema.grammar),
-// and the type maps that say which nodes and edges to validate with which
-// types (typemap.grammar). The grammars are compiled by @lezer/generator when
-// the page is built; highlight.js has their highlighting.
+// PGSchema: PGSchemaC, the syntax of property graph schemas
+// (pgschema.grammar). Also the type maps (typemap.grammar), which tell the
+// type for the validation of each node and edge. The grammars are compiled by
+// @lezer/generator when the page is built; highlight.js has their
+// highlighting.
 
 import { LRLanguage, LanguageSupport, foldNodeProp, foldInside, indentNodeProp, delimitedIndent } from "@codemirror/language";
 import { parser as pgschemaParser } from "./pgschema.grammar";

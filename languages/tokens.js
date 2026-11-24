@@ -1,8 +1,9 @@
-// A tokenizer for the RDF syntaxes: Turtle (and TriG, N-Triples, N-Quads,
-// N3), ShExC and shape maps share IRIs, prefixed names, blank nodes, strings,
-// language tags and numbers, and differ in their keywords and a few tokens.
-// It is a stream parser (https://codemirror.net/docs/ref/#language.StreamParser),
-// and returns the names of the highlighting tags of @lezer/highlight.
+// A tokenizer for the RDF syntaxes: Turtle (and TriG, N-Triples, N-Quads, N3),
+// ShExC and shape maps have the same IRIs, prefixed names, blank nodes,
+// strings, language tags and numbers. They have different keywords and some
+// different tokens. It is a stream parser
+// (https://codemirror.net/docs/ref/#language.StreamParser), and returns the
+// names of the highlighting tags of @lezer/highlight.
 
 const CHAR = "A-Za-z\\u00C0-\\uFFFF";
 const NAME = `${CHAR}0-9_`;

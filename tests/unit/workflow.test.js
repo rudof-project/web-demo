@@ -1,5 +1,5 @@
-// Step 10: a GitHub Actions workflow tests and builds the page on every push
-// and pull request, and publishes it to the gh-pages branch from main.
+// Step 10: a GitHub Actions workflow tests and builds the page on each push
+// and pull request. It publishes the page from main to the gh-pages branch.
 
 import { readFileSync, existsSync } from "node:fs";
 import { describe, it, expect } from "vitest";

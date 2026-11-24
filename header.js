@@ -1,6 +1,7 @@
-// The header of the pages (index.html and help.html): the menus Examples and
-// About (<details>, which open without JavaScript too), and the theme of the
-// page: light, dark, or the one of the system.
+// The header of the pages (index.html and help.html). It has the menus
+// Examples and About, and the theme of the page (light, dark or the theme of
+// the system). The menus are <details> elements, thus they also open without
+// JavaScript.
 //
 // An inline script in the <head> of the pages applies the theme kept in the
 // browser before the page is drawn; this module changes it.
@@ -24,7 +25,8 @@ export function storedTheme(storage) {
   }
 }
 
-// Applies a theme to the page (data-theme of <html>; none for the system)
+// Applies a theme to the page with data-theme of <html>. No data-theme means
+// the theme of the system.
 export function applyTheme(doc, theme) {
   if (theme === "light" || theme === "dark") doc.documentElement.dataset.theme = theme;
   else delete doc.documentElement.dataset.theme;
@@ -46,7 +48,8 @@ const COMMIT = typeof __DEMO_COMMIT__ === "string" ? __DEMO_COMMIT__ : "";
 export function setupHeader(doc = document, storage = safeStorage()) {
   const menus = [...doc.querySelectorAll("header details.menu")];
 
-  // One menu open at a time; a click out of it or Escape closes it
+  // Only one menu is open at a time. A click outside the menu or Escape closes
+  // it.
   for (const menu of menus) {
     menu.addEventListener("toggle", () => {
       if (menu.open) for (const other of menus) if (other !== menu) other.open = false;

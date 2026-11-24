@@ -1,10 +1,11 @@
 // Completion of prefixes in the editors of Turtle, TriG, N3, ShExC and
 // SPARQL (CodeMirror autocompletion):
 //
-// - after PREFIX (or @prefix), the declarations of the prefixes known: the
-//   alias and its IRI (`wd: <http://www.wikidata.org/entity/>`);
-// - in the text, the aliases known (`wd:`): choosing one that the text
-//   doesn't declare also adds its declaration with the others.
+// - After PREFIX (or @prefix), the declarations of the known prefixes: the
+//   alias and its IRI (`wd: <http://www.wikidata.org/entity/>`).
+// - In the text, the known aliases (`wd:`). If you select an alias that the
+//   text does not declare, the editor also adds its declaration to the other
+//   declarations.
 //
 // The prefixes known in an editor are those of its text, of the endpoint of
 // its tab, and common ones: the page says them (setPrefixSource).
@@ -12,8 +13,8 @@
 import { autocompletion } from "@codemirror/autocomplete";
 import { COMMON_PREFIXES, declaredPrefixes, declaration, declarationPosition } from "./prefixes.js";
 
-// The formats whose editors complete prefixes; Turtle-like ones write
-// @prefix … . when the text does
+// The formats whose editors complete prefixes. Turtle-like ones write @prefix
+// … . when the text does
 const FORMATS = new Set(["turtle", "trig", "n3", "shexc", "sparql"]);
 const TURTLE = new Set(["turtle", "trig", "n3"]);
 

@@ -108,7 +108,7 @@
         <ul class="manifest-tree" aria-labelledby="manifest-title"></ul>
       </div>
       <p id="manifest-note" class="manifest-note" role="status" hidden></p>
-      <!-- Why the examples marked "not supported" can't be run -->
+      <!-- Why the examples marked "not supported" cannot be run -->
       <details id="manifest-problems" class="manifest-problems" hidden>
         <summary></summary>
         <ul></ul>
@@ -354,6 +354,10 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
           <details class="read-triples" hidden>
             <summary></summary>
             <div class="read-triples-tools">
+              <div class="view-switch subgraph-switch" id="shex-subgraph-switch" role="group" aria-label="Visited triples shown">
+                <button type="button" data-subgraph="valid" aria-pressed="true" title="The visited triples that are part of the valid subgraph">Visited triples valid</button>
+                <button type="button" data-subgraph="invalid" aria-pressed="false" title="The visited triples that are not part of the valid subgraph">Visited triples invalid</button>
+              </div>
               <label class="inline">Format
                 <select id="shex-read-triples-format">
                   <option value="turtle">Turtle</option>
@@ -486,6 +490,10 @@ PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</textarea>
           <details class="read-triples" hidden>
             <summary></summary>
             <div class="read-triples-tools">
+              <div class="view-switch subgraph-switch" id="shacl-subgraph-switch" role="group" aria-label="Visited triples shown">
+                <button type="button" data-subgraph="valid" aria-pressed="true" title="The visited triples that are part of the valid subgraph">Visited triples valid</button>
+                <button type="button" data-subgraph="invalid" aria-pressed="false" title="The visited triples that are not part of the valid subgraph">Visited triples invalid</button>
+              </div>
               <label class="inline">Format
                 <select id="shacl-read-triples-format">
                   <option value="turtle">Turtle</option>

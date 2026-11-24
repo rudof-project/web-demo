@@ -1,6 +1,7 @@
-// YARS-PG, the syntax of property graphs: its grammar (yars-pg.grammar,
-// compiled by @lezer/generator when the page is built), its highlighting
-// (highlight.js), and what the editor needs to fold and indent it.
+// YARS-PG, the syntax of property graphs. This file has its grammar
+// (yars-pg.grammar), its highlighting (highlight.js) and the data that the
+// editor needs to fold and indent it. @lezer/generator compiles the grammar
+// when the page builds.
 
 import { LRLanguage, LanguageSupport, foldNodeProp, foldInside, indentNodeProp, delimitedIndent } from "@codemirror/language";
 import { parser } from "./yars-pg.grammar";

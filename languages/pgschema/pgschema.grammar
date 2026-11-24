@@ -1,7 +1,7 @@
 // PGSchemaC, the compact syntax of the property graph schemas of rudof, as a
 // Lezer grammar (https://lezer.codemirror.net/docs/guide/). It follows
-// pgschema/src/parser/pgs.rustemo of rudof; the names of its nodes are those
-// of that grammar.
+// pgschema/src/parser/pgs.rustemo of rudof. Its nodes have the same names as
+// in that grammar.
 //
 //   CREATE NODE TYPE ( PersonType : Person { name: STRING, OPTIONAL age: INTEGER } ) ;
 //   CREATE EDGE TYPE (:@PersonType) -[ KnowsType : Knows { since: INTEGER } ]-> (:@PersonType) ;

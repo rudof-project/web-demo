@@ -99,7 +99,7 @@ describe("the log of a run on an endpoint", () => {
     await fetch(QUERY_URL("c.example", "C"), { headers: {} });
     expect(a.entries.map((e) => e.query)).toEqual(["A", "C"]);
     expect(b.entries.map((e) => e.query)).toEqual(["C"]);
-    // A finished run doesn't get more requests
+    // A finished run does not get more requests
     a.finish();
     await fetch(QUERY_URL("a.example", "A2"), { headers: {} });
     expect(a.entries).toHaveLength(2);

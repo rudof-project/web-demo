@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-// Step 6: when the page loads, the marked textareas are replaced by editors,
-// and the rest of the demo (demo.js) keeps using the textareas as before.
+// Step 6: when the page loads, editors replace the marked textareas. The rest
+// of the demo (demo.js) uses the textareas as before.
 
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { setupEditors, editorFor, setupViewers, viewerFor } from "../../codemirror-setup.js";

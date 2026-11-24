@@ -97,7 +97,7 @@ test.describe("with rudof with endpoints", () => {
     await expect(page.locator("#shex-schema-result")).toHaveAttribute("data-kind", "ok", { timeout: 30_000 });
     await expect(page.locator("#shex-schema-output")).toContainText(`"imports"`);
     await expect(page.locator("#shex-schema-output")).toContainText(BOOK_IRI);
-    // A UML diagram (rudof can't draw AND yet: a schema without it)
+    // A UML diagram (rudof cannot draw AND yet: a schema without it)
     await setInput(page, "shex-schema", `prefix : <http://www.validatingrdf.com/examples/>\nprefix schema: <http://schema.org/>\nimport <${BOOK_IRI}>\n:AudioBook { schema:readBy @:Person }`);
     await page.locator("#shex-schema-result-format").selectOption("plantuml");
     await page.locator("#shex-schema-validate").click();

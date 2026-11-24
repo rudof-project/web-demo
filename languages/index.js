@@ -29,8 +29,8 @@ export const FORMATS = {
   // DCTAP profiles in CSV, and DCTAP as rudof writes it in JSON
   dctap: "dctap",
   "dctap-json": "json",
-  // Property graphs (YARS-PG; compact is YARS-PG written by rudof), their
-  // schemas (PGSchemaC) and type maps
+  // Property graphs (YARS-PG), their schemas (PGSchemaC) and type maps. The
+  // compact format is YARS-PG that rudof writes.
   yarspg: "yarspg",
   compact: "yarspg",
   pgschema: "pgschema",

@@ -1,11 +1,11 @@
-// The conversions of the Schema tab: a schema in ShEx, SHACL, DCTAP or
-// PGSchema, in one of its formats, converted to another format of its
-// language, or to another language, a UML diagram or a SPARQL query.
+// The conversions of the Schema tab. A schema in ShEx, SHACL, DCTAP or
+// PGSchema changes to a different format of its language, to a different
+// language, to a UML diagram or to a SPARQL query.
 //
-// rudof converts some languages to others (SHACL and DCTAP to ShEx), and
-// draws diagrams and writes queries from ShEx. So the conversions to ShEx,
-// UML and SPARQL go through ShEx (ShExJ); the others are rudof writing the
-// schema it read in another format. What rudof can't do yet is in
+// rudof converts some languages to others (SHACL and DCTAP to ShEx), and draws
+// diagrams and writes queries from ShEx. Thus the conversions to ShEx, UML and
+// SPARQL go through ShEx (ShExJ). For the other conversions, rudof writes the
+// schema that it read in a different format. What rudof cannot do yet is in
 // CONVERSIONS, marked as not available, so that the page can show it.
 
 // The formats of RDF data: [value, label]
@@ -39,7 +39,7 @@ export const LANGUAGES = {
 };
 
 // What a schema can be converted to, and its formats: [value, label,
-// available]. A format that is not available is shown, and can't be chosen.
+// available]. A format that is not available is shown, and cannot be chosen.
 export const TARGETS = {
   shex: {
     label: "ShEx",
@@ -126,7 +126,7 @@ export function hasShexImports(text, format) {
 // resolved against the base of the schema
 export const hasRelativeImports = (text) => /^\s*import\s*<(?![a-z][\w+.-]*:)/im.test(text);
 
-// Why the schemas that a schema imports can't be read: rudof gets them with
+// Why the schemas that a schema imports cannot be read: rudof gets them with
 // readShexAsync, which only rudof with endpoints has (it needs JSPI)
 export const IMPORTS_NEED_ENDPOINTS =
   "This schema imports other schemas (IMPORT). rudof can get them only in browsers with JSPI (Chrome and Edge 137 or later), with rudof with endpoints, which this page could not load.";
@@ -140,11 +140,10 @@ export function readShexSchema(rudof, text, format, base) {
   return rudof.readShexAsync(text, format, base);
 }
 
-// Reads a schema in a rudof session (to check it, and to convert it after):
-// source is { language, format, text, config, base }, where config is the
-// configuration of rudof for DCTAP (its prefixes, see dctap.js), and base the
-// base of the imports of a ShEx schema. A promise when a ShEx schema has
-// imports.
+// Reads a schema in a rudof session, to check it and then convert it. source
+// is { language, format, text, config, base }. config is the configuration of
+// rudof for DCTAP (its prefixes, see dctap.js). base is the base of the
+// imports of a ShEx schema. A promise when a ShEx schema has imports.
 export function readSchema(rudof, { language, format, text, config, base }) {
   rudof.resetAll();
   if (config) rudof.updateConfig(config);
@@ -163,9 +162,9 @@ function toShexj(rudof, { language, format, text }) {
   throw new Error(`rudof can't convert ${LANGUAGES[language].label} to ShEx yet`);
 }
 
-// The schema read in rudof (readSchema), converted: text, or { plantuml } for
-// a diagram. shexSession is another rudof session, for the ShEx schema that
-// the conversions to ShEx, UML and SPARQL go through.
+// Converts the schema in rudof (readSchema). The result is text, or { plantuml
+// } for a diagram. shexSession is a second rudof session. It has the ShEx
+// schema for the conversions to ShEx, UML and SPARQL.
 export function convertSchema(rudof, shexSession, source, { to, format }) {
   if (!canConvert(source.language, to, format)) {
     throw new Error(`rudof can't convert ${sourceLabel(source)} to ${targetLabel({ to, format })} yet`);

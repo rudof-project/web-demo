@@ -1,6 +1,7 @@
-// The Generate tab: synthetic data from a SHACL, ShEx or PGSchema schema (a
-// tab each), validated with it right away, then with the schema of the
-// example in the other languages, here or in the tabs of Validate.
+// The Generate tab: synthetic data from a SHACL, ShEx or PGSchema schema (one
+// tab for each). The tab validates the data with the schema immediately. Then
+// it validates the data with the schema of the example in the other languages,
+// here or in the tabs of Validate.
 
 import { test, expect, open, editor, setInput } from "./fixtures.js";
 

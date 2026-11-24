@@ -263,7 +263,7 @@ button.primary {
 button.primary:disabled { opacity: 0.5; cursor: progress; }
 .shortcut { color: var(--muted); font-size: 0.8em; }
 
-/* The height of a result changes with its handle; its text scrolls. */
+/* The handle of a result changes its height. Its text scrolls. */
 .result {
   display: flex;
   flex-direction: column;
@@ -289,8 +289,9 @@ button.primary:disabled { opacity: 0.5; cursor: progress; }
 .result[data-kind="error"] .result-head { background: var(--warn-bg); color: var(--warn-text); }
 .timing { font-weight: 400; opacity: 0.8; margin-left: auto; }
 
-/* The queries of a run on an endpoint (endpoint-log.js): while the run waits,
-   the result shows them; then the switch "Result | Queries" of the result. */
+/* The queries of a run on an endpoint (endpoint-log.js). While the run waits,
+   the result shows them. After the run, the switch "Result | Queries" of the
+   result shows them. */
 .result[data-view="queries"] > :not(.result-head):not(.queries-view) { display: none !important; }
 .result[data-view="queries"] .csv-switch { display: none !important; }
 .result:not([data-view="queries"]) > .queries-view { display: none; }
@@ -400,8 +401,8 @@ table.resizable th { position: relative; }
   cursor: col-resize;
   touch-action: none;
 }
-/* The line of the border, at the right of the header: the handle is in its
-   header, as the next header (when it stays on top, sticky) covers it */
+/* The line of the border, at the right of the header. The handle is in its
+   header, because the next header covers it when it is sticky. */
 .col-resizer::after {
   content: "";
   position: absolute;
@@ -412,7 +413,7 @@ table.resizable th { position: relative; }
   border-radius: 1px;
   background: var(--border);
 }
-/* A table with the widths of its columns: the text that doesn't fit is cut */
+/* A table with the widths of its columns: the text that does not fit is cut */
 table.resized { table-layout: fixed; }
 table.resized th, table.resized td { overflow: hidden; text-overflow: ellipsis; }
 table.resized th { white-space: nowrap; box-sizing: border-box; }
@@ -741,7 +742,7 @@ table.keys td:first-child { white-space: nowrap; }
 table.keys tr:target { background: var(--cm-selection-match); }
 .links a[aria-current="page"] { color: var(--text); font-weight: 600; text-decoration: none; }
 
-/* The examples of a manifest that can't be run, and why */
+/* The examples of a manifest that cannot be run, and why */
 .manifest-problems { margin-top: 0.5rem; font-size: 0.9em; }
 .manifest-problems > summary { cursor: pointer; color: var(--accent); width: fit-content; }
 .manifest-problems > summary:hover { text-decoration: underline; }
@@ -1050,8 +1051,8 @@ ul.compare-bnodes { margin: 0 0.75rem 0.75rem; padding-left: 1.2rem; }
 ul.compare-bnodes code { font-size: 0.9em; }
 
 /* Generate: the schema, the generated data, the configuration and the
-   result keep a height of their own (their handle, or Full screen, makes
-   them bigger), since the data generated can be long */
+   result have their own heights, because the generated data can be long.
+   Their handle, or Full screen, makes them bigger. */
 .cm-editor[data-editor-for="gen-schema"], .cm-editor[data-editor-for="gen-data"] { height: 22rem; min-height: 7.5rem; }
 .cm-editor[data-editor-for="gen-config"] { height: 10rem; min-height: 5rem; }
 #gen-result { height: 22rem; min-height: 8rem; }

@@ -1,6 +1,7 @@
-// Step 1: the examples used to try the editors with every input format.
-// Each example must exist, be non-empty, and be accepted by rudof itself (the
-// same version the demo loads), so that the examples are known to be valid.
+// Step 1: the examples used to try the editors with every input format. Each
+// example must exist, must not be empty and rudof must accept it. The tests
+// use the version of rudof that the demo loads. Thus we know that the examples
+// are valid.
 
 import { readFileSync, existsSync } from "node:fs";
 import { describe, it, expect } from "vitest";
@@ -105,7 +106,7 @@ describe("ShEx examples are valid", () => {
 });
 
 describe("node project", () => {
-  // No version is written in these checks, so updating rudof doesn't break them.
+  // No version is written in these checks, so updating rudof does not break them.
   it("tests rudof with the version the demo loads", () => {
     expect(read("demo.js")).toMatch(/import \{ devDependencies \} from "\.\/package\.json"/);
     expect(read("demo.js")).toMatch(/const RUDOF_VERSION = devDependencies\["@rudof\/rudof"\]/);

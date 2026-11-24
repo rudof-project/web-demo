@@ -1,13 +1,13 @@
 // CodeMirror 6 editors in place of the input textareas of the demo, and
 // read-only viewers for the results of conversions.
 //
-// Each editor is put right after its textarea, which is hidden and kept in
-// sync: what is typed is written back to the textarea, so the textarea still
-// holds the text of the input.
+// Each editor goes immediately after its textarea. The textarea is hidden, and
+// the editor writes each change into it. Thus the textarea always has the text
+// of the input.
 //
-// Each viewer is put right before the <pre> of its result, which is hidden
-// with CSS. demo.js still writes the result in the <pre>, and the viewer shows
-// it, highlighted in the result format.
+// Each viewer goes immediately before the <pre> of its result. CSS hides the
+// <pre>. demo.js writes the result in the <pre>, and the viewer shows it with
+// the highlighting of the result format.
 
 import { EditorState, Compartment, Prec } from "@codemirror/state";
 import {
@@ -160,11 +160,11 @@ function setTextareaValue(textarea, text) {
   Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set.call(textarea, text);
 }
 
-// The textarea of an editor stands for it, so that the rest of the demo can
-// keep using the textarea: its value is the text of the editor (reading it,
-// and setting it, which can be undone), and focusing it focuses the editor.
-// The textarea is written when the text changes, and is back to normal when
-// the editor is removed.
+// The textarea of an editor represents the editor, thus the rest of the demo
+// can use the textarea as before. The value of the textarea is the text of the
+// editor. You can read and set the value, and you can undo a set. When the
+// textarea gets the focus, the editor gets the focus. The textarea is written
+// when the text changes, and is back to normal when the editor is removed.
 function textareaSync(textarea) {
   return [
     EditorView.updateListener.of((update) => {
@@ -258,10 +258,10 @@ export function setupEditors(root = document) {
   return new Map([...root.querySelectorAll("textarea[data-editor]")].map((t) => [t.id, editors.get(t.id)]));
 }
 
-// A read-only viewer of the text of a <pre>, put before it. The viewer
-// follows the <pre>: its text, whether it is hidden, and the format of its
-// result, chosen in a select of the page (data-format-select, its id) or
-// fixed (data-language). Errors are not highlighted.
+// A read-only viewer of the text of a <pre>, put before it. The viewer follows
+// the <pre>: its text, its hidden state and the format of its result. A select
+// of the page sets the format (data-format-select has the id of the select),
+// or data-language sets a fixed format. Errors are not highlighted.
 export function createViewer(pre) {
   const select = pre.dataset.formatSelect && pre.ownerDocument.getElementById(pre.dataset.formatSelect);
   const result = pre.closest(".result");

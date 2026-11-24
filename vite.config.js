@@ -14,10 +14,10 @@ function commit() {
   }
 }
 
-// The examples of Generate (examples/generate/: its manifest and the schemas,
-// and examples/person/, the example of all the tabs, which its manifest has
-// too), which the page reads and the Examples menu opens, as files of the
-// site. The dev server serves them from the repository.
+// The examples of Generate, as files of the site. examples/generate/ has the
+// manifest and the schemas. examples/person/ has the example of all the tabs,
+// and the manifest also uses it. The page reads these files, and the Examples
+// menu opens them. The dev server serves them from the repository.
 const PUBLISHED_EXAMPLES = ["examples/generate", "examples/person"];
 function generateExamples() {
   return {

@@ -1,15 +1,16 @@
 // The Compare tab: two RDF graphs, or two schemas, compared by rudof.
 //
-// RDF data (rudof 0.3.36, diffData): rudof says how the two graphs are
-// related, up to the names of their blank nodes: isomorphic, equivalent
-// (each one contained in the other), subgraph, supergraph or different, and
-// gives the triples of each graph that the other one doesn't have. The mode
-// says how the blank nodes of a graph may be mapped to the terms of the other
-// one when rudof checks that it is contained in it.
+// RDF data (rudof 0.3.36, diffData): rudof tells the relation between the two
+// graphs. It ignores the names of the blank nodes. The relation is isomorphic,
+// equivalent (each graph contains the other), subgraph, supergraph or
+// different. rudof also gives the triples of each graph that the other graph
+// does not have. The mode tells how rudof can map the blank nodes of a graph
+// to the terms of the other graph. rudof uses this map when it checks if a
+// graph contains the other graph.
 //
 // Schemas (compareSchemas): rudof compares two shapes of two ShEx schemas,
-// property by property, and writes a report. It doesn't say yet whether the
-// schemas are equivalent, or one contains the other, and it can't compare
+// property by property, and writes a report. It does not say yet whether the
+// schemas are equivalent, or one contains the other, and it cannot compare
 // the other languages yet.
 
 import { makeTableTools } from "./table-tools.js";
@@ -23,7 +24,7 @@ export const DATA_MODES = [
 ];
 
 // The kinds of data and the languages of schemas that can be compared. The
-// others are in the menus, and can't be chosen.
+// others are in the menus, and cannot be chosen.
 export const DATA_KINDS = [
   ["rdf", "RDF", true],
   ["pg", "Property graph", false],
@@ -34,7 +35,7 @@ export const SCHEMA_LANGUAGES = [
   ["dctap", "DCTAP", false],
   ["pgschema", "PGSchema", false],
 ];
-// The formats of ShEx schemas that rudof compares: it can't read ShExJ and
+// The formats of ShEx schemas that rudof compares: it cannot read ShExJ and
 // ShExR for comparisons yet
 export const SHEX_FORMATS = [
   ["shexc", "ShExC", true],
@@ -123,9 +124,9 @@ function el(doc, tag, props = {}, ...children) {
   return e;
 }
 
-// The triples of each graph that the other one doesn't have, as a table that
-// can be sorted and filtered, and the blank nodes of the first graph matched
-// in the second one. `prefixes`: those of the names of the IRIs.
+// A table of the triples of each graph that the other graph does not have. You
+// can sort and filter the table. Also the blank nodes of the first graph that
+// match terms in the second graph. `prefixes`: those of the names of the IRIs.
 export function differencesView(doc, diff, prefixes = []) {
   const box = el(doc, "div", { className: "compare-differences" });
   const rows = [
@@ -154,8 +155,9 @@ export function differencesView(doc, diff, prefixes = []) {
   return box;
 }
 
-// A shape label written as a prefixed name, <iri> or an IRI, as an IRI, with
-// the prefixes of its schema ([alias, iri]). undefined when it is empty.
+// Changes a shape label to an IRI. The label is a prefixed name, an <iri> or
+// an IRI, and the prefixes of its schema are [alias, iri]. Gives undefined
+// when the label is empty.
 export function shapeIri(label, prefixes = []) {
   const value = label.trim();
   if (!value) return undefined;

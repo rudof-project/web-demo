@@ -1,6 +1,6 @@
-// The help page (help.html): it is linked from the demo, its examples of
-// manifests are right (they parse, and the validations give their status in
-// rudof), and it documents every key that manifest.js reads.
+// The help page (help.html). The demo has a link to it. Its examples of
+// manifests are correct: they parse, and the validations in rudof give their
+// status. It documents each key that manifest.js reads.
 
 import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
@@ -102,7 +102,7 @@ describe("the examples of the help page", () => {
   });
 
   // The validations with their inputs in the manifest (not on endpoints,
-  // which the tests don't reach)
+  // which the tests do not reach)
   const inline = ([, e]) => !e.inputs.endpoint && Object.values(e.inputs).every((input) => input.text != null);
   it.each(entries.filter(([, e]) => e.action === "validate" && e.status).filter(inline))("%s: the validation gives its status", async (_, example) => {
     const inputs = await loadExample(example);

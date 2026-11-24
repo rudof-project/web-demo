@@ -1,7 +1,7 @@
 // The IRIs in the tables of results, as links: <http://…>, http://…, or a
 // prefixed name (wd:Q42) of the prefixes the results were written with. The
-// text of the cell stays as it is (sorting and filters read it); only http
-// and https IRIs are links, which open in another tab.
+// text of the cell does not change, because the sort and the filters read it.
+// Only http and https IRIs are links. The links open in a new tab.
 
 // The IRI that a cell names, or undefined (a literal, a blank node…)
 export function iriOf(text, prefixes = []) {

@@ -1,7 +1,7 @@
-// More RDF data in a tab: under the RDF data of the RDF, ShEx, SHACL, DCTAP
-// and SPARQL tabs, "Add RDF data" adds another editor with its own format.
-// rudof merges all of them (readData with merge) before it converts,
-// validates or queries them.
+// More RDF data in a tab. Below the RDF data of the RDF, ShEx, SHACL, DCTAP
+// and SPARQL tabs, "Add RDF data" adds one more editor with its own format.
+// rudof merges all the data (readData with merge) before it converts,
+// validates or queries it.
 
 import { setupEditors, editorFor } from "./codemirror-setup.js";
 import { expandInput } from "./inputs.js";
@@ -25,9 +25,9 @@ function renumber(prefix) {
   });
 }
 
-// Adds the editor of more RDF data to a tab, with its text and format (the
-// format of the RDF data of the tab by default). onChange: after it is added
-// or removed.
+// Adds an editor of more RDF data to a tab, with its text and format. The
+// default format is the format of the RDF data of the tab. onChange runs after
+// the page adds or removes the editor.
 export function addData(doc, prefix, { text = "", format, onChange } = {}) {
   const main = doc.getElementById(`${prefix}-data-format`);
   added += 1;

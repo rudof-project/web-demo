@@ -1,6 +1,6 @@
-// rudof online demo: converting, validating (ShEx, SHACL, PGSchema) and
-// querying (SPARQL) RDF data and property graphs with the @rudof/rudof npm
-// package (rudof compiled to WebAssembly), loaded from jsDelivr.
+// rudof online demo. It converts, validates (ShEx, SHACL, PGSchema) and
+// queries (SPARQL) RDF data and property graphs. It uses the @rudof/rudof npm
+// package (rudof compiled to WebAssembly) from jsDelivr.
 
 import { PANELS, hasState, panelOfParams, stateParams, queryString, inputsOfParams, permalinkQuery, unpackParams, PACKED_PARAM } from "./permalink.js";
 import { setupLayout } from "./layout.js";
@@ -15,7 +15,7 @@ import { setPrefixSource } from "./prefix-completion.js";
 import { loadSettings, saveSettings, configWithSettings, settingsEndpoints, settingsConfig, pageSetting, limitsOf } from "./settings.js";
 import { setupSettingsDialog } from "./settings-dialog.js";
 import { DATA_TABS, setupExtraData, addData, extraData, clearExtraData } from "./extra-data.js";
-import { parseBoxTable } from "./box-table.js";
+import { parseBoxTable, parseShexDetails } from "./box-table.js";
 import { setupInputSources, setSource, setText, isUrlSource, urlOf, resolvedUrlOf, urlInputsIn, readUrlInput, readUrlInputs, showResolved } from "./input-source.js";
 import { startLog, loggingFetch, logSummary, logTime, limitsText, renderQueries, isStopping } from "./endpoint-log.js";
 import { LANGUAGES, TARGETS, DEFAULT_TARGET, canConvert, readSchema as readAnySchema, readShexSchema, hasShexImports, hasRelativeImports, convertSchema, sourceLabel, targetLabel, asSource } from "./schema-convert.js";
@@ -25,16 +25,17 @@ import { INPUT_KINDS, inputsOf, visualOf, exampleText } from "./inputs.js";
 import { devDependencies } from "./package.json";
 
 // The exact version of package.json (the one the tests use), so that updating
-// rudof is only a change of package.json. Exact, not a range: jsDelivr caches
-// what a range (like 0.3) points to, so a range can keep serving an older
-// release for days. update-rudof.yml updates it when rudof is released on npm.
+// rudof is only a change of package.json. Use an exact version, not a range.
+// jsDelivr keeps the release of a range (like 0.3) in its cache, thus a range
+// can give an old release for many days. update-rudof.yml updates the version
+// when npm has a new release of rudof.
 const RUDOF_VERSION = devDependencies["@rudof/rudof"];
 const RUDOF_MODULE = `https://cdn.jsdelivr.net/npm/@rudof/rudof@${RUDOF_VERSION}/web/rudof_wasm.js`;
 // The same rudof, built with the `endpoints` feature: it validates and queries
 // the data of SPARQL endpoints (useEndpoint, and the ...Async methods). Its
 // .wasm only loads in browsers with JSPI (WebAssembly.Suspending: Chrome and
 // Edge 137+), so the others load RUDOF_MODULE, and so do all browsers when
-// it can't be loaded. It is in the package since rudof 0.3.27.
+// it cannot be loaded. It is in the package since rudof 0.3.27.
 const RUDOF_ENDPOINTS_MODULE = `https://cdn.jsdelivr.net/npm/@rudof/rudof@${RUDOF_VERSION}/endpoints/web/rudof_wasm.js`;
 const HAS_JSPI = typeof WebAssembly.Suspending === "function";
 
@@ -49,12 +50,12 @@ const $ = (id) => document.getElementById(id);
 // format serializes it again without validating again.
 const last = {};
 
-// The tabs that can run on an endpoint (see Endpoints), and the endpoint of a
-// tab, if it doesn't run on the data of the page
+// The tabs that can run on an endpoint (see Endpoints). Also the endpoint of a
+// tab, if the tab does not run on the data of the page.
 const ENDPOINT_TABS = ["shex", "shacl", "dctap", "sparql"];
-// The inputs of RDF data, schemas and queries (inputs.js): all of them can
-// also be given by a URL (input-source.js), and those that can be drawn have
-// Visualize: the RDF data, and the ShEx schemas
+// The inputs of RDF data, schemas and queries (inputs.js). All of them can
+// also come from a URL (input-source.js). The RDF data and the ShEx schemas
+// also have Visualize, which draws them.
 const URL_INPUTS = inputsOf(document, ...INPUT_KINDS);
 const VISUAL_INPUTS = Object.fromEntries(URL_INPUTS.map((id) => [id, visualOf($(id))]).filter(([, kind]) => kind));
 
@@ -108,9 +109,9 @@ let settings = loadSettings(localStorageOrNone());
 // before rudof is loaded), and those of the settings, with their prefixes
 let rudofKnownEndpoints = KNOWN_ENDPOINTS;
 const settingsEndpointPrefixes = new Map();
-// The limits of the requests to the endpoints of the settings, and to those
-// that rudof knows (in their TOML files, such as min_request_interval_ms of
-// Wikidata), by their URLs
+// The limits of the requests to the endpoints, by their URLs. This is for the
+// endpoints of the settings and the endpoints that rudof knows. The limits are
+// in their TOML files, for example min_request_interval_ms of Wikidata.
 const settingsEndpointLimits = new Map();
 const endpointLimits = new Map();
 
@@ -156,8 +157,9 @@ function selectTab(tab, focus = false) {
   }
   if (focus) tab.focus();
   const section = sectionTabs.find((t) => t.getAttribute("aria-selected") === "true");
-  // A tab of another section (chosen by a menu of its panel, such as the
-  // language of Generate while a permalink is read): the fragment stays
+  // A tab of a different section: the fragment does not change. A menu of the
+  // panel selects this tab, for example the language of Generate when the page
+  // reads a permalink.
   if (!sectionTabs.includes(tab) && !$(section.getAttribute("aria-controls")).contains(tab)) return;
   history.replaceState(null, "", `#${tabName(section)}/${tabName(selectedSubtab(section))}`);
 }
@@ -198,7 +200,7 @@ function selectTabFromHash() {
 // Permalinks
 //
 // After each operation, the query of the URL gets the inputs and options of
-// the tab shown (see permalink.js), and the Permalink button copies the URL.
+// the visible tab (see permalink.js). The Permalink button copies the URL.
 // When the page opens, they are put back in their tab.
 
 // The inputs of a long permalink are compressed (permalink.js)
@@ -292,8 +294,8 @@ function restoreInputs() {
 
 // ---------------------------------------------------------------------------
 // Schema: a schema of any language, converted to other formats and languages
-// (schema-convert.js). The menus have the conversions rudof can't do yet,
-// which can't be chosen.
+// (schema-convert.js). The menus have the conversions rudof cannot do yet,
+// which cannot be chosen.
 
 const NOT_YET = " (not in rudof yet)";
 
@@ -342,8 +344,9 @@ function updateTargets() {
   setOptions($("convert-to"), options, DEFAULT_TARGET[from][0]);
 }
 
-// A new language of the schema: its formats, its example (when the schema is
-// still the example of the language before), and what it converts to
+// Sets a new language of the schema: its formats, its example and its
+// conversions. The example replaces the schema only when the schema is the
+// example of the previous language.
 let convertLanguage = $("convert-language").value;
 function changeConvertLanguage() {
   const language = $("convert-language").value;
@@ -513,17 +516,38 @@ function showResult(prefix, { verdict, kind, output, millis, readTriples }) {
   showCsvView(box, prefix, kind !== "error" && kind !== "running" && !isElement);
 }
 
-// The subgraph that a validation read (see readTriplesOn), below its result:
-// hidden without it (while it runs, after an error, or without the option).
-// rudof gives it in Turtle; the other formats are converted in a session of
-// their own, without validating again.
+// The subgraphs that a validation read (see readTriplesOn), below its result.
+// They are hidden while the validation runs, after an error and without the
+// option. rudof 0.3.42 and later divide the visited triples into two
+// subgraphs. The valid subgraph has the triples that the conformant node/shape
+// pairs matched. The invalid subgraph has the other visited triples. The two
+// buttons of the switch select the subgraph to show. rudof gives the subgraphs
+// in Turtle. A separate session converts them to the other formats, without a
+// new validation.
+const subgraphShown = { shex: "valid", shacl: "valid" };
+
+// The subgraph shown of the triples read: { text, size }
+function shownSubgraph(prefix, triples) {
+  return triples[subgraphShown[prefix]];
+}
+
 function showReadTriples(prefix, triples) {
   const block = $(`${prefix}-result`).querySelector(".read-triples");
   if (!block) return;
   block.hidden = !triples;
   if (!triples) return;
-  block.querySelector("summary").textContent = `Subgraph read: ${count(triples.distinct, "distinct triple")} (${count(triples.read, "triple")} read)`;
-  block.querySelector(`#${prefix}-read-triples-output`).textContent = subgraphIn(prefix, triples.text, $(`${prefix}-read-triples-format`).value);
+  block.querySelector("summary").textContent =
+    `Subgraph read: ${count(triples.distinct, "distinct triple")} (${count(triples.read, "triple")} read)` +
+    ` · ${triples.valid.size} valid, ${triples.invalid.size} invalid`;
+  for (const button of $(`${prefix}-subgraph-switch`).querySelectorAll("button")) {
+    const which = button.dataset.subgraph;
+    button.setAttribute("aria-pressed", String(which === subgraphShown[prefix]));
+    button.textContent = `Visited triples ${which} (${triples[which].size})`;
+  }
+  const shown = shownSubgraph(prefix, triples);
+  block.querySelector(`#${prefix}-read-triples-output`).textContent = shown.size
+    ? subgraphIn(prefix, shown.text, $(`${prefix}-read-triples-format`).value)
+    : `No visited triples are ${subgraphShown[prefix]}.`;
   if (block.classList.contains("visual")) setSubgraphVisual(prefix, true, triples);
 }
 
@@ -544,9 +568,10 @@ function subgraphIn(prefix, turtle, format) {
   }
 }
 
-// Visualize: the subgraph as the diagram that PlantUML draws of it, in place
-// of its viewer, as the inputs of RDF data (setVisual); Text shows the viewer
-// again. A diagram already drawn of the same subgraph is not drawn again.
+// Visualize: PlantUML draws the subgraph as a diagram, which replaces the
+// viewer, as for the inputs of RDF data (setVisual). Text shows the viewer
+// again. If the diagram of the same subgraph is already there, the page does
+// not draw it again.
 async function setSubgraphVisual(prefix, visual, triples = last[prefix]?.readTriples) {
   const block = $(`${prefix}-result`).querySelector(".read-triples");
   const box = $(`${prefix}-read-triples-visual`);
@@ -566,7 +591,7 @@ async function setSubgraphVisual(prefix, visual, triples = last[prefix]?.readTri
     // With the prefixes of the tab (rudof writes the subgraph without them),
     // so that the diagram has prefixed names, as that of the RDF data
     const declarations = [...new Map(tabPrefixes(prefix))].map(([alias, iri]) => `PREFIX ${alias}: <${iri}>\n`).join("");
-    const source = convertSubgraph(prefix, declarations + triples.text, "plantuml");
+    const source = convertSubgraph(prefix, declarations + shownSubgraph(prefix, triples).text, "plantuml");
     if (sourcePre.textContent === source && image.querySelector("img")) return;
     sourcePre.textContent = source;
     await drawDiagram(box, source);
@@ -578,6 +603,12 @@ async function setSubgraphVisual(prefix, visual, triples = last[prefix]?.readTri
 
 for (const prefix of ["shex", "shacl"]) {
   $(`${prefix}-read-triples-format`).addEventListener("change", () => showReadTriples(prefix, last[prefix]?.readTriples));
+  for (const button of $(`${prefix}-subgraph-switch`).querySelectorAll("button")) {
+    button.addEventListener("click", () => {
+      subgraphShown[prefix] = button.dataset.subgraph;
+      showReadTriples(prefix, last[prefix]?.readTriples);
+    });
+  }
   const visualize = $(`${prefix}-read-triples-visualize`);
   visualize.addEventListener("click", () => setSubgraphVisual(prefix, visualize.getAttribute("aria-pressed") !== "true"));
   const box = $(`${prefix}-read-triples-visual`);
@@ -589,9 +620,8 @@ for (const prefix of ["shex", "shacl"]) {
   });
 }
 
-// CSV results, as text (in the viewer of the result) or as a table: the
-// switch of the result chooses, for all the results, and the browser
-// remembers it.
+// CSV results, as text (in the viewer of the result) or as a table. The switch
+// of the result sets the view for all the results, and the browser keeps it.
 const CSV_VIEW_KEY = "rudof-demo-view-results";
 let csvView = "csv";
 try {
@@ -679,11 +709,12 @@ function plantumlSvg(source) {
 const diagrams = new WeakMap();
 
 // Inputs as diagrams: Visualize, next to the RDF data and the ShEx schema,
-// shows the input as the diagram that PlantUML draws of it (rudof writes it
-// in PlantUML: serializeData and serializeCurrentShex), in place of its
-// editor, and Edit shows the editor again. The RDF data of a tab is drawn
-// with the RDF data added to it; the other RDF inputs (Compare, the target
-// declarations of SHACL) alone. An input given by a URL is read first.
+// shows a diagram of the input instead of its editor. rudof writes the input
+// in PlantUML (serializeData and serializeCurrentShex), and PlantUML draws it.
+// Edit shows the editor again. The diagram of the RDF data of a tab also shows
+// the RDF data added to the tab. The diagrams of the other RDF inputs
+// (Compare, the target declarations of SHACL) show only that input. An input
+// given by a URL is read first.
 function setupVisualInputs() {
   for (const [id, kind] of Object.entries(VISUAL_INPUTS)) {
     const textarea = $(id);
@@ -799,7 +830,7 @@ const isStackOverflow = (e) => (e instanceof RangeError && /call stack/i.test(e.
 
 function showError(prefix, e) {
   // A panic in Rust aborts the WebAssembly module, and a stack overflow in
-  // it leaves its objects in use: it can't be used again. The page loads
+  // it leaves its objects in use: it cannot be used again. The page loads
   // rudof again.
   if (e instanceof WebAssembly.RuntimeError || isStackOverflow(e)) {
     crashed = true;
@@ -879,10 +910,10 @@ function session(name) {
 // Endpoints
 //
 // The ShEx, SHACL, DCTAP and SPARQL tabs can run on the data of a SPARQL
-// endpoint instead of the RDF data of the tab: rudof (built with endpoints)
-// sends the queries, with useEndpoint and the ...Async methods. Without such
-// a rudof, the SPARQL tab sends the query itself (endpoint.js), and the
-// validations can't run on endpoints.
+// endpoint instead of the RDF data of the tab. rudof (built with endpoints)
+// sends the queries, with useEndpoint and the ...Async methods. Without such a
+// rudof, the SPARQL tab sends the query itself (endpoint.js), and the
+// validations cannot run on endpoints.
 
 // How the results name an endpoint: by its host, or by its name in rudof
 function endpointName(endpoint) {
@@ -893,7 +924,7 @@ function endpointName(endpoint) {
   }
 }
 
-// Why the validations can't use endpoints
+// Why the validations cannot use endpoints
 function noEndpoints() {
   if (!HAS_JSPI) {
     return "Validating the data of an endpoint needs a browser with JSPI (JavaScript Promise Integration), such as Chrome or Edge 137 or later.";
@@ -919,7 +950,7 @@ function showEndpointUse() {
 
 // The prefixes that rudof declares for the endpoints it knows (see
 // prefixes.js), read once, with the limits of their requests. Endpoints that
-// rudof doesn't know have none.
+// rudof does not know have none.
 function readEndpointPrefixes(url) {
   if (settingsEndpointPrefixes.has(url)) return Promise.resolve(settingsEndpointPrefixes.get(url));
   const name = endpointNames.get(url);
@@ -968,9 +999,9 @@ setPrefixSource((view) => {
   ];
 });
 
-// The menu of each Endpoint field: none (the data of the page), the endpoints
-// that rudof knows, or another one, whose URL is written in the field. The
-// field has the URL of the endpoint chosen, and is what the tab uses.
+// The menu of each Endpoint field. The items are: none (the data of the page),
+// the endpoints that rudof knows, and other (you write its URL in the field).
+// The field has the URL of the endpoint chosen, and is what the tab uses.
 function fillEndpointChoices() {
   for (const prefix of ENDPOINT_TABS) {
     $(`${prefix}-endpoint-choice`).replaceChildren(
@@ -1019,7 +1050,7 @@ for (const prefix of ENDPOINT_TABS) {
 }
 
 // When rudof is loaded: the endpoints it knows are suggested, or the
-// validations say why they can't use endpoints.
+// validations say why they cannot use endpoints.
 function setupEndpoints() {
   if (!rudofEndpoints) {
     for (const prefix of ENDPOINT_TABS.filter((p) => p !== "sparql")) {
@@ -1076,17 +1107,19 @@ function refreshKnownEndpoints() {
 // The prefixes of an endpoint, when they are known
 const prefixesOfEndpoint = (url) => settingsEndpointPrefixes.get(url) ?? endpointPrefixes.get(url) ?? [];
 
-// The limits of the requests to an endpoint of its own (of the settings, or
-// of rudof), which win over those of the settings for all the endpoints
+// The limits of the requests to one endpoint (from the settings or from
+// rudof). These limits replace the limits of the settings for all the
+// endpoints.
 const limitsOfEndpoint = (url) => settingsEndpointLimits.get(url) ?? endpointLimits.get(url) ?? {};
 
 // How validations get the data of the nodes (a setting): SPARQL queries, or
 // dereferencing their IRIs. The SPARQL tab always queries the endpoint.
 const strategyOf = (prefix) => (prefix === "sparql" ? "sparql" : pageSetting(settings, "endpoint_strategy"));
 
-// The limits that rudof applies to the requests to an endpoint: its own,
-// else the settings, else the defaults of rudof (0 ms for localhost). rudof
-// waits longer when the endpoint answers 429 Too Many Requests.
+// The limits that rudof applies to the requests to an endpoint. They are the
+// limits of the endpoint, or else the settings, or else the defaults of rudof
+// (0 ms for localhost). rudof waits longer when the endpoint answers 429 Too
+// Many Requests.
 function endpointLimitsOf(endpoint) {
   const url = endpointUrlOf(endpoint);
   const general = settingsConfig(settings).rdf ?? {};
@@ -1118,18 +1151,17 @@ function readTabData(rudof, prefix, merge = false) {
 }
 
 // The session of a tab with its data: the RDF data of the tab, or its
-// endpoint. On an endpoint, it is a new session, which becomes the session of
-// the tab when its result is shown: a session that waits for an endpoint can't
-// do anything else, and the endpoint may answer after the tab is run again.
+// endpoint. On an endpoint, it is a new session. It becomes the session of the
+// tab when the page shows its result. A session that waits for an endpoint
+// cannot do other work, and the endpoint can answer after the tab runs again.
 //
-// `config` is the configuration of rudof (TOML) for the tab, if it has one,
-// and `prefixes` the prefixes of its schema: rudof knows an endpoint given by
-// its URL by the name PAGE_ENDPOINT, with these prefixes, which its shape
-// maps can use. An endpoint can also be the name of one that rudof knows
-// (such as wikidata), with the prefixes that rudof gives it.
-// With `fresh`, the session on the RDF data of the tab is a new one too: a
-// session that waits for the schemas that a schema imports can't do anything
-// else either.
+// `config` is the configuration of rudof (TOML) for the tab, if the tab has
+// one. `prefixes` is the prefixes of its schema. rudof uses the name
+// PAGE_ENDPOINT for an endpoint from a URL. This endpoint has these prefixes,
+// and its shape maps can use them. An endpoint can also be the name of one
+// that rudof knows (such as wikidata), with the prefixes that rudof gives it.
+// With `fresh`, the session on the RDF data of the tab is also a new session.
+// A session that waits for the imports of a schema cannot do other work.
 function dataSession(prefix, { config, prefixes, fresh = false } = {}) {
   const endpoint = endpointOf(prefix);
   if (!endpoint) {
@@ -1158,25 +1190,32 @@ function dataSession(prefix, { config, prefixes, fresh = false } = {}) {
 // SHACL in Turtle), for the shape maps of validations on endpoints
 const schemaPrefixes = (text) => parsePrefixes(text).prefixes;
 
-// Read triples: whether a validation of the tab counts the triples that it
-// reads, and keeps the subgraph they make (in Turtle). rudof reads them with
-// the native engine of SHACL only.
+// Read triples: if true, a validation of the tab counts the triples that it
+// reads and keeps their subgraphs (in Turtle). For SHACL, only the native
+// engine can do this.
 function readTriplesOn(prefix) {
   if (!$(`${prefix}-read-triples`)?.checked) return false;
   return prefix !== "shacl" || $("shacl-mode").value === "native";
 }
 
-// The triples that a report says were read, if it says them
+// The triples that a report says were read, if it says them, with the valid
+// and the invalid subgraphs (validated with `subgraphs`)
 function readTriplesOf(report) {
   if (report.readTriples === undefined) return undefined;
-  return { text: report.readTriples, read: report.triplesRead, distinct: report.distinctTriplesRead };
+  return {
+    text: report.readTriples,
+    read: report.triplesRead,
+    distinct: report.distinctTriplesRead,
+    valid: { text: report.validSubgraph ?? "", size: report.validTriples ?? 0 },
+    invalid: { text: report.invalidSubgraph ?? "", size: report.invalidTriples ?? 0 },
+  };
 }
 
 const readTriplesNote = (triples) => (triples ? ` · ${count(triples.read, "triple")} read (${triples.distinct} distinct)` : "");
 
-// The result of a validation: `validate` on the data of the page, or
-// `validateAsync` on an endpoint, with `result` to make the result of its
-// report, and the triples that it read.
+// The result of a validation: It uses `validate` on the data of the page, or
+// `validateAsync` on an endpoint. `result` makes the result from the report.
+// The result also has the triples that the validation read.
 function validation({ rudof, endpoint }, validate, validateAsync, result) {
   const withTriples = (report, r) => {
     const readTriples = readTriplesOf(report);
@@ -1198,8 +1237,8 @@ function validation({ rudof, endpoint }, validate, validateAsync, result) {
 // What the result says while rudof gets the schemas that a schema imports
 const READING_IMPORTS = "Reading the imported schemas…";
 
-// The base of the relative imports of a schema: the URL of its file, when it
-// is the schema of the example of a manifest loaded in the tab
+// The base of the relative imports of a schema. When the schema comes from the
+// example of a manifest in the tab, the base is the URL of its file.
 function importBase(validator, text) {
   if (!hasRelativeImports(text)) return undefined;
   // The URL it was read from
@@ -1232,7 +1271,7 @@ function validateShex() {
   const validate = () => {
     data.rudof.readShapemap($("shex-shapemap").value);
     const triples = readTriplesOn("shex");
-    return validation(data, () => data.rudof.validateShex(triples), () => data.rudof.validateShexAsync(triples), (report) => shexResult(report, start));
+    return validation(data, () => data.rudof.validateShex(triples, null, triples), () => data.rudof.validateShexAsync(triples, null, triples), (report) => shexResult(report, start));
   };
   if (!imports) {
     data.rudof.readShex(schema, format);
@@ -1257,14 +1296,14 @@ function shexResult(report, start) {
   };
 }
 
-// The results of a validation as a table that can be sorted: the details
-// that rudof writes as text, with a row of each node and shape. The verdict
-// of each row (Status of ShEx, Severity of SHACL) is marked.
+// The results of a validation as a table that you can sort. It uses the
+// details that rudof writes as text, with one row for each node and shape. The
+// verdict of each row (Status of ShEx, Severity of SHACL) is marked.
 const CONFORMS = new Set(["OK", "Conforms"]);
 
-// The prefixes that the results of a tab are written with: those declared
-// in its inputs (its data, schema, shape map…), which win, those of its
-// endpoint, and common ones
+// The prefixes for the results of a tab: the prefixes of its inputs (its data,
+// schema, shape map…), of its endpoint and the common prefixes. The prefixes
+// of the inputs have priority.
 function tabPrefixes(tab) {
   const panel = $(`panel-${tab}`);
   const declared = panel ? [...panel.querySelectorAll("textarea")].flatMap((t) => declaredPrefixes(t.value)) : [];
@@ -1282,6 +1321,15 @@ function validationTable(text, prefixes = []) {
     return e;
   };
   const verdict = parsed.header.findIndex((h) => h === "Status" || h === "Severity");
+  // ShEx (rudof 0.3.40 or later): the Summary column is cut, and the full
+  // details of the associations that fail follow the table
+  const summary = parsed.header.indexOf("Summary");
+  if (summary >= 0) {
+    const full = parseShexDetails(text);
+    const [node, shape] = ["Node", "Shape"].map((h) => parsed.header.indexOf(h));
+    parsed.header[summary] = "Details";
+    for (const row of parsed.rows) row[summary] = full.get(`${row[node]}@${row[shape]}`) ?? row[summary];
+  }
   const details = parsed.header.indexOf("Details");
   const rows = parsed.rows.map((row) =>
     el(
@@ -1362,9 +1410,9 @@ function serializeDctapSchema() {
   return rudof.serializeCurrentShex(format);
 }
 
-// The configuration of SHACL validation: the recursion semantics, and the
-// results that rudof keeps: the errors, and the evidences (why nodes
-// conform), of every constraint or of the shapes only.
+// The configuration of SHACL validation: the recursion semantics and the
+// results that rudof keeps. The results are the errors and the evidences (why
+// nodes conform), for all the constraints or only for the shapes.
 function shaclConfig() {
   const flag = (id) => String($(id).checked);
   return [
@@ -1408,9 +1456,9 @@ function shaclShapes() {
   return shapesOfData() ? null : $("shacl-shapes").value;
 }
 
-// The target declarations (optional): RDF triples, such as
-// :PersonShape sh:targetNode :alice, merged with the shapes graph before the
-// validation. rudof reads both as RDF data in a session of their own, and
+// The target declarations (optional): RDF triples, such as :PersonShape
+// sh:targetNode :alice. The page merges them with the shapes graph before the
+// validation. rudof reads both as RDF data in a separate session, and then
 // reads the merged graph as the shapes.
 function hasTargets() {
   return Boolean($("shacl-targets").value.trim());
@@ -1457,7 +1505,7 @@ function validateShacl() {
   const note = shapesNote();
   // The fetch strategy of the configuration (null), and the triples read
   const triples = readTriplesOn("shacl");
-  return validation(data, () => data.rudof.validateShacl(mode, null, triples), () => data.rudof.validateShaclAsync(mode, null, triples), (report) => {
+  return validation(data, () => data.rudof.validateShacl(mode, null, triples, null, triples), () => data.rudof.validateShaclAsync(mode, null, triples, null, triples), (report) => {
     const result = shaclResult(report, start);
     return { ...result, verdict: result.verdict + note };
   });
@@ -1467,7 +1515,7 @@ function shaclResult(report, start) {
   const millis = performance.now() - start;
   const violations = report.entries.filter((e) => e.severity === "Violation").length;
   const others = report.entries.length - violations;
-  // Without the errors, rudof doesn't say them
+  // Without the errors, rudof does not say them
   const errors = $("shacl-errors").checked ? `: ${count(violations, "violation")}${others ? `, ${count(others, "other result")}` : ""}` : "";
   return {
     verdict: report.conforms ? "Conforms" : `Does not conform${errors}`,
@@ -1580,7 +1628,7 @@ function convertPg() {
     const graph = JSON.parse(rudof.serializeData("json"));
     size = `${count(graph.nodes.length, "node")} and ${count(graph.edges.length, "edge")}, `;
   } catch {
-    // rudof versions before 0.3.23 don't write property graphs as JSON.
+    // rudof versions before 0.3.23 do not write property graphs as JSON.
   }
   const millis = performance.now() - start;
   return { size, kind: "ok", millis, verdict: `${size}YARS-PG → ${label("pg-result-format")}` };
@@ -1680,7 +1728,7 @@ function runSparql() {
 }
 
 // A query that the page sends to an endpoint itself (see endpoint.js), when
-// rudof can't. Its graphs are read with rudof, and written in N-Triples, as
+// rudof cannot. Its graphs are read with rudof, and written in N-Triples, as
 // rudof gives the graphs of local queries.
 async function runSparqlOnEndpoint(endpoint) {
   const query = $("sparql-query").value;
@@ -1840,9 +1888,9 @@ function serializeSchema(language) {
 }
 
 // ---------------------------------------------------------------------------
-// Compare: two RDF graphs, or two schemas (compare.js). What rudof can't
+// Compare: two RDF graphs, or two schemas (compare.js). What rudof cannot
 // compare yet (property graphs, the schemas of other languages) is in the
-// menus, and can't be chosen.
+// menus, and cannot be chosen.
 
 function setupCompare() {
   setOptions($("compare-data-kind"), DATA_KINDS.map(([value, text, enabled]) => option(value, text, enabled)));
@@ -1883,7 +1931,7 @@ function compareRdfData() {
   try {
     diff = rudof.diffData(data1, data2, format1, format2, null, null, null, $("compare-data-mode").value);
   } catch (e) {
-    // rudof doesn't say which one can't be read
+    // rudof does not say which one cannot be read
     for (const n of [1, 2]) {
       try {
         rudof.resetData();
@@ -1946,10 +1994,10 @@ function compareSchemasOf() {
 
 // ---------------------------------------------------------------------------
 // Generate (generate.js): synthetic data from the schema of the tab, validated
-// with it right away. As in Validate, the schema is the first box, and the
-// data generated the second one, which can be edited: the validations, Open
-// in and Download take its text. The result under them has the summary, the
-// type map, the ShapeMap, the error report and the validation.
+// with it right away. As in Validate, the schema is the first box and the
+// generated data is the second box. You can edit the data. The validations,
+// Open in and Download use its text. The result under them has the summary,
+// the type map, the ShapeMap, the error report and the validation.
 
 // What the box of the generated data has: [the key of the generated data,
 // its view]
@@ -2048,8 +2096,8 @@ const schemaText = (text) => text.replace(/\r?\n$/, "");
 let generateEntry;
 let generateLoaded;
 
-// Says which example the tab has: its section (the example) and its label
-// (the kind of data), or that the schema is not one of an example
+// Shows the example of the tab: its section (the example) and its label (the
+// type of data). If the schema is not from an example, it tells this.
 function showGenerateExample() {
   const entry = generateEntry;
   const name = entry ? [entry.sections?.at(-1), entry.label].filter(Boolean).join(" · ") : "";
@@ -2077,9 +2125,9 @@ async function loadGenerateEntry() {
   }
 }
 
-// The examples of the tab: the first one, or, when a permalink gave the
-// schema, the example that has it (and the kind of data of its
-// configuration), so that the other languages have it too
+// The examples of the tab. This is the first example, or the example of the
+// schema when the schema comes from a permalink (with the type of data of its
+// configuration). Thus the other languages also have it.
 async function setupGenerateExamples() {
   try {
     const { sections } = await generateManifest();
@@ -2180,7 +2228,7 @@ const validators = {
   "compare-schemas": { validate: compareSchemasOf, serialize: () => last["compare-schemas"].report },
   gen: { validate: generateTab, serialize: serializeGenerateTab },
 };
-// PGSchema has one syntax, PGSchemaC, which rudof can't write yet.
+// PGSchema has one syntax, PGSchemaC, which rudof cannot write yet.
 for (const language of ["shex", "shacl"]) {
   validators[`${language}-schema`] = { validate: () => readSchema(language), serialize: () => serializeSchema(language) };
 }
@@ -2225,13 +2273,14 @@ for (const prefix of CONVERTERS) {
 }
 
 
-// The last run of each tab, so that only its result is shown (a query on an
-// endpoint takes a while, and can be run again meanwhile).
+// The last run of each tab. The page shows only its result, because a query on
+// an endpoint can take a long time, and the tab can run again during that
+// time.
 const running = {};
 
 // ---------------------------------------------------------------------------
-// What the runs on endpoints ask the endpoints (endpoint-log.js): under the
-// verdict, how many queries were sent and how long the run takes, with
+// The requests of the runs on endpoints (endpoint-log.js). Below the verdict,
+// the page shows the number of queries and the duration of the run, with
 // Details (the queries and the answers) and Stop.
 
 
@@ -2241,9 +2290,10 @@ function endpointUrlOf(endpoint) {
   return [...knownEndpoints, ...rudofKnownEndpoints].find(([name]) => name === endpoint || name.replace(/_/g, " ") === endpoint)?.[1] ?? endpoint;
 }
 
-// The view of the queries in the result of a tab: the progress, the limits
-// of the requests, and the table of the queries. While the run waits, the
-// result shows it; then the switch "Result | Queries" of the result does.
+// The view of the queries in the result of a tab: the progress, the limits of
+// the requests, and the table of the queries. While the run waits, the result
+// shows it. After the run, the switch "Result | Queries" of the result shows
+// it.
 function queriesViewOf(prefix) {
   const box = $(`${prefix}-result`);
   let view = box.querySelector(".queries-view");
@@ -2312,7 +2362,7 @@ function showEndpointLog(prefix, endpoint, onStop) {
     view.querySelector(".queries-summary").textContent = summary;
     view.querySelector(".queries-stop").hidden = !running;
     // The limits of rudof (the page sends the query of the SPARQL tab itself
-    // when rudof can't)
+    // when rudof cannot)
     const limits = endpointLimitsOf(endpoint);
     const strategy = (strategyOf(prefix) === "dereference" ? " · the RDF of the IRIs of the nodes (dereference)" : "") + shaclFetchText(prefix);
     view.querySelector(".queries-limits span").textContent = rudofEndpoints
@@ -2357,10 +2407,10 @@ function showEndpointLog(prefix, endpoint, onStop) {
   return log;
 }
 
-// The limits that apply to the requests of a tab: the SPARQL tab sends one
-// query; SHACL gets the data as its settings say (shaclFetchText); the
-// nodes of a query are those of a shape map, which dereferencing gets one
-// by one
+// The limits that apply to the requests of a tab. The SPARQL tab sends one
+// query. SHACL gets the data as its settings tell (shaclFetchText). The nodes
+// of a query are the nodes of a shape map, and dereferencing gets them one at
+// a time.
 function limitsOfTab(prefix) {
   if (prefix === "sparql" || prefix === "shacl") return ["interval"];
   if (strategyOf(prefix) === "dereference") return ["interval", "concurrent"];
@@ -2388,7 +2438,7 @@ async function run(prefix) {
   const { validate, serialize } = validators[prefix];
   const token = (running[prefix] = {});
   // A stopped run of the tab ends first (at most STOPPING_WAIT): its
-  // requests and those of the new run can't be told apart
+  // requests and those of the new run cannot be told apart
   const previous = currentLogs[prefix];
   if (previous && isStopping(previous)) {
     showResult(prefix, { verdict: "Stopping the previous run…", kind: "running", output: "" });
@@ -2435,7 +2485,7 @@ async function run(prefix) {
       if (running[prefix] !== token) return;
     }
     // The session that ran on an endpoint has the results now, and the
-    // number of requests it sent (rudof can't say it while it waits)
+    // number of requests it sent (rudof cannot say it while it waits)
     if (log && result.session?.requestCount) log.rudofCount = Number(result.session.requestCount());
     if (result.session) {
       sessions[prefix] = result.session;
@@ -2482,15 +2532,17 @@ for (const prefix of Object.keys(validators)) {
 // ---------------------------------------------------------------------------
 // Manifests
 //
-// ?manifestURL=<url> lists the examples of a manifest (see manifest.js) above
-// the tabs, and ?example=<n> loads the n-th one (from 1), unless the URL has
-// the inputs too (a permalink of the example, maybe edited). An example is
-// loaded in the tab of its action (data, validate, query or schema), and waits for
-// the button of the tab (Validate, Run query, Convert). manifest.js, with its
-// YAML parser, is only loaded then.
+// ?manifestURL=<url> shows the examples of a manifest (see manifest.js) above
+// the tabs. ?example=<n> loads the example number n (from 1). It does not load
+// it if the URL also has the inputs (a permalink of the example, possibly with
+// changes). The page loads an example in the tab of its action (data,
+// validate, query or schema). Then the example waits for the button of the tab
+// (Validate, Run query, Convert). The page loads manifest.js and its YAML
+// parser only at that time.
 
-// The example loaded last, and the text it put in each input, to compare the
-// result with the one the manifest expects while the inputs are unchanged.
+// The last example that the page loaded, and the text that it put in each
+// input. While the inputs do not change, the page compares the result with the
+// result that the manifest expects.
 let loadedExample;
 let choosing;
 
@@ -2511,7 +2563,7 @@ function exampleOption(example) {
   return option;
 }
 
-// The examples that can't be run, and why: below the list, closed until the
+// The examples that cannot be run, and why: below the list, closed until the
 // user opens it. Each one has the reason, a hint, a link to the help page,
 // and the entry as the demo read it.
 function showProblems(examples) {
@@ -2598,9 +2650,9 @@ async function loadManifest(manifestURL) {
   if (first && !hasState(params)) chooseExample(manifest, first);
 }
 
-// The examples of a manifest with sections: a tree of sections, which open
-// and close with a click on their titles, and of examples, which load with a
-// click. The sections are closed, but those of the example of the URL.
+// The examples of a manifest with sections, as a tree. A click on the title of
+// a section opens or closes it. A click on an example loads it. The sections
+// are closed, but those of the example of the URL.
 function showSections(manifest, tree, chosen) {
   const el = (tag, props = {}, ...children) => {
     const e = Object.assign(document.createElement(tag), props);
@@ -2683,8 +2735,8 @@ async function chooseExample(manifest, example) {
     return;
   }
   if (choosing !== token) return; // another example was chosen meanwhile
-  // The prefix of the ids of the tab (the Schema tab has a target for each
-  // language), and the selects that go before the inputs
+  // The prefix of the ids of the tab, and the selects to set before the
+  // inputs. The Schema tab has a target for each language.
   const { tab, validator = example.target, selects = {} } = manifest.TARGETS[example.target];
   for (const [id, value] of Object.entries(selects)) {
     $(id).value = value;
@@ -2782,9 +2834,10 @@ async function loadRudof(url) {
 let rudofUrl;
 let restarts = 0;
 
-// Loads a new instance of rudof, after it crashed: the same URL with another
-// fragment is another module, with its own WebAssembly memory (its files come
-// from the cache). The sessions and the results of the old one are dropped.
+// Loads a new instance of rudof after a crash. The same URL with a different
+// fragment is a different module, with its own WebAssembly memory. Its files
+// come from the cache. The sessions and the results of the old one are
+// dropped.
 async function restartRudof() {
   for (const b of document.querySelectorAll('button[id$="-validate"]')) b.disabled = true;
   setStatus("loading", "rudof stopped working: loading it again…");

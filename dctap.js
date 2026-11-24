@@ -1,17 +1,17 @@
 // DCTAP (https://www.dublincore.org/specifications/dctap/): tabular
 // application profiles, which rudof converts to ShEx. The names of DCTAP are
-// prefixed names (foaf:name) or names without prefix (Person), so rudof needs
-// the prefixes and the base IRI of the profile. The demo gives them as Turtle
-// declarations,
+// prefixed names (foaf:name) or names without a prefix (Person). Thus rudof
+// needs the prefixes and the base IRI of the profile. The demo gives them as
+// Turtle declarations,
 //
 //   BASE <http://example.org/>
 //   PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 //
 // which this module turns into the configuration of rudof (TOML).
 
-// The style of the cells of each column of DCTAP (in lower case, as DCTAP
-// headers are read in any case): for the highlighting of profiles
-// (languages/dctap) and their table view (table-view.js)
+// The style of the cells of each column of DCTAP, for the highlighting of
+// profiles (languages/dctap) and their table view (table-view.js). The names
+// are in lower case because DCTAP headers can be in any case.
 export const COLUMNS = {
   shapeid: "typeName",
   shapelabel: "string",
@@ -71,12 +71,11 @@ export function parsePrefixes(text) {
 
 const toml = (value) => JSON.stringify(value);
 
-// The configuration of rudof (TOML) for a profile with these declarations:
-// the base IRI of names without prefix, the prefixes (with the basic ones of
-// rudof), and the separator of the values of picklists.
-// The base of the sections of the configuration of rudof that read IRIs:
-// rudof only takes its base from the current directory when it is not set,
-// which it can't do in WebAssembly.
+// The configuration of rudof (TOML) for a profile with these declarations. It
+// has the base IRI of names without a prefix, the prefixes (with the basic
+// prefixes of rudof) and the separator of the values of picklists. The base of
+// the sections of the configuration of rudof that read IRIs. Without a base,
+// rudof uses the current directory, but it cannot do this in WebAssembly.
 export const BASE_CONFIG = ["rdf", "shex", "service"].map((section) => `[${section}]\nbase_iri = ${toml(RUDOF_BASE)}\n`).join("\n");
 
 export function dctapConfig(declarations, { picklistSeparator = " " } = {}) {

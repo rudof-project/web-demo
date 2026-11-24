@@ -1,5 +1,5 @@
-// The conversions of the Schema tab (schema-convert.js): every conversion
-// that the menus offer works in rudof, and the others are marked as not
+// The conversions of the Schema tab (schema-convert.js). Each conversion in
+// the menus works in rudof. The menus show the other conversions as not
 // available.
 
 import { readFileSync } from "node:fs";

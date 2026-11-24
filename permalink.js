@@ -1,6 +1,6 @@
-// Permalinks: the inputs and options of the tab shown, in the query of the
-// URL, e.g. ?schema=…&data=…&shape-map=…#validate/shex. demo.js writes them
-// after each operation, and reads them when the page opens.
+// Permalinks: the inputs and options of the visible tab, in the query of the
+// URL. For example: ?schema=…&data=…&shape-map=…#validate/shex. demo.js writes
+// them after each operation, and reads them when the page opens.
 //
 // Servers refuse URLs that are too long (414 URI Too Long), and the inputs
 // of a tab can be long (the schemas of Generate). When the query is longer
@@ -11,8 +11,8 @@
 import { deflateSync, inflateSync, strToU8, strFromU8 } from "fflate";
 
 // The parameters of each tab, and the id of the input or select each one is
-// read from and written to. The tab is in the fragment of the URL; a URL
-// without one is for the tab its parameters are for (see panelOfParams).
+// read from and written to. The tab is in the fragment of the URL. For a URL
+// without a fragment, the parameters tell the tab (see panelOfParams).
 export const PANELS = {
   convert: {
     section: "schema",
@@ -185,7 +185,7 @@ export function permalinkQuery(pairs) {
 }
 
 // The parameters of a permalink, with its compressed inputs expanded.
-// Throws when they can't be read (a link cut, or changed).
+// Throws when they cannot be read (a link cut, or changed).
 export function unpackParams(params) {
   if (!params.has(PACKED_PARAM)) return params;
   const expanded = new URLSearchParams(unpackText(params.get(PACKED_PARAM)));

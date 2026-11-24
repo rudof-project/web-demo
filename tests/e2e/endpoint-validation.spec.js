@@ -53,8 +53,8 @@ test.describe("with rudof with endpoints", () => {
     await open(page, "#validate/shex");
     await expect(page.locator("#shex-endpoint-data")).toBeHidden();
     await page.locator("#shex-endpoint").fill(ENDPOINT);
-    // Bob's age is wrong in the endpoint: the data of the tab can't fix it,
-    // but it gives Carol, who the endpoint doesn't have
+    // Bob's age is wrong in the endpoint: the data of the tab cannot fix it,
+    // but it gives Carol, who the endpoint does not have
     await page.locator("#shex-endpoint-data").check();
     await expect(page.locator(".field:has(#shex-data)")).not.toHaveClass(/unused/);
     await setInput(page, "shex-schema", SHEX);

@@ -97,6 +97,48 @@ test.describe("ShEx", () => {
     await expect(subgraph(page, "shex")).toBeVisible();
   });
 
+  test("two buttons show the visited triples that are valid and those that are not", async ({ page }) => {
+    // :dan knows :carol, who has no :name, so :dan@:Person fails
+    await setInput(page, "shex-data", `${DATA}\n:dan :name "Dan" ; :knows :carol .`);
+    await setInput(page, "shex-shapemap", ":alice@:Person, :dan@:Person");
+    await page.locator("#shex-read-triples").check();
+    await validate(page, "shex");
+    await expect(block(page, "shex").locator("summary")).toContainText("3 valid, 2 invalid");
+    await block(page, "shex").locator("summary").click();
+    const valid = page.getByRole("button", { name: /^Visited triples valid/ });
+    const invalid = page.getByRole("button", { name: /^Visited triples invalid/ });
+    await expect(valid).toHaveText("Visited triples valid (3)");
+    await expect(invalid).toHaveText("Visited triples invalid (2)");
+    // The valid subgraph is shown first
+    await expect(valid).toHaveAttribute("aria-pressed", "true");
+    await expect(subgraph(page, "shex")).toContainText('"Alice"');
+    await expect(subgraph(page, "shex")).not.toContainText("Dan");
+    await invalid.click();
+    await expect(invalid).toHaveAttribute("aria-pressed", "true");
+    await expect(valid).toHaveAttribute("aria-pressed", "false");
+    await expect(subgraph(page, "shex")).toContainText('"Dan"');
+    await expect(subgraph(page, "shex")).not.toContainText("Alice");
+    // In the format chosen, and in the diagram
+    await page.locator("#shex-read-triples-format").selectOption("ntriples");
+    await expect(subgraph(page, "shex")).toContainText('<http://example.org/dan> <http://example.org/knows> <http://example.org/carol> .');
+    await page.locator("#shex-read-triples-visualize").click();
+    const box = page.locator("#shex-read-triples-visual");
+    await box.getByRole("button", { name: "Show PlantUML source" }).click();
+    await expect(box.locator(".visual-source")).toContainText("Dan");
+    await expect(box.locator(".visual-source")).not.toContainText("Alice");
+    await valid.click();
+    await expect(box.locator(".visual-source")).toContainText("Alice");
+    await expect(box.locator(".visual-source")).not.toContainText("Dan");
+  });
+
+  test("a subgraph without triples says so", async ({ page }) => {
+    await page.locator("#shex-read-triples").check();
+    await validate(page, "shex");
+    await block(page, "shex").locator("summary").click();
+    await page.getByRole("button", { name: /^Visited triples invalid/ }).click();
+    await expect(subgraph(page, "shex")).toContainText("No visited triples are invalid.");
+  });
+
   test("an error hides the subgraph", async ({ page }) => {
     await page.locator("#shex-read-triples").check();
     await validate(page, "shex");
@@ -135,6 +177,17 @@ test.describe("SHACL", () => {
     await block(page, "shacl").locator("summary").click();
     await expect(subgraph(page, "shacl")).toContainText('"Alice"');
     await expect(subgraph(page, "shacl")).not.toContainText("Bob");
+  });
+
+  test("the buttons show the visited triples that are valid and those that are not", async ({ page }) => {
+    await setInput(page, "shacl-shapes", SHAPES.replace("sh:targetNode :alice", "sh:targetNode :alice, :carol"));
+    await page.locator("#shacl-read-triples").check();
+    await validate(page, "shacl");
+    await block(page, "shacl").locator("summary").click();
+    await expect(page.locator("#shacl-subgraph-switch button[data-subgraph=valid]")).toHaveText("Visited triples valid (1)");
+    await expect(subgraph(page, "shacl")).toContainText('"Alice"');
+    await page.locator("#shacl-subgraph-switch button[data-subgraph=invalid]").click();
+    await expect(subgraph(page, "shacl")).not.toContainText('"Alice"');
   });
 
   test("the SPARQL engine can't read triples, and validates without them", async ({ page }) => {

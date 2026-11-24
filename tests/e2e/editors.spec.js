@@ -35,8 +35,9 @@ test.describe("the page", () => {
   });
 });
 
-// The inputs of RDF data, schemas and queries are one component (inputs.js):
-// each one has its label, Text | URL, and Visualize when it can be drawn
+// The inputs of RDF data, schemas and queries are one component (inputs.js).
+// Each input has its label and Text | URL. It also has Visualize when the page
+// can draw it.
 const COMPONENT_INPUTS = {
   rdf: ["rdf-data", "shex-data", "shacl-data", "shacl-targets", "dctap-data", "sparql-data", "compare-data-1", "compare-data-2"],
   schema: ["convert-schema", "shex-schema", "shacl-shapes", "dctap-schema", "pgschema-schema", "compare-schemas-1", "compare-schemas-2", "gen-schema"],

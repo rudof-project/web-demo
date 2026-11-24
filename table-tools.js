@@ -1,24 +1,24 @@
 // Tables of results that can be sorted and filtered by their columns, as in
 // a spreadsheet.
 //
-// Sorting: a click on the name of a column sorts the rows by it, in
-// ascending order, then in descending order, then in their order again.
-// Numbers are compared as numbers, and text in the order of the language,
-// with the digits in text compared as numbers (n2 before n10). Empty cells go
-// last.
+// Sort: a click on the name of a column sorts the rows by that column in
+// ascending order. The second click sorts in descending order, and the third
+// click shows the initial order. Numbers are compared as numbers, and text in
+// the order of the language, with the digits in text compared as numbers (n2
+// before n10). Empty cells go last.
 //
-// Filtering: the button next to the name of a column opens a menu with the
-// values of the column (in the rows that the filters of the other columns
-// show), to choose the ones to show, a search box, and the sort orders. The
-// filters of all the columns apply together, and a line under the table says
-// how many rows it shows.
+// Filter: the button next to the name of a column opens a menu. The menu has
+// the values of the column (in the rows that the other filters show), a search
+// box and the sort orders. Select the values to show. The filters of all the
+// columns apply together, and a line under the table says how many rows it
+// shows.
 //
-// Widths: the right border of the name of a column can be dragged to change
-// the width of the column (or moved with the arrow keys, when it has the
-// focus). Then the table keeps the widths of its columns, which grows or
-// makes it smaller, and the text that doesn't fit is cut. A double click on
-// a border gives the table its widths again. The widths stay for the next
-// table with the same columns (the table of a tab, run again).
+// Widths: drag the right border of the name of a column to change the width of
+// the column. When the border has the focus, the arrow keys also move it. Then
+// the table keeps the widths of its columns, which grows or makes it smaller,
+// and the text that does not fit is cut. A double click on a border gives the
+// table its widths again. The widths stay for the next table with the same
+// columns (the table of a tab, run again).
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 const NUMBER = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
@@ -103,8 +103,8 @@ export function makeTableTools(table) {
     doc.removeEventListener("scroll", onScroll, true);
   }
 
-  // The menu stays under its button when the page or the table scrolls (not
-  // its own list), and closes when the button is out of view
+  // The menu stays below its button when the page or the table scrolls (but
+  // not its own list). The menu closes when the button is not visible.
   function place() {
     const view = doc.defaultView;
     const rect = menu.button.getBoundingClientRect();
@@ -259,14 +259,15 @@ export function makeTableTools(table) {
   return table;
 }
 
-// The tables whose columns change their widths, the last one of each key:
-// a table drawn again (the queries to an endpoint, at each query) takes the
-// widths of the one before, also while its border is dragged
+// The tables with columns that change their widths, the last table of each
+// key. When the page draws a table again (for example, the queries to an
+// endpoint after each query), the new table gets the widths of the old table.
+// This is also true while you drag a border.
 const resizable = new Map();
 
 // The borders of the columns of a table, which change their widths (see
 // above). `key` names the table: the widths stay for the next table with the
-// same key. `fixed(th)`: the columns without a border (their width doesn't
+// same key. `fixed(th)`: the columns without a border (their width does not
 // change).
 export function makeResizable(table, { key, fixed = () => false } = {}) {
   const doc = table.ownerDocument;

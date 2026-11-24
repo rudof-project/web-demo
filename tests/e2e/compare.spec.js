@@ -1,6 +1,6 @@
 // The Compare tab (compare.js): two RDF graphs (rudof 0.3.36, diffData), or
-// two shapes of two ShEx schemas (compareSchemas). What rudof can't compare
-// yet is in the menus, and can't be chosen.
+// two shapes of two ShEx schemas (compareSchemas). What rudof cannot compare
+// yet is in the menus, and cannot be chosen.
 
 import { test, expect, open, setInput } from "./fixtures.js";
 
@@ -103,7 +103,7 @@ test.describe("Compare schemas", () => {
     await page.locator("#compare-schemas-2-label").fill("<http://example.org/Person>");
     await page.locator("#compare-schemas-validate").click();
     await expect(result(page, "compare-schemas").locator(".verdict")).toHaveText("The shape :Person of the first schema compared with the shape :Person of the second one");
-    // A shape that the schema doesn't have, and an undeclared prefix
+    // A shape that the schema does not have, and an undeclared prefix
     await page.locator("#compare-schemas-2-label").fill(":Missing");
     await page.locator("#compare-schemas-validate").click();
     await expect(page.locator("#compare-schemas-output")).toContainText("Shape not found for label http://example.org/Missing");

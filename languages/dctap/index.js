@@ -1,8 +1,9 @@
-// DCTAP profiles in CSV (https://www.dublincore.org/specifications/dctap/):
-// a stream parser that highlights each cell by its column, as the first line
-// (the header) names it. Shape ids and value shapes are types, property ids
-// are properties, mandatory and repeatable are booleans, node types are
-// keywords, labels and constraints are strings, and notes are comments.
+// DCTAP profiles in CSV (https://www.dublincore.org/specifications/dctap/). A
+// stream parser highlights each cell by its column. The first line (the
+// header) gives the names of the columns. The styles are: shape ids and value
+// shapes are types, property ids are properties, mandatory and repeatable are
+// booleans and node types are keywords. Labels and constraints are strings,
+// and notes are comments.
 // (https://codemirror.net/docs/ref/#language.StreamParser)
 
 import { COLUMNS } from "../../dctap.js";
@@ -22,7 +23,7 @@ function token(stream, state) {
     state.line += 1;
     state.column = 0;
   }
-  // A quoted cell, which can go on over lines; "" is a quote
+  // A quoted cell, which can have more than one line. "" is a quote.
   if (state.quoted) {
     while (!stream.eol()) {
       if (stream.match('""')) continue;

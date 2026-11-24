@@ -1,6 +1,6 @@
-// The options of SHACL validation: the recursion semantics (no recursion,
-// LFP, GFP), and the results to show (errors, evidences, evidences of
-// shapes only), which rudof takes from its configuration.
+// The options of SHACL validation: the recursion semantics (no recursion, LFP,
+// GFP) and the results to show (errors, evidences, only evidences of shapes).
+// rudof gets these options from its configuration.
 
 import { test, expect, open, setInput } from "./fixtures.js";
 

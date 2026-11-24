@@ -1,15 +1,15 @@
-// The settings of rudof that the user changes (the gear of the header): the
-// configuration of rudof (rudof.toml, see the configuration reference of
-// rudof) that applies to every operation of the page.
+// The settings of rudof that the user changes (the gear of the header). They
+// are the configuration of rudof (rudof.toml, see the configuration reference
+// of rudof) for all the operations of the page.
 //
 // SETTINGS lists the settings that change what rudof does in the page, by
 // sections. Any other setting can be written as TOML (`toml`), such as
 // endpoints of [rdf.endpoints.<name>], with their prefixes. The browser keeps
 // the settings (only those that differ from the defaults).
 //
-// The configuration of each operation is its own (the base IRI of the page,
-// the prefixes of a DCTAP profile, the options of SHACL…) with the settings
-// over it (configWithSettings).
+// Each operation has its own configuration (the base IRI of the page, the
+// prefixes of a DCTAP profile, the options of SHACL…). The settings replace
+// the values of this configuration (configWithSettings).
 
 import { parse, stringify } from "smol-toml";
 import { COMMON_PREFIXES } from "./prefixes.js";
@@ -17,8 +17,8 @@ import { COMMON_PREFIXES } from "./prefixes.js";
 const COLORS = ["black", "white", "gray", "red", "green", "blue", "yellow", "cyan", "light_blue", "light_green", "light_coral"];
 const colorOptions = COLORS.map((c) => [c, c.replace("_", " ")]);
 
-// Tables that rudof reads whole: a setting of one of them writes all of it,
-// with rudof's defaults for the others (those of rudof 0.3.27)
+// Tables that rudof reads as one item. A setting in one of these tables writes
+// all the table, with the defaults of rudof 0.3.27 for the other keys.
 export const GROUPS = {
   "shex2uml.class_skin": { background_color: "light_blue", border_color: "black", arrow_color: "black" },
   "rdf.visualization.uri_style": { line_color: "blue", line_thickness: 1, background_color: "white", round_corner: 25 },
@@ -199,8 +199,8 @@ function setPath(object, path, value) {
   table[keys.at(-1)] = value;
 }
 
-// A value of a setting, as written in the form (text), in its type; or
-// an error
+// Changes the value of a setting from the text of the form to its type. If
+// this is not possible, gives an error.
 export function settingValue(setting, text) {
   if (setting.type === "boolean") return Boolean(text);
   const value = String(text ?? "");
@@ -291,9 +291,10 @@ export function pageSetting(settings, key) {
   return changedValues(settings?.values ?? {})[key] ?? byKey.get(key).default;
 }
 
-// The limits of the requests to an endpoint, in its description
-// ([rdf.endpoints.<name>] of a configuration, or the TOML file of an endpoint
-// that rudof knows): { min_request_interval_ms, … }, the numbers only
+// The limits of the requests to an endpoint, from its description: {
+// min_request_interval_ms, … }, only the numbers. The description is
+// [rdf.endpoints.<name>] of a configuration, or the TOML file of an endpoint
+// that rudof knows.
 export const LIMIT_KEYS = ["min_request_interval_ms", "max_concurrent_requests", "max_nodes_per_query"];
 
 export function limitsOf(description) {

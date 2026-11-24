@@ -1,8 +1,8 @@
-// SPARQL queries on remote endpoints, with the SPARQL 1.1 protocol, for the
-// browsers where rudof can't reach endpoints: rudof built with endpoints needs
-// JSPI, which only some browsers have (see RUDOF_ENDPOINTS_MODULE in demo.js).
-// There, the page sends the query itself, and gives the results in the form
-// of the results of rudof:
+// SPARQL queries on remote endpoints with the SPARQL 1.1 protocol. The page
+// uses them in browsers where rudof cannot connect to endpoints. rudof built
+// with endpoints needs JSPI, and only some browsers have it (see
+// RUDOF_ENDPOINTS_MODULE in demo.js). There, the page sends the query itself,
+// and gives the results in the form of the results of rudof:
 //
 //   { kind: "select", variables: ["?x", …], rows: [["<iri>" | "\"v\"@en" | …]] }
 //   { kind: "ask", boolean }
@@ -16,9 +16,9 @@
 export const PAGE_ENDPOINT = "page";
 
 // The configuration of rudof (TOML) that describes an endpoint with its
-// prefixes, so that the shape maps of validations on the endpoint can use the
-// prefixes of the schema (the data of an endpoint has no prefixes). Appended
-// to a configuration with its [rdf] section, such as BASE_CONFIG of dctap.js.
+// prefixes. With it, the shape maps of validations on the endpoint can use the
+// prefixes of the schema. The data of an endpoint has no prefixes. Appended to
+// a configuration with its [rdf] section, such as BASE_CONFIG of dctap.js.
 // `limits` are the limits of the requests to the endpoint
 // (min_request_interval_ms, max_concurrent_requests, max_nodes_per_query),
 // which win over those of [rdf].
@@ -193,7 +193,7 @@ export async function queryEndpoint(endpoint, query, fetchFn = fetch) {
   if (type.includes("json") && type !== "application/ld+json") return resultsOfJson(await response.json());
   const format = GRAPH_TYPES[type];
   if (format) return { kind: "graph", text: await response.text(), format };
-  // Some endpoints don't say the type of their answer
+  // Some endpoints do not say the type of their answer
   const text = await response.text();
   if (/^\s*\{/.test(text)) return resultsOfJson(JSON.parse(text));
   return { kind: "graph", text, format: "turtle" };

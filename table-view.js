@@ -1,7 +1,7 @@
-// A table view of the CSV text of an editor (the DCTAP profile): a switch
-// between the text (CSV) and a table, whose cells can be edited. The text
-// stays the input: each change in the table writes the CSV again in the
-// textarea of the editor, and each change of the text (typed, loaded from a
+// A table view of the CSV text of an editor (the DCTAP profile). A switch
+// shows the text (CSV) or a table. You can edit the cells of the table. The
+// text is always the input. Each change in the table writes the CSV again in
+// the textarea of the editor. Each change of the text (typed, or from a
 // manifest or a permalink) draws the table again.
 
 import { parseCsv, serializeCsv } from "./csv.js";
@@ -31,8 +31,8 @@ const el = (doc, tag, props = {}, ...children) => {
   return e;
 };
 
-// textarea: the textarea of the CSV editor; container: where the table goes;
-// toggle: the buttons of the switch (data-view="csv" and "table");
+// textarea: the textarea of the CSV editor. container: the element for the
+// table. toggle: the buttons of the switch (data-view="csv" and "table").
 // cellClass(header): a class for the cells of a column, by its header.
 export function setupTableView({ textarea, container, toggle, cellClass = () => "", name = textarea.id }) {
   const doc = textarea.ownerDocument;
@@ -119,7 +119,8 @@ export function setupTableView({ textarea, container, toggle, cellClass = () => 
     }
   });
 
-  // Enter goes to the cell below (in a new row at the end); Ctrl+Enter still runs the tab.
+  // Enter moves to the cell below (in a new row at the end). Ctrl+Enter still
+  // runs the tab.
   container.addEventListener("keydown", (e) => {
     if (e.key !== "Enter" || e.ctrlKey || e.metaKey || e.target.tagName !== "INPUT") return;
     e.preventDefault();

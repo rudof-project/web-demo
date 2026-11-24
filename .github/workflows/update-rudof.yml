@@ -1,8 +1,9 @@
-# Updates @rudof/rudof to its latest release on npm: once a day, when run by
-# hand, or right away when rudof's release workflow sends a repository_dispatch
-# of type rudof-released. The update is tested before it is pushed to main, and
-# then gh-pages.yml is started to test it again and publish the page (pushes
-# made with GITHUB_TOKEN don't start workflows, a workflow_dispatch does).
+# Updates @rudof/rudof to its latest release on npm. It starts once a day, when
+# a person starts it, or when the release workflow of rudof sends a
+# repository_dispatch of type rudof-released. The workflow tests the update
+# before it pushes it to main. Then it starts gh-pages.yml, which tests the
+# update again and publishes the page. A push with GITHUB_TOKEN does not start
+# workflows, but a workflow_dispatch does.
 name: update-rudof
 
 on:

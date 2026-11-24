@@ -1,6 +1,6 @@
-// Tables of results: validations as tables (the default format of ShEx,
-// SHACL and DCTAP), sorted by clicking their headers and filtered by the
-// values of their columns.
+// Tables of results: validations as tables (the default format of ShEx, SHACL
+// and DCTAP). A click on a header sorts the table, and the values of a column
+// filter it.
 
 import { test, expect, open, setInput } from "./fixtures.js";
 
