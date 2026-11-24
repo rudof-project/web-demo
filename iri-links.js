@@ -3,6 +3,8 @@
 // text of the cell does not change, because the sort and the filters read it.
 // Only http and https IRIs are links. The links open in a new tab.
 
+import { elementIn } from "./dom.js";
+
 // The IRI that a cell names, or undefined (a literal, a blank node…)
 export function iriOf(text, prefixes = []) {
   const value = String(text ?? "").trim();
@@ -20,7 +22,7 @@ export function iriOf(text, prefixes = []) {
 
 // A link to an IRI, with a text
 export function iriLink(doc, iri, text = iri) {
-  const a = Object.assign(doc.createElement("a"), { href: iri, textContent: text, className: "iri", target: "_blank", rel: "noopener" });
+  const a = elementIn(doc, "a", { href: iri, textContent: text, className: "iri", target: "_blank", rel: "noopener" });
   a.title = iri;
   return a;
 }

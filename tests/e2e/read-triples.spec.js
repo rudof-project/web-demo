@@ -1,7 +1,7 @@
 // Read triples: the triples that a ShEx or SHACL validation reads, counted in
 // its verdict, and the subgraph they make, below its result.
 
-import { test, expect, open, setInput } from "./fixtures.js";
+import { test, expect, open, setInput, run } from "./fixtures.js";
 
 const DATA = `prefix : <http://example.org/>
 :alice :name "Alice" ; :knows :bob .
@@ -19,10 +19,6 @@ prefix sh: <http://www.w3.org/ns/shacl#>
 const block = (page, tab) => page.locator(`#${tab}-result .read-triples`);
 const subgraph = (page, tab) => page.locator(`.cm-editor[data-viewer-for="${tab}-read-triples-output"]`);
 
-async function validate(page, tab) {
-  await page.locator(`#${tab}-validate`).click();
-  await expect(page.locator(`#${tab}-result`)).not.toHaveAttribute("data-kind", "running");
-}
 
 test.describe("ShEx", () => {
   test.beforeEach(async ({ page }) => {
@@ -34,14 +30,14 @@ test.describe("ShEx", () => {
 
   test("without the option, nothing is read", async ({ page }) => {
     await expect(page.locator("#shex-read-triples")).not.toBeChecked();
-    await validate(page, "shex");
+    await run(page, "shex");
     await expect(page.locator("#shex-result .verdict")).toHaveText("Conforms: 1 node validated");
     await expect(block(page, "shex")).toBeHidden();
   });
 
   test("with the option, the verdict counts the triples and the subgraph is shown", async ({ page }) => {
     await page.locator("#shex-read-triples").check();
-    await validate(page, "shex");
+    await run(page, "shex");
     await expect(page.locator("#shex-result .verdict")).toHaveText(/^Conforms: 1 node validated · \d+ triples read \(3 distinct\)$/);
     await expect(block(page, "shex")).toBeVisible();
     await expect(block(page, "shex").locator("summary")).toContainText("Subgraph read: 3 distinct triples");
@@ -53,7 +49,7 @@ test.describe("ShEx", () => {
 
   test("the subgraph is written in the format chosen, without validating again", async ({ page }) => {
     await page.locator("#shex-read-triples").check();
-    await validate(page, "shex");
+    await run(page, "shex");
     await block(page, "shex").locator("summary").click();
     await expect(page.locator("#shex-read-triples-format")).toHaveValue("turtle");
     const timing = await page.locator("#shex-result .timing").textContent();
@@ -68,7 +64,7 @@ test.describe("ShEx", () => {
   // rudof writes, and not the diagram
   test("Visualize shows the subgraph as a diagram, and Text goes back to the viewer", async ({ page }) => {
     await page.locator("#shex-read-triples").check();
-    await validate(page, "shex");
+    await run(page, "shex");
     await block(page, "shex").locator("summary").click();
     const button = page.locator("#shex-read-triples-visualize");
     const box = page.locator("#shex-read-triples-visual");
@@ -88,7 +84,7 @@ test.describe("ShEx", () => {
     await expect(source).not.toContainText("carol");
     // A new validation draws its subgraph
     await setInput(page, "shex-shapemap", ":bob@:Person");
-    await validate(page, "shex");
+    await run(page, "shex");
     await expect(source).not.toContainText("Alice");
     await expect(source).toContainText("Bob");
     await button.click();
@@ -102,7 +98,7 @@ test.describe("ShEx", () => {
     await setInput(page, "shex-data", `${DATA}\n:dan :name "Dan" ; :knows :carol .`);
     await setInput(page, "shex-shapemap", ":alice@:Person, :dan@:Person");
     await page.locator("#shex-read-triples").check();
-    await validate(page, "shex");
+    await run(page, "shex");
     await expect(block(page, "shex").locator("summary")).toContainText("3 valid, 2 invalid");
     await block(page, "shex").locator("summary").click();
     const valid = page.getByRole("button", { name: /^Visited triples valid/ });
@@ -133,7 +129,7 @@ test.describe("ShEx", () => {
 
   test("a subgraph without triples says so", async ({ page }) => {
     await page.locator("#shex-read-triples").check();
-    await validate(page, "shex");
+    await run(page, "shex");
     await block(page, "shex").locator("summary").click();
     await page.getByRole("button", { name: /^Visited triples invalid/ }).click();
     await expect(subgraph(page, "shex")).toContainText("No visited triples are invalid.");
@@ -141,10 +137,10 @@ test.describe("ShEx", () => {
 
   test("an error hides the subgraph", async ({ page }) => {
     await page.locator("#shex-read-triples").check();
-    await validate(page, "shex");
+    await run(page, "shex");
     await expect(block(page, "shex")).toBeVisible();
     await setInput(page, "shex-schema", "this is not ShEx");
-    await validate(page, "shex");
+    await run(page, "shex");
     await expect(page.locator("#shex-result")).toHaveAttribute("data-kind", "error");
     await expect(block(page, "shex")).toBeHidden();
   });
@@ -153,7 +149,7 @@ test.describe("ShEx", () => {
 test("a permalink keeps the option and the format of the subgraph", async ({ page }) => {
   await open(page, "#validate/shex");
   await page.locator("#shex-read-triples").check();
-  await validate(page, "shex");
+  await run(page, "shex");
   await block(page, "shex").locator("summary").click();
   await page.locator("#shex-read-triples-format").selectOption("ntriples");
   await expect(page).toHaveURL(/read-triples=true/);
@@ -172,7 +168,7 @@ test.describe("SHACL", () => {
 
   test("with the native engine, the subgraph is shown", async ({ page }) => {
     await page.locator("#shacl-read-triples").check();
-    await validate(page, "shacl");
+    await run(page, "shacl");
     await expect(page.locator("#shacl-result .verdict")).toHaveText(/^Conforms · 1 triple read \(1 distinct\)$/);
     await block(page, "shacl").locator("summary").click();
     await expect(subgraph(page, "shacl")).toContainText('"Alice"');
@@ -182,7 +178,7 @@ test.describe("SHACL", () => {
   test("the buttons show the visited triples that are valid and those that are not", async ({ page }) => {
     await setInput(page, "shacl-shapes", SHAPES.replace("sh:targetNode :alice", "sh:targetNode :alice, :carol"));
     await page.locator("#shacl-read-triples").check();
-    await validate(page, "shacl");
+    await run(page, "shacl");
     await block(page, "shacl").locator("summary").click();
     await expect(page.locator("#shacl-subgraph-switch button[data-subgraph=valid]")).toHaveText("Visited triples valid (1)");
     await expect(subgraph(page, "shacl")).toContainText('"Alice"');
@@ -194,7 +190,7 @@ test.describe("SHACL", () => {
     await page.locator("#shacl-read-triples").check();
     await page.locator("#shacl-mode").selectOption("sparql");
     await expect(page.locator("#shacl-read-triples")).toBeDisabled();
-    await validate(page, "shacl");
+    await run(page, "shacl");
     await expect(page.locator("#shacl-result .verdict")).toHaveText("Conforms");
     await expect(block(page, "shacl")).toBeHidden();
     await page.locator("#shacl-mode").selectOption("native");

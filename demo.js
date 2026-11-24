@@ -2,6 +2,9 @@
 // queries (SPARQL) RDF data and property graphs. It uses the @rudof/rudof npm
 // package (rudof compiled to WebAssembly) from jsDelivr.
 
+import { el } from "./dom.js";
+import { count } from "./text.js";
+import { storageOrNone, stored, store } from "./storage.js";
 import { PANELS, hasState, panelOfParams, stateParams, queryString, inputsOfParams, permalinkQuery, unpackParams, PACKED_PARAM } from "./permalink.js";
 import { setupLayout } from "./layout.js";
 import { queryEndpoint, queryPrefixes, solutionsCsv, endpointError, endpointConfig, PAGE_ENDPOINT, KNOWN_ENDPOINTS } from "./endpoint.js";
@@ -96,14 +99,7 @@ const OTHER_ENDPOINT = "other";
 let knownEndpoints = KNOWN_ENDPOINTS;
 // The settings of rudof that the user changed (settings.js), which the
 // browser keeps
-function localStorageOrNone() {
-  try {
-    return localStorage;
-  } catch {
-    return undefined;
-  }
-}
-let settings = loadSettings(localStorageOrNone());
+let settings = loadSettings(storageOrNone());
 
 // The endpoints of the menus: those that rudof knows (the page knows some
 // before rudof is loaded), and those of the settings, with their prefixes
@@ -568,6 +564,12 @@ function subgraphIn(prefix, turtle, format) {
   }
 }
 
+// Shows a message in the place of a diagram: while PlantUML draws it, or an
+// error
+function diagramNote(image, text, className = "diagram-status") {
+  image.replaceChildren(el("p", { className, textContent: text }));
+}
+
 // Visualize: PlantUML draws the subgraph as a diagram, which replaces the
 // viewer, as for the inputs of RDF data (setVisual). Text shows the viewer
 // again. If the diagram of the same subgraph is already there, the page does
@@ -597,7 +599,7 @@ async function setSubgraphVisual(prefix, visual, triples = last[prefix]?.readTri
     await drawDiagram(box, source);
   } catch (e) {
     sourcePre.textContent = "";
-    image.replaceChildren(Object.assign(document.createElement("p"), { className: "diagram-status error", textContent: `Could not visualize it: ${e.message ?? e}` }));
+    diagramNote(image, `Could not visualize it: ${e.message ?? e}`, "diagram-status error");
   }
 }
 
@@ -623,20 +625,10 @@ for (const prefix of ["shex", "shacl"]) {
 // CSV results, as text (in the viewer of the result) or as a table. The switch
 // of the result sets the view for all the results, and the browser keeps it.
 const CSV_VIEW_KEY = "rudof-demo-view-results";
-let csvView = "csv";
-try {
-  csvView = localStorage.getItem(CSV_VIEW_KEY) === "table" ? "table" : "csv";
-} catch {
-  // not remembered
-}
+let csvView = stored(CSV_VIEW_KEY) === "table" ? "table" : "csv";
 
 function csvTable(text, prefixes = []) {
   const [header = [], ...rows] = parseCsv(text);
-  const el = (tag, props = {}, ...children) => {
-    const e = Object.assign(document.createElement(tag), props);
-    e.append(...children);
-    return e;
-  };
   return makeTableTools(el(
     "table",
     { className: "report csv-result" },
@@ -663,11 +655,7 @@ function showCsvView(box, prefix, text = box.dataset.csvText === "true") {
 for (const button of document.querySelectorAll(".csv-switch button")) {
   button.addEventListener("click", () => {
     csvView = button.dataset.view;
-    try {
-      localStorage.setItem(CSV_VIEW_KEY, csvView);
-    } catch {
-      // not remembered
-    }
+    store(CSV_VIEW_KEY, csvView);
     for (const box of document.querySelectorAll(".result:has(.csv-switch)")) showCsvView(box, box.id.replace(/-result$/, ""));
   });
 }
@@ -680,7 +668,7 @@ function loadPlantuml() {
   plantuml ??= (async () => {
     // Graphviz (Viz.js), which PlantUML uses for layout, is a classic script.
     await new Promise((resolve, reject) => {
-      const script = Object.assign(document.createElement("script"), { src: `${PLANTUML_BASE}viz-global.js` });
+      const script = el("script", { src: `${PLANTUML_BASE}viz-global.js` });
       script.onload = resolve;
       script.onerror = () => reject(new Error("could not load Graphviz"));
       document.head.append(script);
@@ -721,7 +709,7 @@ function setupVisualInputs() {
     // The field of the input (inputs.js): a .field, or a .sub-field in one
     const field = textarea.parentElement;
     const head = field.querySelector(":scope > .field-head");
-    const button = Object.assign(document.createElement("button"), {
+    const button = el("button", {
       type: "button",
       className: "secondary small visualize",
       id: `${id}-visualize`,
@@ -763,7 +751,7 @@ async function setVisual(id, visual) {
     return;
   }
   const image = box.querySelector(".diagram-image");
-  const note = (text, className = "diagram-status") => image.replaceChildren(Object.assign(document.createElement("p"), { className, textContent: text }));
+  const note = (text, className) => diagramNote(image, text, className);
   const token = {};
   diagrams.set(box, token);
   box.querySelector(".visual-source").textContent = "";
@@ -798,7 +786,7 @@ async function drawDiagram(box, source) {
   const download = box.querySelector('[data-action="download"]');
   const token = {};
   diagrams.set(box, token);
-  const note = (text, className = "diagram-status") => image.replaceChildren(Object.assign(document.createElement("p"), { className, textContent: text }));
+  const note = (text, className) => diagramNote(image, text, className);
   note(plantuml ? "Drawing the diagram…" : "Loading PlantUML (about 2 MB, only the first time)…");
   download.removeAttribute("href");
   try {
@@ -856,10 +844,6 @@ const TERMINAL_ESCAPES = /\x1b\]8;[^\x1b\x07]*(?:\x1b\\|\x07)|\x1b\[[0-9;]*[A-Za
 
 function plain(text) {
   return text.replace(TERMINAL_ESCAPES, "");
-}
-
-function count(n, word, plural = `${word}s`) {
-  return `${n} ${n === 1 ? word : plural}`;
 }
 
 function setStatus(kind, text) {
@@ -1315,11 +1299,6 @@ function tabPrefixes(tab) {
 function validationTable(text, prefixes = []) {
   const parsed = parseBoxTable(text);
   if (!parsed) return text; // no results: rudof says so in text
-  const el = (tag, props = {}, ...children) => {
-    const e = Object.assign(document.createElement(tag), props);
-    e.append(...children);
-    return e;
-  };
   const verdict = parsed.header.findIndex((h) => h === "Status" || h === "Severity");
   // ShEx (rudof 0.3.40 or later): the Summary column is cut, and the full
   // details of the associations that fail follow the table
@@ -1552,11 +1531,6 @@ function validatePgschema() {
 
 // A table of the report: one row per node or edge of the type map.
 function pgschemaTable(report) {
-  const el = (tag, props = {}, ...children) => {
-    const e = Object.assign(document.createElement(tag), props);
-    e.append(...children);
-    return e;
-  };
   const rows = report.entries.map((e) =>
     el(
       "tr",
@@ -1780,23 +1754,18 @@ function termCell(term, prefixes) {
     if (lang) note = `@${lang}`;
     else if (datatype && !plain.includes(datatype)) note = qualify(datatype);
   }
-  const code = Object.assign(document.createElement("code"), { title: term });
+  const code = el("code", { title: term });
   // An IRI is a link (of the http and https IRIs)
   code.append(iri && /^https?:\/\//i.test(iri[1]) ? iriLink(document, iri[1], text) : text);
   // Sorted by the value, without its note
   td.dataset.sort = text;
   td.append(code);
-  if (note) td.append(" ", Object.assign(document.createElement("span"), { className: "term-note", textContent: note }));
+  if (note) td.append(" ", el("span", { className: "term-note", textContent: note }));
   return td;
 }
 
 // Solutions of a SELECT query as a table; unbound values are left empty.
 function sparqlTable({ variables, rows }, prefixes) {
-  const el = (tag, props = {}, ...children) => {
-    const e = Object.assign(document.createElement(tag), props);
-    e.append(...children);
-    return e;
-  };
   return makeTableTools(
     el(
       "table",
@@ -2208,7 +2177,7 @@ function setupGenerate() {
   $("gen-download").addEventListener("click", () => {
     const view = $("gen-result-format").value;
     const [name, text] = generatedFile(currentGenerated(), view === "summary" ? generatedView : view);
-    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([text ?? ""], { type: "text/plain" })), download: name });
+    const a = el("a", { href: URL.createObjectURL(new Blob([text ?? ""], { type: "text/plain" })), download: name });
     a.click();
     URL.revokeObjectURL(a.href);
   });
@@ -2298,11 +2267,6 @@ function queriesViewOf(prefix) {
   const box = $(`${prefix}-result`);
   let view = box.querySelector(".queries-view");
   if (view) return view;
-  const el = (tag, props = {}, ...children) => {
-    const e = Object.assign(document.createElement(tag), props);
-    e.append(...children);
-    return e;
-  };
   const stop = el("button", { type: "button", className: "link queries-stop", title: "Stop waiting for the endpoint: the queries that wait are aborted" }, "Stop");
   const options = el("button", { type: "button", className: "link queries-options", title: "The limits of the requests to endpoints, in the settings" }, "Options");
   options.addEventListener("click", () => settingsDialog?.open("endpoints"));
@@ -2571,11 +2535,6 @@ function showProblems(examples) {
   const box = $("manifest-problems");
   box.hidden = problems.length === 0;
   if (!problems.length) return;
-  const el = (tag, props = {}, ...children) => {
-    const e = Object.assign(document.createElement(tag), props);
-    e.append(...children);
-    return e;
-  };
   box.querySelector("summary").textContent =
     problems.length === 1 ? "Why 1 example can't be run" : `Why ${problems.length} examples can't be run`;
   box.querySelector("ul").replaceChildren(
@@ -2636,7 +2595,7 @@ async function loadManifest(manifestURL) {
     const items = manifest.groupExamples(examples).flatMap(({ name, examples }) => {
       const options = examples.map(exampleOption);
       if (!name) return options;
-      const group = Object.assign(document.createElement("optgroup"), { label: name });
+      const group = el("optgroup", { label: name });
       group.append(...options);
       return [group];
     });
@@ -2654,11 +2613,6 @@ async function loadManifest(manifestURL) {
 // a section opens or closes it. A click on an example loads it. The sections
 // are closed, but those of the example of the URL.
 function showSections(manifest, tree, chosen) {
-  const el = (tag, props = {}, ...children) => {
-    const e = Object.assign(document.createElement(tag), props);
-    e.append(...children);
-    return e;
-  };
   const box = $("manifest-sections");
   const examplesIn = (items) => items.reduce((n, item) => n + (item.example ? 1 : examplesIn(item.section.items)), 0);
   const itemOf = (item) => {
@@ -2778,7 +2732,7 @@ async function chooseExample(manifest, example) {
 
   const parts = [];
   if (example.status) {
-    parts.push(Object.assign(document.createElement("span"), { className: "expected", textContent: `Expected: ${example.status}.` }), " ");
+    parts.push(el("span", { className: "expected", textContent: `Expected: ${example.status}.` }), " ");
   }
   if (example.comment) parts.push(example.comment);
   for (const note of example.notes) parts.push("\n", note);
@@ -2814,7 +2768,7 @@ function setupSettings() {
     onSave: (s) => {
       settings = s;
       settingsStamp += 1;
-      saveSettings(localStorageOrNone(), s);
+      saveSettings(storageOrNone(), s);
       refreshKnownEndpoints();
     },
   });

@@ -738,6 +738,38 @@ With [`layout.js`](layout.js), you can arrange the boxes of all the tabs
   Esc, sets the normal size again. Ctrl+Enter also runs the tab in full
   screen.
 
+## Phones and touch screens
+
+On screens narrower than 760 px:
+
+- The section tabs get their own row below **Permalink**, and wrap to a second
+  line.
+- The boxes are always one above the other, and the page hides the **Layout**
+  menu.
+- Fields and editors use text of 16 px. iOS zooms in on a field with smaller
+  text when it gets the focus.
+
+On touch screens, checkboxes, switches, the filter buttons of tables and the
+borders of columns are larger (a minimum of 24 × 24 px).
+[`tests/e2e/mobile.spec.js`](tests/e2e/mobile.spec.js) tests the page on a
+phone.
+
+## Shared helpers
+
+All the modules use these helpers. Do not write them again in a module:
+
+| File | Helpers |
+|------|---------|
+| [`dom.js`](dom.js) | `el(tag, props, ...children)` makes an element of the page. `elementIn(doc, tag, props, ...children)` makes it in a different document (for the modules that the unit tests run with jsdom). |
+| [`text.js`](text.js) | `count(n, word, words)`: "1 triple", "2 triples". With `{ grouped: true }`: "1,200 nodes". |
+| [`storage.js`](storage.js) | `stored(key)`, `store(key, value)` and `storageOrNone()`: the browser storage. They do not fail when the browser refuses access. |
+| [`languages/csv.js`](languages/csv.js) | `readQuoted(stream, state)`: reads a quoted CSV cell, for the CSV and DCTAP highlighting. |
+
+The tests also have helpers. `textarea(id)` in
+[`tests/unit/page.js`](tests/unit/page.js) gives the text of a textarea of the
+page. `run(page, prefix)` in [`tests/e2e/fixtures.js`](tests/e2e/fixtures.js)
+runs a tab and waits for its result.
+
 ## Examples
 
 [`examples/`](examples/) has examples of all the input formats (RDF/XML,

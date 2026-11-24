@@ -4,32 +4,14 @@
 // the textarea of the editor. Each change of the text (typed, or from a
 // manifest or a permalink) draws the table again.
 
+import { elementIn as el } from "./dom.js";
+import { stored, store } from "./storage.js";
 import { parseCsv, serializeCsv } from "./csv.js";
 import { makeResizable } from "./table-tools.js";
 
 const VIEW_KEY = "rudof-demo-view-";
 
-function stored(key) {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
 
-function store(key, value) {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    // not remembered
-  }
-}
-
-const el = (doc, tag, props = {}, ...children) => {
-  const e = Object.assign(doc.createElement(tag), props);
-  e.append(...children);
-  return e;
-};
 
 // textarea: the textarea of the CSV editor. container: the element for the
 // table. toggle: the buttons of the switch (data-view="csv" and "table").

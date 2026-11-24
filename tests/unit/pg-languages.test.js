@@ -2,22 +2,13 @@
 // schemas and type maps (languages/pgschema). They parse the examples of the
 // page and the output of rudof. They highlight each part with its tag.
 
-import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { highlightTree, tagHighlighter, tags as t } from "@lezer/highlight";
 import { Rudof } from "@rudof/rudof";
 import { yarspgLanguage } from "../../languages/yars-pg/index.js";
 import { pgschemaLanguage, typemapLanguage } from "../../languages/pgschema/index.js";
-import { exampleText } from "../../inputs.js";
+import { textarea } from "./page.js";
 
-const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
-const unescape = (text) => text.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
-// The text of a textarea of the page: its example (data-example), or its text
-const textarea = (id) => {
-  const [, attributes, text] = html.match(new RegExp(`<textarea id="${id}"([^>]*)>([\\s\\S]*?)</textarea>`));
-  const example = attributes.match(/data-example="([^"]+)"/);
-  return example ? exampleText(example[1]) : unescape(text);
-};
 
 // The parts of a text with a syntax error
 function errors(language, text) {

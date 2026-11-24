@@ -72,6 +72,7 @@ describe("vite build", () => {
 
   it("copies the stylesheet and the logo", () => {
     expect(assets().some((f) => f.endsWith(".css"))).toBe(true);
-    expect(assets().some((f) => f.endsWith(".svg")) || existsSync(join(outDir, "images", "logo.svg"))).toBe(true);
+    const logo = (name) => assets().some((f) => f.startsWith(name.split(".")[0]) && f.endsWith(".png")) || existsSync(join(outDir, "images", name));
+    for (const name of ["logo.png", "favicon-32.png", "favicon-64.png", "apple-touch-icon.png"]) expect(logo(name), name).toBe(true);
   });
 });

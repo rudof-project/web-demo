@@ -3,6 +3,7 @@
 // rudof merges all the data (readData with merge) before it converts,
 // validates or queries it.
 
+import { elementIn as el } from "./dom.js";
 import { setupEditors, editorFor } from "./codemirror-setup.js";
 import { expandInput } from "./inputs.js";
 
@@ -12,11 +13,6 @@ export const DATA_TABS = ["rdf", "shex", "shacl", "dctap", "sparql"];
 const extras = new Map(DATA_TABS.map((prefix) => [prefix, []]));
 let added = 0;
 
-function el(doc, tag, props = {}, ...children) {
-  const e = Object.assign(doc.createElement(tag), props);
-  e.append(...children);
-  return e;
-}
 
 // Their labels say their order: RDF data 2, 3…
 function renumber(prefix) {

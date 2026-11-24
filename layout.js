@@ -13,6 +13,8 @@
 // The heights of the editors and of the results change with the handle at
 // their bottom right corner (CSS resize).
 
+import { stored, store } from "./storage.js";
+
 export const LAYOUTS = {
   side: "Side by side",
   "side-swapped": "Side by side, swapped",
@@ -24,23 +26,6 @@ export const DEFAULT_LAYOUT = "side";
 const LAYOUT_KEY = "rudof-demo-layout";
 const SPLIT_KEY = "rudof-demo-split-";
 
-// The browser storage may be missing or refuse access (private windows):
-// then nothing is remembered.
-function stored(key) {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-function store(key, value) {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    // not remembered
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Layouts

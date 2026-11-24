@@ -3,17 +3,23 @@
 // cells. (DCTAP profiles, which are CSV too, have their own language, which
 // knows their columns: dctap/.)
 
+// Reads the rest of a quoted cell on the current line. In a quoted cell, ""
+// is a quote. A quote alone closes the cell (state.quoted becomes false).
+export function readQuoted(stream, state) {
+  while (!stream.eol()) {
+    if (stream.match('""')) continue;
+    if (stream.next() === '"') {
+      state.quoted = false;
+      return;
+    }
+  }
+}
+
 function token(stream, state) {
   if (stream.sol() && !state.quoted) state.line += 1;
   // A quoted cell, which can have more than one line. "" is a quote.
   if (state.quoted) {
-    while (!stream.eol()) {
-      if (stream.match('""')) continue;
-      if (stream.next() === '"') {
-        state.quoted = false;
-        break;
-      }
-    }
+    readQuoted(stream, state);
     return state.line === 0 ? "keyword" : "string";
   }
   if (stream.eat(",")) return "punctuation";

@@ -20,6 +20,8 @@
 // table its widths again. The widths stay for the next table with the same
 // columns (the table of a tab, run again).
 
+import { elementIn as el } from "./dom.js";
+
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 const NUMBER = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
 
@@ -42,11 +44,6 @@ const savedWidths = new Map();
 export const MIN_WIDTH = 40;
 const STEP = 16;
 
-function el(doc, tag, props = {}, ...children) {
-  const e = Object.assign(doc.createElement(tag), props);
-  e.append(...children);
-  return e;
-}
 
 export function makeTableTools(table) {
   const doc = table.ownerDocument;
@@ -309,6 +306,11 @@ export function makeResizable(table, { key, fixed = () => false } = {}) {
     handle.setAttribute("role", "separator");
     handle.setAttribute("aria-orientation", "vertical");
     handle.setAttribute("aria-label", `Width of ${label}`);
+    // A separator that has the focus needs its value: the width, in pixels
+    const showWidth = () => handle.setAttribute("aria-valuenow", String(Math.round(current().currentWidths()[column] ?? 0)));
+    handle.setAttribute("aria-valuemin", String(MIN_WIDTH));
+    handle.setAttribute("aria-valuenow", "0");
+    handle.addEventListener("focus", showWidth);
     handle.addEventListener("click", (e) => e.stopPropagation());
     handle.addEventListener("pointerdown", (e) => {
       if (e.button !== 0) return;
@@ -322,6 +324,7 @@ export function makeResizable(table, { key, fixed = () => false } = {}) {
       const move = (m) => resize(column, width + m.clientX - start);
       const up = () => {
         handle.classList.remove("dragging");
+        showWidth();
         view.removeEventListener("pointermove", move);
         view.removeEventListener("pointerup", up);
         view.removeEventListener("pointercancel", up);
@@ -339,6 +342,7 @@ export function makeResizable(table, { key, fixed = () => false } = {}) {
       if (!step) return;
       e.preventDefault();
       resize(column, current().currentWidths()[column] + step);
+      showWidth();
     });
     return handle;
   }

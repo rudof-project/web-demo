@@ -13,6 +13,8 @@
 // schemas are equivalent, or one contains the other, and it cannot compare
 // the other languages yet.
 
+import { count } from "./text.js";
+import { elementIn as el } from "./dom.js";
 import { makeTableTools } from "./table-tools.js";
 import { iriCode } from "./iri-links.js";
 
@@ -51,14 +53,13 @@ const RELATIONS = {
   different: ["The graphs are different: neither one is contained in the other", "fail"],
 };
 
-const plural = (n, word, words = `${word}s`) => `${n} ${n === 1 ? word : words}`;
 
 // The verdict of a comparison of graphs (a GraphDiff of rudof), and its kind
 export function dataVerdict(diff) {
   const [text, kind] = RELATIONS[diff.relation] ?? [`The graphs are ${diff.relation}`, "fail"];
   const differences = [];
-  if (diff.onlyInFirst.length) differences.push(`${plural(diff.onlyInFirst.length, "triple")} only in the first`);
-  if (diff.onlyInSecond.length) differences.push(`${plural(diff.onlyInSecond.length, "triple")} only in the second`);
+  if (diff.onlyInFirst.length) differences.push(`${count(diff.onlyInFirst.length, "triple")} only in the first`);
+  if (diff.onlyInSecond.length) differences.push(`${count(diff.onlyInSecond.length, "triple")} only in the second`);
   return { verdict: differences.length ? `${text} · ${differences.join(", ")}` : text, kind };
 }
 
@@ -118,11 +119,6 @@ export function compactTerm(term, prefixes = []) {
   return term;
 }
 
-function el(doc, tag, props = {}, ...children) {
-  const e = Object.assign(doc.createElement(tag), props);
-  e.append(...children);
-  return e;
-}
 
 // A table of the triples of each graph that the other graph does not have. You
 // can sort and filter the table. Also the blank nodes of the first graph that

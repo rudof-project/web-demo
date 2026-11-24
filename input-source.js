@@ -11,6 +11,8 @@
 // back, and URL gives back the last URL. "Edit as text" reads the URL and
 // puts its text in the editor.
 
+import { elementIn as el } from "./dom.js";
+
 // The format of a file by its extension, for the format menus that have it
 const EXTENSIONS = {
   ttl: "turtle", turtle: "turtle", nt: "ntriples", rdf: "rdfxml", owl: "rdfxml", xml: "rdfxml",
@@ -24,11 +26,6 @@ const sources = new Map();
 const lastUrls = new Map();
 let options = {};
 
-function el(doc, tag, props = {}, ...children) {
-  const e = Object.assign(doc.createElement(tag), props);
-  e.append(...children);
-  return e;
-}
 
 // The URL of a URL field. The field has a URL or a prefixed name with one of
 // the prefixes ([alias, iri]). For other text, the function gives the text

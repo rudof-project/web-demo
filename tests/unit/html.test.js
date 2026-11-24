@@ -1,12 +1,11 @@
 // Step 5: index.html loads codemirror-setup.js and marks the textareas that
 // become editors, with the format of their text.
 
-import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { JSDOM } from "jsdom";
 import { expandInputs } from "../../inputs.js";
+import { html } from "./page.js";
 
-const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
 const { document } = new JSDOM(html).window;
 // The fields of the inputs of RDF data, schemas and queries, as inputs.js
 // makes them when the page loads

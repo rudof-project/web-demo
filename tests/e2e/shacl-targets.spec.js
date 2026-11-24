@@ -2,7 +2,7 @@
 // merged with it before the validation, and given by manifests with targets,
 // targetsURL and targetsFormat.
 
-import { test, expect, open, setInput } from "./fixtures.js";
+import { test, expect, open, setInput, run } from "./fixtures.js";
 
 const DATA = `prefix : <http://example.org/>
 :alice :name "Alice" .
@@ -19,10 +19,6 @@ const TARGETS = `<http://example.org/PersonShape> <http://www.w3.org/ns/shacl#ta
 
 const verdict = (page) => page.locator("#shacl-result .verdict");
 
-async function validate(page) {
-  await page.locator("#shacl-validate").click();
-  await expect(page.locator("#shacl-result")).not.toHaveAttribute("data-kind", "running");
-}
 
 test.beforeEach(async ({ page }) => {
   await open(page, "#validate/shacl");
@@ -34,7 +30,7 @@ test("the target declarations are optional, under the shapes graph", async ({ pa
   await expect(page.locator("label[for=shacl-targets]")).toHaveText("Target declarations");
   await expect(page.locator("#shacl-targets")).toHaveJSProperty("value", "");
   await expect(page.locator("#shacl-targets-used")).toBeHidden();
-  await validate(page);
+  await run(page, "shacl");
   await expect(verdict(page)).toHaveText("Conforms");
 });
 
@@ -42,7 +38,7 @@ test("the target declarations are merged with the shapes graph", async ({ page }
   await setInput(page, "shacl-targets", TARGETS);
   await page.locator("#shacl-targets-format").selectOption("ntriples");
   await expect(page.locator("#shacl-targets-used")).toHaveText("Merged with the shapes graph");
-  await validate(page);
+  await run(page, "shacl");
   await expect(verdict(page)).toHaveText("Does not conform: 1 violation (with the target declarations)");
   await expect(page.locator("#shacl-result table.report tbody")).toContainText("carol");
 
@@ -51,7 +47,7 @@ test("the target declarations are merged with the shapes graph", async ({ page }
   expect([params.get("targets"), params.get("targets-format")]).toEqual([TARGETS, "ntriples"]);
   await open(page, `?${params}#validate/shacl`);
   await expect(page.locator("#shacl-targets-format")).toHaveValue("ntriples");
-  await validate(page);
+  await run(page, "shacl");
   await expect(verdict(page)).toHaveText("Does not conform: 1 violation (with the target declarations)");
 });
 
@@ -60,13 +56,13 @@ test("without a shapes graph, they are merged with the shapes of the RDF data", 
   await setInput(page, "shacl-shapes", "");
   await setInput(page, "shacl-targets", "prefix : <http://example.org/>\nprefix sh: <http://www.w3.org/ns/shacl#>\n:PersonShape sh:targetNode :carol .");
   await expect(page.locator("#shacl-targets-used")).toHaveText("Merged with the shapes of the RDF data");
-  await validate(page);
+  await run(page, "shacl");
   await expect(verdict(page)).toHaveText("Does not conform: 1 violation (with the shapes of the RDF data and the target declarations)");
 });
 
 test("target declarations that are not RDF are an error that says so", async ({ page }) => {
   await setInput(page, "shacl-targets", "this is not turtle");
-  await validate(page);
+  await run(page, "shacl");
   await expect(page.locator("#shacl-result")).toHaveAttribute("data-kind", "error");
   await expect(page.locator("#shacl-output")).toContainText("The target declarations can't be read");
 });
@@ -92,6 +88,6 @@ ${DATA.replace(/^/gm, "    ")}
   await open(page, `?manifestURL=${encodeURIComponent("https://manifests.example/m.yaml")}&example=1`);
   await expect(page.locator("#shacl-targets")).toHaveJSProperty("value", `${TARGETS}\n`);
   await expect(page.locator("#shacl-targets-format")).toHaveValue("ntriples");
-  await validate(page);
+  await run(page, "shacl");
   await expect(verdict(page)).toHaveText(/^Does not conform: 1 violation \(with the target declarations\)/);
 });

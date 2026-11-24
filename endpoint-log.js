@@ -14,6 +14,8 @@
 // go to the network. If they did not fail, rudof would continue to send
 // requests to the endpoint and read its answers in the page.
 
+import { elementIn } from "./dom.js";
+import { count } from "./text.js";
 import { makeResizable } from "./table-tools.js";
 
 // The text of the answers that a log keeps, at most
@@ -165,12 +167,11 @@ export function logCounts(log) {
   return { sent, answered: sent - waiting - failed, waiting, failed };
 }
 
-const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
 // The summary of a log: "8 queries · 7 answered · 1 waiting · 0 failed"
 export function logSummary(log) {
   const { sent, answered, waiting, failed } = logCounts(log);
-  const parts = [plural(sent, "query", "queries"), `${answered} answered`];
+  const parts = [count(sent, "query", "queries"), `${answered} answered`];
   if (waiting || log.end === undefined) parts.push(`${waiting} waiting`);
   parts.push(`${failed} failed`);
   if (log.stopped) parts.push(stoppingText(log));
@@ -180,7 +181,7 @@ export function logSummary(log) {
 // What a stopped run does: rudof goes on until it gives up, without sending
 // its requests
 export function stoppingText(log) {
-  const blocked = log.blocked ? `, ${plural(log.blocked, "request", "requests")} not sent` : "";
+  const blocked = log.blocked ? `, ${count(log.blocked, "request", "requests")} not sent` : "";
   return stopping.has(log) ? `stopping: rudof gives up${blocked}` : `stopped${blocked}`;
 }
 
@@ -198,7 +199,7 @@ export function limitsText({ interval, concurrent, nodes, own = new Set() }, { p
   const texts = {
     interval: interval ? `1 query every ${interval >= 1000 ? `${(interval / 1000).toFixed(1)} s` : `${interval} ms`} at most` : "no wait between queries",
     concurrent: `${concurrent} at a time`,
-    nodes: `${plural(nodes, "node", "nodes")} per query`,
+    nodes: `${count(nodes, "node", "nodes")} per query`,
   };
   return parts.map((part) => texts[part] + (own.has(part) && owner ? ` (set by ${owner})` : "")).join(" · ");
 }
@@ -242,11 +243,7 @@ const COLUMNS = ["#", "Sent", "Status", "Time", "Size", "Nodes", "Query"];
 // shows its query and its answer under it (log.open has the numbers of the
 // requests shown so).
 export function renderQueries(doc, log) {
-  const el = (tag, props = {}, ...children) => {
-    const e = Object.assign(doc.createElement(tag), props);
-    e.append(...children);
-    return e;
-  };
+  const el = (...args) => elementIn(doc, ...args);
   log.open ??= new Set();
   const rows = [];
   const first = Math.max(0, log.entries.length - MAX_ROWS);
@@ -278,7 +275,7 @@ export function renderQueries(doc, log) {
     rows.push(group);
   });
   const body = el("tbody", {}, ...rows.reverse().flat());
-  if (first) body.append(el("tr", { className: "query-none" }, el("td", { colSpan: COLUMNS.length }, `… and ${plural(first, "earlier query", "earlier queries")}, which the table doesn't show`)));
+  if (first) body.append(el("tr", { className: "query-none" }, el("td", { colSpan: COLUMNS.length }, `… and ${count(first, "earlier query", "earlier queries")}, which the table doesn't show`)));
   if (!log.entries.length) body.append(el("tr", { className: "query-none" }, el("td", { colSpan: COLUMNS.length }, "No queries yet: rudof prepares the run.")));
   const table = el("table", { className: "queries" }, el("thead", {}, el("tr", {}, ...COLUMNS.map((c) => el("th", {}, c)))), body);
   // The borders of the columns change their widths, which stay when the

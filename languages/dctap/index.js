@@ -6,6 +6,7 @@
 // and notes are comments.
 // (https://codemirror.net/docs/ref/#language.StreamParser)
 
+import { readQuoted } from "../csv.js";
 import { COLUMNS } from "../../dctap.js";
 
 const SEPARATOR = /^[,\t]/;
@@ -25,13 +26,7 @@ function token(stream, state) {
   }
   // A quoted cell, which can have more than one line. "" is a quote.
   if (state.quoted) {
-    while (!stream.eol()) {
-      if (stream.match('""')) continue;
-      if (stream.next() === '"') {
-        state.quoted = false;
-        break;
-      }
-    }
+    readQuoted(stream, state);
     return cellStyle(state) ?? "string";
   }
   if (stream.match(SEPARATOR)) {

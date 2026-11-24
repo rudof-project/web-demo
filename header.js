@@ -6,6 +6,8 @@
 // An inline script in the <head> of the pages applies the theme kept in the
 // browser before the page is drawn; this module changes it.
 
+import { elementIn } from "./dom.js";
+import { storageOrNone } from "./storage.js";
 import { devDependencies } from "./package.json";
 // The version of the demo: the VERSION file
 import VERSION from "./VERSION?raw";
@@ -45,7 +47,7 @@ function keepTheme(storage, theme) {
 // eslint-disable-next-line no-undef
 const COMMIT = typeof __DEMO_COMMIT__ === "string" ? __DEMO_COMMIT__ : "";
 
-export function setupHeader(doc = document, storage = safeStorage()) {
+export function setupHeader(doc = document, storage = storageOrNone()) {
   const menus = [...doc.querySelectorAll("header details.menu")];
 
   // Only one menu is open at a time. A click outside the menu or Escape closes
@@ -86,7 +88,7 @@ export function setupHeader(doc = document, storage = safeStorage()) {
   if (demo) demo.textContent = DEMO_VERSION;
   const commit = doc.getElementById("about-demo-commit");
   if (commit && COMMIT) {
-    const link = Object.assign(doc.createElement("a"), {
+    const link = elementIn(doc, "a", {
       href: `https://github.com/rudof-project/web-demo/commit/${COMMIT}`,
       textContent: COMMIT,
       title: "The commit of the demo",
@@ -95,12 +97,5 @@ export function setupHeader(doc = document, storage = safeStorage()) {
   }
 }
 
-function safeStorage() {
-  try {
-    return localStorage;
-  } catch {
-    return undefined;
-  }
-}
 
 if (typeof document !== "undefined" && document.querySelector("header.topbar")) setupHeader();

@@ -2,21 +2,12 @@
 // the menus works in rudof. The menus show the other conversions as not
 // available.
 
-import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { Rudof, RudofConfig } from "@rudof/rudof";
 import { LANGUAGES, TARGETS, CONVERSIONS, DEFAULT_TARGET, canConvert, readSchema, convertSchema, sourceLabel, targetLabel, asSource, hasShexImports, hasRelativeImports, readShexSchema, IMPORTS_NEED_ENDPOINTS } from "../../schema-convert.js";
 import { dctapConfig } from "../../dctap.js";
-import { exampleText } from "../../inputs.js";
+import { textarea } from "./page.js";
 
-const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
-const unescape = (text) => text.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
-// The text of a textarea of the page: its example (data-example), or its text
-const textarea = (id) => {
-  const [, attributes, text] = html.match(new RegExp(`<textarea id="${id}"([^>]*)>([\\s\\S]*?)</textarea>`));
-  const example = attributes.match(/data-example="([^"]+)"/);
-  return example ? exampleText(example[1]) : unescape(text);
-};
 
 // The examples of the page, as the Schema tab takes them
 const SOURCES = {

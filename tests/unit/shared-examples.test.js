@@ -2,13 +2,12 @@
 // (data-example, inputs.js). rudof validates them with the results that the
 // tabs expect. Bob has two names and a birth date that is not a date.
 
-import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { JSDOM } from "jsdom";
 import { Rudof } from "@rudof/rudof";
 import { expandInputs, exampleText } from "../../inputs.js";
+import { html } from "./page.js";
 
-const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
 const { document } = new JSDOM(html).window;
 expandInputs(document);
 const exampleOf = (id) => document.getElementById(id).dataset.example;

@@ -2,22 +2,13 @@
 // the conversion and the validation of the profile of the page with it, and
 // the highlighting of profiles (languages/dctap).
 
-import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { StringStream } from "@codemirror/language";
 import { Rudof, RudofConfig } from "@rudof/rudof";
 import { parsePrefixes, dctapConfig, BASIC_PREFIXES } from "../../dctap.js";
 import { dctap } from "../../languages/dctap/index.js";
-import { exampleText } from "../../inputs.js";
+import { textarea } from "./page.js";
 
-const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
-const unescape = (text) => text.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
-// The text of a textarea of the page: its example (data-example), or its text
-const textarea = (id) => {
-  const [, attributes, text] = html.match(new RegExp(`<textarea id="${id}"([^>]*)>([\\s\\S]*?)</textarea>`));
-  const example = attributes.match(/data-example="([^"]+)"/);
-  return example ? exampleText(example[1]) : unescape(text);
-};
 
 const PROFILE = textarea("dctap-schema");
 const PREFIXES = textarea("dctap-prefixes");

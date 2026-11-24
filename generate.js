@@ -3,7 +3,12 @@
 // a correct validator of the language of the schema must find. The data is
 // validated with the schema it came from as soon as it is generated.
 
+import { el } from "./dom.js";
+import { count } from "./text.js";
 import { makeTableTools } from "./table-tools.js";
+
+// A count with thousands separators: "1,200 nodes"
+const countGrouped = (n, word, words) => count(n, word, words, { grouped: true });
 
 // The format of the schema editor (the values of #gen-language) → the
 // language rudof generate reads, and the extension of the examples
@@ -90,7 +95,6 @@ function validateGenerated(rudofModule, generated, language, schema) {
   };
 }
 
-const plural = (n, word, words = `${word}s`) => `${n.toLocaleString("en-US")} ${n === 1 ? word : words}`;
 
 // Generates, validates and compares: the result of the tab (see run in demo.js)
 export function generateData(rudofModule, { schema, format, config, entities, seed }) {
@@ -116,30 +120,25 @@ export function validateWith(rudofModule, result, language, schema) {
   const labels = jsonl(language === "pgschema" ? generated.labels : (generated.rdfLabels ?? generated.labels));
   const expected = new Set(labels.filter((l) => l.kind !== "trap").map((l) => strip(l.node)));
   const what = language === "pgschema" ? ["node or edge", "nodes or edges"] : ["node", "nodes"];
-  const head = `${plural(nodes.length, "node")} of ${plural(shapes, "shape")} generated`;
+  const head = `${countGrouped(nodes.length, "node")} of ${countGrouped(shapes, "shape")} generated`;
   let verdict;
   let kind;
   if (generated.labels) {
     const common = [...validation.failing].filter((n) => expected.has(n)).length;
     const exact = common === expected.size && common === validation.failing.size;
     verdict = exact
-      ? `${head}, ${plural(expected.size, ...what)} broken: ${validation.validator} rejects exactly the ${expected.size} that the report says`
-      : `${head}, ${plural(expected.size, ...what)} broken: ${validation.validator} rejects ${validation.failing.size}, ${common} of them in the report`;
+      ? `${head}, ${countGrouped(expected.size, ...what)} broken: ${validation.validator} rejects exactly the ${expected.size} that the report says`
+      : `${head}, ${countGrouped(expected.size, ...what)} broken: ${validation.validator} rejects ${validation.failing.size}, ${common} of them in the report`;
     kind = exact ? "ok" : "fail";
   } else {
     verdict = validation.failing.size
-      ? `${head}: ${plural(validation.failing.size, ...what)} do not conform to the schema (${validation.validator})`
+      ? `${head}: ${countGrouped(validation.failing.size, ...what)} do not conform to the schema (${validation.validator})`
       : `${head}: valid, every ${what[0]} conforms to the schema (${validation.validator})`;
     kind = validation.failing.size ? "fail" : "ok";
   }
   return { ...result, verdict, kind, labels, validation, validatedWith: language };
 }
 
-const el = (tag, props = {}, ...children) => {
-  const e = Object.assign(document.createElement(tag), props);
-  e.append(...children);
-  return e;
-};
 
 function table(headers, rows) {
   return makeTableTools(
@@ -153,23 +152,23 @@ export function serializeGenerated(result, view) {
   switch (view) {
     case "summary": {
       const row = (what, value) => el("tr", {}, el("td", {}, what), el("td", { className: "number" }, value));
-      const count = (n) => n.toLocaleString("en-US");
-      const rows = [row("Nodes generated", count(result.nodes.length))];
+      const number = (n) => n.toLocaleString("en-US");
+      const rows = [row("Nodes generated", number(result.nodes.length))];
       if (generated.propertyGraph) {
         const lines = generated.propertyGraph.split("\n").filter((l) => l.trim());
         const edges = lines.filter((l) => l.includes(")->")).length;
-        rows.push(row("Property graph: nodes / edges", `${count(lines.length - edges)} / ${count(edges)}`));
+        rows.push(row("Property graph: nodes / edges", `${number(lines.length - edges)} / ${number(edges)}`));
       }
       if (generated.labels) {
         const broken = labels.filter((l) => l.kind !== "trap");
-        rows.push(row("Report: rejected (direct, induced) / traps", `${count(broken.length)} (${count(broken.filter((l) => l.kind === "direct").length)}, ${count(broken.filter((l) => l.kind === "induced").length)}) / ${count(labels.length - broken.length)}`));
+        rows.push(row("Report: rejected (direct, induced) / traps", `${number(broken.length)} (${number(broken.filter((l) => l.kind === "direct").length)}, ${number(broken.filter((l) => l.kind === "induced").length)}) / ${number(labels.length - broken.length)}`));
       }
-      rows.push(row(`${validation.validator} rejects`, count(validation.failing.size)));
+      rows.push(row(`${validation.validator} rejects`, number(validation.failing.size)));
       rows.push(row("Generation time", `${Math.max(1, Math.round(result.millis)).toLocaleString("en-US")} ms`));
       const perShape = new Map();
       for (const { shape } of result.nodes) perShape.set(local(shape), (perShape.get(local(shape)) ?? 0) + 1);
-      for (const [shape, n] of [...perShape].sort((a, b) => b[1] - a[1])) rows.push(row(el("span", {}, "Nodes of ", el("code", {}, shape)), count(n)));
-      return table(["", ""], rows);
+      for (const [shape, n] of [...perShape].sort((a, b) => b[1] - a[1])) rows.push(row(el("span", {}, "Nodes of ", el("code", {}, shape)), number(n)));
+      return table(["Item", "Value"], rows);
     }
     case "turtle":
       return generated.data;

@@ -3,13 +3,9 @@
 // gets. Saving checks the settings first (check), and gives them to the page
 // (onSave).
 
+import { elementIn as el } from "./dom.js";
 import { SETTINGS, ALL_SETTINGS, emptySettings, settingValue, changedCount } from "./settings.js";
 
-function el(doc, tag, props = {}, ...children) {
-  const e = Object.assign(doc.createElement(tag), props);
-  e.append(...children);
-  return e;
-}
 
 const fieldId = (key) => `setting-${key.replace(/\./g, "-")}`;
 

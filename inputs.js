@@ -35,6 +35,7 @@
 // It runs as a module of its own, before codemirror-setup.js, which makes the
 // editors as soon as it runs.
 
+import { elementIn as el } from "./dom.js";
 import { LANGUAGES, RDF_FORMATS } from "./schema-convert.js";
 
 // The examples of the inputs, by their path in examples/
@@ -60,11 +61,6 @@ export const INPUT_KINDS = ["rdf", "schema", "query"];
 // The languages of queries, and their formats: [value, label]
 export const QUERY_LANGUAGES = { sparql: { label: "SPARQL", formats: [["sparql", "SPARQL"]] } };
 
-function el(doc, tag, props = {}, ...children) {
-  const e = Object.assign(doc.createElement(tag), props);
-  e.append(...children);
-  return e;
-}
 
 // The formats of an input: [value, label], or undefined when the page
 // chooses them

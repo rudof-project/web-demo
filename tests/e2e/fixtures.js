@@ -80,3 +80,10 @@ export async function open(page, fragment = "") {
 export async function setInput(page, id, text) {
   await page.locator(`#${id}`).evaluate((textarea, value) => (textarea.value = value), text);
 }
+
+// Clicks the button that runs a tab (Validate, Run query…) and waits for the
+// end of the run. `prefix` is the prefix of the ids of the tab ("shex").
+export async function run(page, prefix) {
+  await page.locator(`#${prefix}-validate`).click();
+  await expect(page.locator(`#${prefix}-result`)).not.toHaveAttribute("data-kind", "running");
+}

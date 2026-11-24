@@ -5,7 +5,7 @@
   --border: #d8dce2;
   --text: #1d2126;
   --muted: #5b6470;
-  --accent: #1f6feb;
+  --accent: #1a66d9;
   --accent-text: #ffffff;
   --ok-bg: #e6f4ea;
   --ok-text: #1a6b32;
@@ -20,7 +20,7 @@
   --cm-number: #b35900;
   --cm-comment: #6e7781;
   --cm-variable: #0550ae;
-  --cm-iri: #1f6feb;
+  --cm-iri: #1a66d9;
   --cm-prefix: #953800;
   --cm-property: #116329;
   --cm-tag: #0550ae;
@@ -115,6 +115,7 @@ code { font-family: var(--mono); font-size: 0.9em; }
   border-bottom: 1px solid var(--border);
 }
 .brand { display: flex; align-items: center; gap: 0.5rem; }
+h1.brand { margin: 0; font-size: inherit; font-weight: inherit; }
 .logo {
   display: inline-flex;
   align-items: center;
@@ -201,7 +202,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 1rem; }
 [data-layout^="stacked"] .splitter { display: none; }
 @media (max-width: 760px) {
   .inputs.two { grid-template-columns: minmax(0, 1fr); }
-  .splitter, .layout-choice { display: none; }
+  .splitter, .tabs-row label.layout-choice { display: none; }
 }
 .field { display: flex; flex-direction: column; margin-bottom: 1rem; min-width: 0; }
 .field-head {
@@ -287,7 +288,7 @@ button.primary:disabled { opacity: 0.5; cursor: progress; }
 .result[data-kind="ok"] .result-head { background: var(--ok-bg); color: var(--ok-text); }
 .result[data-kind="fail"] .result-head { background: var(--fail-bg); color: var(--fail-text); }
 .result[data-kind="error"] .result-head { background: var(--warn-bg); color: var(--warn-text); }
-.timing { font-weight: 400; opacity: 0.8; margin-left: auto; }
+.timing { font-weight: 400; margin-left: auto; }
 
 /* The queries of a run on an endpoint (endpoint-log.js). While the run waits,
    the result shows them. After the run, the switch "Result | Queries" of the
@@ -513,6 +514,18 @@ button.secondary:disabled { opacity: 0.5; cursor: default; }
 @media (max-width: 480px) {
   [role="tab"] { padding: 0.5rem 0.8rem; }
 }
+/* Phones: iOS zooms in on a field with text smaller than 16 px when it gets
+   the focus. The read-only viewers keep their size. */
+@media (max-width: 760px) {
+  input, select, textarea, .cm-editor[data-editor-for] .cm-content { font-size: 16px; }
+}
+/* Touch screens: controls of at least 24 × 24 px (WCAG 2.5.8) */
+@media (pointer: coarse) {
+  input[type="checkbox"], input[type="radio"] { width: 1.25rem; height: 1.25rem; }
+  .view-switch button, .filter-button { min-height: 28px; min-width: 28px; }
+  .col-resizer { width: 16px; }
+  button.link { min-height: 24px; min-width: 24px; }
+}
 
 /* Second level of tabs (inside Data, Validate and Query): segmented buttons */
 .tabs.subtabs {
@@ -605,6 +618,14 @@ table.solutions .term-note { color: var(--muted); font: 11px var(--mono); }
 }
 .tabs-row > .tabs { flex: 1; min-width: 0; border-bottom: none; margin-bottom: 0; align-self: flex-end; }
 #permalink { flex: none; padding: 0.25rem 0.8rem; font-size: 0.9em; }
+/* Narrow screens: the section tabs get a row of their own, below Permalink,
+   and wrap to a second line. Without this, the other items of the row make
+   the tabs 0 px wide. */
+@media (max-width: 760px) {
+  .tabs-row { flex-wrap: wrap; }
+  .tabs-row > .tabs { flex: 1 1 100%; order: 2; flex-wrap: wrap; overflow-x: visible; }
+  #permalink { order: 1; margin-left: auto; }
+}
 
 /* Schema conversion, below the validation of each schema language */
 .toolbar.schema-tools { margin-top: 1rem; }
@@ -632,6 +653,8 @@ table.solutions .term-note { color: var(--muted); font: 11px var(--mono); }
   text-decoration: none;
 }
 .link:hover { text-decoration: underline; }
+/* The placeholder of the editors, with the contrast of other muted text */
+.cm-editor .cm-placeholder { color: var(--muted); }
 a.link:not([href]) { color: var(--muted); pointer-events: none; }
 .diagram-image { overflow: auto; padding: 0.75rem; max-height: 40rem; }
 .diagram-image img { display: block; max-width: 100%; height: auto; background: #fff; border-radius: 4px; padding: 0.5rem; }
@@ -709,6 +732,9 @@ body.has-maximized { overflow: hidden; }
   color: var(--text);
 }
 .endpoint-row input.endpoint:disabled { opacity: 0.6; }
+@media (max-width: 760px) {
+  .endpoint-row input.endpoint { font-size: 16px; }
+}
 .endpoint-row input.endpoint:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .field.unused > .cm-editor { opacity: 0.5; }
 .result[data-kind="running"] .result-head { color: var(--muted); font-weight: 400; }
@@ -1046,6 +1072,9 @@ table.csv-result td code { font-size: 12px; white-space: pre-wrap; overflow-wrap
 .compare-options { flex-wrap: wrap; }
 .compare-shape { margin-top: 0.4rem; }
 .compare-shape input { font: inherit; font-family: var(--mono); padding: 0.2rem 0.4rem; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: inherit; min-width: 12rem; }
+@media (max-width: 760px) {
+  .compare-shape input { font-size: 16px; }
+}
 .compare-differences > p { margin: 0.6rem 0.75rem; }
 ul.compare-bnodes { margin: 0 0.75rem 0.75rem; padding-left: 1.2rem; }
 ul.compare-bnodes code { font-size: 0.9em; }
